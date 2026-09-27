@@ -1,0 +1,16 @@
+{
+  "metadata": {
+    "title": "Mundo Motos | Refaccionaria y taller de motos",
+    "description": "Refacciones, accesorios y taller mecánico para tu moto. Cotiza por WhatsApp y visítanos."
+  },
+  "home": {
+    "eyebrow": "Refaccionaria & Taller",
+    "title": "Mundo Motos",
+    "comingSoon": "Muy pronto, nuestro sitio. Mientras tanto, escríbenos por WhatsApp."
+  },
+  "notFound": {
+    "title": "Esta página no existe",
+    "description": "Puede que el enlace esté mal escrito o que la página ya no esté disponible.",
+    "backHome": "Volver al inicio"
+  }
+}

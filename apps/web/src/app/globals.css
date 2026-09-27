@@ -1,0 +1,91 @@
+@import 'tailwindcss';
+
+/*
+ * Design tokens (docs/design-system.md): the reference system with the Mundo Motos palette.
+ * Components use these tokens only; hex literals in components are a lint error.
+ * Note: named spacing keys (6, 12, 18…) are pixel values from the 6px base scale.
+ */
+@theme {
+  --color-void: #000000;
+  --color-bone-white: #ffffff;
+  --color-ash-gray: #9a9a9a;
+  --color-silver-mist: #bdbdbd;
+  --color-racing-red: #d7191d;
+  --color-racing-red-hover: #c4161a;
+  --color-flame-red: #f01513;
+  --color-flame-orange: #fd4616;
+  --color-ember: #ee751c;
+  --color-amber: #fda211;
+  --color-ignition-gold: #fbc315;
+  --color-whatsapp: #25d366;
+
+  --text-caption: 12px;
+  --text-nav-label: 14px;
+  --text-body: 18px;
+  --text-body--line-height: 1.5;
+  --text-heading-2xs: 24px;
+  --text-heading-xs: 27px;
+  --text-subheading: 36px;
+  --text-heading-sm: 42px;
+  --text-heading: 48px;
+  --text-heading-lg: clamp(44px, 7vw, 78px);
+  --text-heading-lg--line-height: 1.1;
+  --text-display: clamp(56px, 10vw, 113px);
+  --text-display--line-height: 1.1;
+
+  --tracking-display: -0.04em;
+  --tracking-label: 0.025em;
+
+  --spacing-6: 6px;
+  --spacing-12: 12px;
+  --spacing-18: 18px;
+  --spacing-24: 24px;
+  --spacing-30: 30px;
+  --spacing-36: 36px;
+  --spacing-60: 60px;
+  --spacing-96: 96px;
+  --spacing-120: 120px;
+
+  --radius-3xl: 24px;
+  --radius-full: 9999px;
+
+  --container-page: 1280px;
+}
+
+@theme inline {
+  --font-sans:
+    var(--font-inter), ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+
+@layer base {
+  html {
+    background-color: var(--color-void);
+    color: var(--color-bone-white);
+    font-feature-settings: 'ss01' on;
+    color-scheme: dark;
+  }
+
+  body {
+    font-family: var(--font-sans);
+    font-size: var(--text-body);
+    font-weight: 200;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-ignition-gold);
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      scroll-behavior: auto !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}

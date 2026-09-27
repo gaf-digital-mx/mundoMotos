@@ -1,0 +1,39 @@
+{
+  "name": "@mundomotos/web",
+  "version": "0.0.0",
+  "private": true,
+  "license": "MIT",
+  "description": "Next.js static export: public site, catalog, challenges and admin UI.",
+  "type": "module",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "lint": "next typegen && eslint .",
+    "typecheck": "next typegen && tsc --noEmit",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "test:e2e": "playwright test"
+  },
+  "dependencies": {
+    "@mundomotos/contracts": "workspace:*",
+    "next": "16.3.6",
+    "next-intl": "4.14.7",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "server-only": "^0.0.1"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "4.13.0",
+    "@mundomotos/eslint-config": "workspace:*",
+    "@mundomotos/tsconfig": "workspace:*",
+    "@playwright/test": "1.63.0",
+    "@tailwindcss/postcss": "4.3.3",
+    "@testing-library/jest-dom": "7.0.1",
+    "@testing-library/react": "16.3.3",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@vitejs/plugin-react": "^6.1.1",
+    "happy-dom": "20.14.5",
+    "tailwindcss": "4.3.3"
+  }
+}
