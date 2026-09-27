@@ -1,0 +1,10 @@
+{
+  "//": "Resolution-only config for dependency-cruiser (path aliases across the monorepo).",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": { "@/*": ["apps/web/src/*"] },
+    "allowJs": true,
+    "jsx": "preserve"
+  },
+  "include": ["apps/*/src", "packages/*/src"]
+}

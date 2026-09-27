@@ -1,0 +1,17 @@
+packages:
+  - apps/*
+  - packages/*
+
+# pnpm 10 blocks dependency lifecycle scripts by default; allow only the ones that need native binaries.
+onlyBuiltDependencies:
+  - '@tailwindcss/oxide'
+  - esbuild
+  - lefthook
+  - sharp
+  - unrs-resolver
+  - workerd
+
+# Ship prebuilt binaries via optional dependencies; their install scripts are not needed.
+ignoredBuiltDependencies:
+  - '@parcel/watcher'
+  - '@swc/core'

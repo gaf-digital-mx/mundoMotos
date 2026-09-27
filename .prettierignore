@@ -1,0 +1,10 @@
+pnpm-lock.yaml
+**/out/
+**/.next/
+**/.turbo/
+**/.wrangler/
+**/coverage/
+**/playwright-report/
+**/test-results/
+**/worker-configuration.d.ts
+CHANGELOG.md

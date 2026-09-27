@@ -1,0 +1,31 @@
+name: Feature / story
+description: A user-facing capability or technical task
+labels: [enhancement]
+body:
+  - type: textarea
+    id: story
+    attributes:
+      label: Story
+      placeholder: As a <visitor | customer | owner>, I want … so that …
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      placeholder: |
+        - [ ] …
+    validations:
+      required: true
+  - type: dropdown
+    id: phase
+    attributes:
+      label: Phase
+      options:
+        [
+          '0 — Foundations',
+          '1 — MVP landing',
+          '2 — Catalog + admin',
+          '3 — Challenges + coupons',
+          '4 — English',
+        ]

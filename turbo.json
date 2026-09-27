@@ -1,0 +1,38 @@
+{
+  "$schema": "https://turborepo.com/schema.json",
+  "ui": "stream",
+  "globalEnv": ["SITE_URL", "SITE_INDEXABLE", "BUSINESS_*", "NEXT_PUBLIC_*"],
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": ["out/**", "dist/**", ".next/**", "!.next/cache/**"]
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true
+    },
+    "lint": {
+      "dependsOn": ["^build"]
+    },
+    "typecheck": {
+      "dependsOn": ["^build"]
+    },
+    "test": {
+      "outputs": []
+    },
+    "test:coverage": {
+      "outputs": ["coverage/**"]
+    },
+    "test:integration": {
+      "outputs": []
+    },
+    "@mundomotos/api#build": {
+      "dependsOn": ["@mundomotos/web#build"],
+      "outputs": ["dist/**"]
+    },
+    "@mundomotos/web#test:e2e": {
+      "dependsOn": ["build", "@mundomotos/api#build"],
+      "cache": false
+    }
+  }
+}
