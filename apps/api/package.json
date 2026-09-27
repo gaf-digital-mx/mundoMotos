@@ -1,0 +1,29 @@
+{
+  "name": "@mundomotos/api",
+  "version": "0.0.0",
+  "private": true,
+  "license": "MIT",
+  "description": "Cloudflare Worker: Hono API under /api/* plus the locale-aware static site.",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "cf-typegen": "wrangler types --env-interface Env",
+    "lint": "eslint .",
+    "typecheck": "wrangler types --env-interface Env && tsc --noEmit",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "test:integration": "vitest run --config vitest.integration.config.ts",
+    "build": "wrangler deploy --dry-run --outdir dist",
+    "postinstall": "wrangler types --env-interface Env"
+  },
+  "dependencies": {
+    "@mundomotos/contracts": "workspace:*",
+    "hono": "4.13.9"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-pool-workers": "0.22.0",
+    "@mundomotos/eslint-config": "workspace:*",
+    "@mundomotos/tsconfig": "workspace:*",
+    "wrangler": "4.141.0"
+  }
+}

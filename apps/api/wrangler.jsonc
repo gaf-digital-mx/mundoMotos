@@ -1,0 +1,26 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "mundomotos",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-08-15",
+  "workers_dev": true,
+  "preview_urls": true,
+  "observability": { "enabled": true },
+  // The static site (Next.js export) is served from the same Worker (ADR-0003).
+  // Page/RSC requests run the Worker first for the cookie-based locale rewrite (ADR-0008);
+  // fingerprinted, locale-agnostic files are served directly without invoking the script.
+  "assets": {
+    "directory": "../web/out",
+    "binding": "ASSETS",
+    "html_handling": "auto-trailing-slash",
+    "not_found_handling": "404-page",
+    "run_worker_first": ["/*", "!/_next/static/*", "!/brand/*", "!/favicon.ico"],
+  },
+  // Site identity and business contact vars are NOT declared here: they are injected at deploy
+  // time with `--var` from GitHub Environment variables (ADR-0016) and locally from .dev.vars.
+  "env": {
+    "staging": {
+      "name": "mundomotos-staging",
+    },
+  },
+}

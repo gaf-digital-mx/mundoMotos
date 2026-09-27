@@ -1,0 +1,13 @@
+// Integration-test Worker: same code, assets from a small fixture tree instead of the web build.
+{
+  "name": "mundomotos-test",
+  "main": "../src/index.ts",
+  "compatibility_date": "2026-08-15",
+  "assets": {
+    "directory": "./fixtures/site",
+    "binding": "ASSETS",
+    "html_handling": "auto-trailing-slash",
+    "not_found_handling": "404-page",
+    "run_worker_first": ["/*", "!/_next/static/*", "!/brand/*", "!/favicon.ico"],
+  },
+}
