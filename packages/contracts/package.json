@@ -1,0 +1,25 @@
+{
+  "name": "@mundomotos/contracts",
+  "version": "0.0.0",
+  "private": true,
+  "license": "MIT",
+  "description": "Zod schemas and types shared by the web app and the API. The only allowed coupling between them.",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage"
+  },
+  "dependencies": {
+    "zod": "4.6.5"
+  },
+  "devDependencies": {
+    "@mundomotos/eslint-config": "workspace:*",
+    "@mundomotos/tsconfig": "workspace:*"
+  }
+}
