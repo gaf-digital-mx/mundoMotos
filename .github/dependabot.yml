@@ -1,0 +1,54 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 10
+    commit-message:
+      prefix: build
+      include: scope
+    groups:
+      react-next:
+        patterns: ['next', '@next/*', 'react', 'react-dom', '@types/react*', 'next-intl']
+      cloudflare:
+        # The Workers Vitest pool pins compatible Vitest/Wrangler ranges: update together.
+        patterns: ['wrangler', '@cloudflare/*', 'vitest', '@vitest/*']
+      testing:
+        patterns: ['@playwright/test', '@axe-core/*', '@testing-library/*', 'happy-dom']
+      lint:
+        patterns:
+          [
+            'eslint',
+            '@eslint/*',
+            'eslint-*',
+            'typescript-eslint',
+            '@typescript-eslint/*',
+            'prettier',
+            'prettier-*',
+          ]
+    ignore:
+      # Majors blocked by peer ranges: typescript-eslint needs TS < 6.1,
+      # the Workers Vitest pool needs Vitest 4, jsx-a11y supports ESLint ≤ 9.
+      - dependency-name: typescript
+        update-types: ['version-update:semver-major']
+      - dependency-name: vitest
+        update-types: ['version-update:semver-major']
+      - dependency-name: '@vitest/*'
+        update-types: ['version-update:semver-major']
+      - dependency-name: eslint
+        update-types: ['version-update:semver-major']
+      - dependency-name: '@eslint/js'
+        update-types: ['version-update:semver-major']
+
+  - package-ecosystem: github-actions
+    directories: ['/', '/.github/actions/*']
+    schedule:
+      interval: weekly
+      day: monday
+    commit-message:
+      prefix: ci
+    groups:
+      actions:
+        patterns: ['*']

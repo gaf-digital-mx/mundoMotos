@@ -1,0 +1,99 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  # Test-only site configuration. Real values live in GitHub Environments (ADR-0016).
+  SITE_URL: http://127.0.0.1:8788
+  SITE_INDEXABLE: 'false'
+  BUSINESS_WHATSAPP_NUMBER: '525500000000'
+  BUSINESS_FACEBOOK_URL: https://www.facebook.com/
+  TURBO_TELEMETRY_DISABLED: 1
+  NEXT_TELEMETRY_DISABLED: 1
+
+jobs:
+  pr-title:
+    name: PR title (Conventional Commits)
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup
+      - name: Lint PR title (becomes the squash commit)
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: printf '%s\n' "$PR_TITLE" | pnpm exec commitlint
+
+  quality:
+    name: Lint, format, architecture, types
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup
+      - run: pnpm format:check
+      - run: pnpm lint
+      - run: pnpm lint:deps
+      - run: pnpm typecheck
+
+  test:
+    name: Unit + integration tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup
+      - run: pnpm test:coverage
+      - run: pnpm test:integration
+      - name: Upload coverage
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: coverage
+          path: '**/coverage/'
+          retention-days: 14
+
+  e2e:
+    name: Build, budgets, E2E + accessibility
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup
+      - run: pnpm build
+      - run: pnpm check:budgets
+      - name: Local Worker vars
+        run: cp apps/api/.dev.vars.example apps/api/.dev.vars
+      - name: Install Playwright browsers
+        run: pnpm --filter @mundomotos/web exec playwright install --with-deps chromium webkit
+      - run: pnpm test:e2e
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: playwright-report
+          path: apps/web/playwright-report/
+          retention-days: 14
+
+  lighthouse:
+    name: Lighthouse budgets
+    runs-on: ubuntu-latest
+    env:
+      # Audit the site as it will be at launch (indexable), so the SEO category is meaningful.
+      SITE_INDEXABLE: 'true'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup
+      - run: pnpm build
+      - name: Local Worker vars (indexable)
+        run: sed 's/^SITE_INDEXABLE=.*/SITE_INDEXABLE=true/' apps/api/.dev.vars.example > apps/api/.dev.vars
+      - name: Run Lighthouse CI
+        working-directory: apps/web
+        run: pnpm dlx @lhci/cli@0.15.1 autorun

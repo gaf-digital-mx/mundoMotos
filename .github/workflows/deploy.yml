@@ -1,0 +1,85 @@
+name: Deploy (reusable)
+
+# Builds a ref, deploys it to a Cloudflare Worker environment, smoke-tests it and rolls back
+# on failure. Site identity and contact data come from the GitHub Environment (ADR-0016).
+on:
+  workflow_call:
+    inputs:
+      environment:
+        description: GitHub Environment (staging | production)
+        required: true
+        type: string
+      ref:
+        description: Git ref to deploy
+        required: true
+        type: string
+    secrets:
+      CLOUDFLARE_API_TOKEN:
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: ${{ inputs.environment }}
+      url: ${{ vars.SITE_URL }}
+    concurrency:
+      group: deploy-${{ inputs.environment }}
+      cancel-in-progress: false
+    env:
+      SITE_URL: ${{ vars.SITE_URL }}
+      SITE_INDEXABLE: ${{ vars.SITE_INDEXABLE }}
+      BUSINESS_WHATSAPP_NUMBER: ${{ vars.BUSINESS_WHATSAPP_NUMBER }}
+      BUSINESS_PHONE_NUMBER: ${{ vars.BUSINESS_PHONE_NUMBER }}
+      BUSINESS_FACEBOOK_URL: ${{ vars.BUSINESS_FACEBOOK_URL }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+      WRANGLER_ENV_FLAG: ${{ inputs.environment == 'staging' && '--env staging' || '' }}
+      # Untrusted input goes through env vars, never inline `${{ }}` in `run:` (script injection).
+      DEPLOY_REF: ${{ inputs.ref }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.ref }}
+      - uses: ./.github/actions/setup
+      - run: pnpm build
+
+      - name: Validate ref
+        run: |
+          if [[ ! "$DEPLOY_REF" =~ ^(v[0-9]+\.[0-9]+\.[0-9]+|[0-9a-f]{40})$ ]]; then
+            echo "::error::Refusing to deploy '$DEPLOY_REF': expected a release tag (vX.Y.Z) or a commit SHA."
+            exit 1
+          fi
+
+      - name: Deploy Worker (static site + API)
+        id: deploy
+        working-directory: apps/api
+        run: |
+          pnpm exec wrangler deploy $WRANGLER_ENV_FLAG \
+            --message "$DEPLOY_REF @ ${GITHUB_SHA::7}" \
+            --var SITE_URL:"$SITE_URL" --var SITE_INDEXABLE:"$SITE_INDEXABLE" \
+            --var BUSINESS_WHATSAPP_NUMBER:"$BUSINESS_WHATSAPP_NUMBER" \
+            ${BUSINESS_PHONE_NUMBER:+--var BUSINESS_PHONE_NUMBER:"$BUSINESS_PHONE_NUMBER"} \
+            --var BUSINESS_FACEBOOK_URL:"$BUSINESS_FACEBOOK_URL" \
+            --var APP_VERSION:"$DEPLOY_REF"
+
+      - name: Install Playwright (Chromium)
+        run: pnpm --filter @mundomotos/web exec playwright install --with-deps chromium
+      - name: Smoke tests against ${{ vars.SITE_URL }}
+        id: smoke
+        env:
+          BASE_URL: ${{ vars.SITE_URL }}
+          EXPECT_INDEXABLE: ${{ vars.SITE_INDEXABLE }}
+        run: pnpm --filter @mundomotos/web exec playwright test --grep @smoke --project desktop
+
+      # Any failure after a successful deploy (including a skipped smoke run) means the new version
+      # is unverified: roll back to the previous one.
+      - name: Roll back unverified deploy
+        if: failure() && steps.deploy.outcome == 'success'
+        working-directory: apps/api
+        run: |
+          pnpm exec wrangler rollback $WRANGLER_ENV_FLAG \
+            --message "Automatic rollback: post-deploy verification failed for $DEPLOY_REF"

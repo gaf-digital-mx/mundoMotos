@@ -1,0 +1,19 @@
+name: Deploy staging
+
+on:
+  push:
+    branches: [main]
+  # Re-run after changing a GitHub Environment variable (e.g. the WhatsApp number): no commit needed.
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  staging:
+    uses: ./.github/workflows/deploy.yml
+    with:
+      environment: staging
+      ref: ${{ github.sha }}
+    secrets:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
