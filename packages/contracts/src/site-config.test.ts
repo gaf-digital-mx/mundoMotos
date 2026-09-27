@@ -25,6 +25,17 @@ describe('parseSiteConfig', () => {
     expect(config.phoneNumber).toBe('525511111111');
   });
 
+  it('treats an empty optional variable as unset (GitHub renders unset vars as "")', () => {
+    const config = parseSiteConfig({ ...validEnv, BUSINESS_PHONE_NUMBER: '' });
+    expect(config.phoneNumber).toBe(validEnv.BUSINESS_WHATSAPP_NUMBER);
+  });
+
+  it('rejects a SITE_URL without scheme with a clear message', () => {
+    expect(() => parseSiteConfig({ ...validEnv, SITE_URL: 'example.workers.dev' })).toThrow(
+      /SITE_URL/,
+    );
+  });
+
   it('parses SITE_INDEXABLE strictly', () => {
     expect(parseSiteConfig({ ...validEnv, SITE_INDEXABLE: 'true' }).indexable).toBe(true);
     expect(() => parseSiteConfig({ ...validEnv, SITE_INDEXABLE: 'yes' })).toThrow(/SITE_INDEXABLE/);

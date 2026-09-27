@@ -5,6 +5,10 @@ const phoneNumber = z
   .string()
   .regex(/^\d{10,15}$/, 'Expected digits only, including country code (E.164 without "+")');
 
+/** GitHub Actions renders unset variables as empty strings: treat them as missing. */
+const optional = <T extends z.ZodType>(schema: T) =>
+  z.preprocess((value) => (value === '' ? undefined : value), schema.optional());
+
 const booleanString = z.enum(['true', 'false']).transform((value) => value === 'true');
 
 /**
@@ -16,7 +20,7 @@ export const siteConfigSchema = z
     SITE_URL: z.url().transform((url) => url.replace(/\/+$/, '')),
     SITE_INDEXABLE: booleanString,
     BUSINESS_WHATSAPP_NUMBER: phoneNumber,
-    BUSINESS_PHONE_NUMBER: phoneNumber.optional(),
+    BUSINESS_PHONE_NUMBER: optional(phoneNumber),
     BUSINESS_FACEBOOK_URL: z.url(),
   })
   .transform((env) => ({
