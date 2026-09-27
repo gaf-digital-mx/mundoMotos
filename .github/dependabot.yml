@@ -29,6 +29,9 @@ updates:
             'prettier-*',
           ]
     ignore:
+      # Node type definitions track the runtime (.nvmrc = 24), not the latest Node release.
+      - dependency-name: '@types/node'
+        update-types: ['version-update:semver-major']
       # Majors blocked by peer ranges: typescript-eslint needs TS < 6.1,
       # the Workers Vitest pool needs Vitest 4, jsx-a11y supports ESLint ≤ 9.
       - dependency-name: typescript
