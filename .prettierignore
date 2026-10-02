@@ -7,4 +7,6 @@ pnpm-lock.yaml
 **/playwright-report/
 **/test-results/
 **/worker-configuration.d.ts
+# Written by release-please
 CHANGELOG.md
+.release-please-manifest.json
