@@ -16,6 +16,6 @@ describe('es message catalog', () => {
   });
 
   it('keeps the brand name consistent', () => {
-    expect(es.home.title).toBe('Mundo Motos');
+    expect(es.metadata.title).toContain('Mundo Motos');
   });
 });

@@ -15,11 +15,6 @@
   "header": {
     "tagline": "Refaccionaria & Taller"
   },
-  "home": {
-    "eyebrow": "Refaccionaria & Taller",
-    "title": "Mundo Motos",
-    "comingSoon": "Muy pronto, nuestro sitio. Mientras tanto, escríbenos por WhatsApp."
-  },
   "footer": {
     "about": "Refacciones, accesorios y taller mecánico para tu moto en Tepetlixpa y alrededores. Buen precio, buen servicio.",
     "visitTitle": "Visítanos",
@@ -42,7 +37,7 @@
     "updated": "Última actualización: {date}",
     "intro": "Mundo Motos, con domicilio en {address}, es responsable del tratamiento de los datos personales que llegues a compartirnos, conforme a la Ley Federal de Protección de Datos Personales en Posesión de los Particulares.",
     "collectTitle": "¿Qué datos recaba este sitio?",
-    "collectBody": "El sitio por sí mismo no recaba ni guarda datos personales: no tiene registro de usuarios ni formularios que almacenen información. Los únicos datos que recibimos son los que tú decides enviarnos por WhatsApp.",
+    "collectBody": "El sitio por sí mismo no recaba ni guarda datos personales: no tiene registro de usuarios y el formulario de consulta no almacena lo que escribes. Al enviarlo, se abre WhatsApp con tu mensaje y solo nos llega si tú decides enviarlo desde ahí.",
     "whatsappTitle": "Datos que nos envías por WhatsApp",
     "whatsappBody": "Si nos escribes, usaremos tu nombre, número y mensaje únicamente para responder tu consulta, cotizar refacciones o servicios y darte seguimiento (finalidades necesarias). No los usamos para publicidad ni para otras finalidades, y no los vendemos ni los transferimos a terceros. Los mensajes se transmiten a través de WhatsApp, un servicio de Meta que tiene su propio aviso de privacidad.",
     "rightsTitle": "Tus derechos ARCO",
@@ -54,5 +49,147 @@
     "title": "Esta página no existe",
     "description": "Puede que el enlace esté mal escrito o que la página ya no esté disponible.",
     "backHome": "Volver al inicio"
+  },
+  "nav": {
+    "label": "Secciones",
+    "services": "Servicios",
+    "featured": "Refacciones",
+    "location": "Ubicación",
+    "contact": "Contacto"
+  },
+  "hero": {
+    "eyebrow": "Refaccionaria & Taller en Tepetlixpa",
+    "title": "Refacciones y taller para tu moto",
+    "body": "Encuentra refacciones, accesorios y servicio mecánico con la mejor relación calidad–precio de Tepetlixpa y alrededores.",
+    "cta": "Cotiza por WhatsApp",
+    "directions": "Cómo llegar",
+    "whatsappMessage": "Hola, Mundo Motos. Quiero cotizar una refacción o un servicio."
+  },
+  "valueProp": {
+    "eyebrow": "Por qué Mundo Motos",
+    "title": "Buen precio, buen servicio. Sin vueltas.",
+    "items": {
+      "parts": {
+        "title": "Refacciones multimarca",
+        "body": "Llantas, balatas, iluminación, accesorios y equipo de protección para la mayoría de las motos."
+      },
+      "workshop": {
+        "title": "Taller mecánico",
+        "body": "Afinaciones, frenos, punterías y más, en manos de mecánicos que conocen tu moto."
+      },
+      "direct": {
+        "title": "Atención directa",
+        "body": "Pregunta por WhatsApp si tenemos tu pieza y pasa por ella. Sin citas: te atendemos por orden de llegada."
+      }
+    }
+  },
+  "services": {
+    "eyebrow": "Taller",
+    "title": "Servicios para que tu moto ruede como nueva",
+    "body": "Llega sin cita: te atendemos por orden de llegada. ¿Quieres saber el precio antes? Cotiza por WhatsApp.",
+    "quote": "Cotizar",
+    "quoteMessage": "Hola, Mundo Motos. Quiero cotizar: {service}.",
+    "items": {
+      "tuneUp": {
+        "name": "Afinación",
+        "body": "Revisión y ajuste del motor, bujías y filtros para que tu moto rinda mejor."
+      },
+      "brakes": {
+        "name": "Cambio de balatas",
+        "body": "Frenos seguros: revisamos y cambiamos balatas delanteras y traseras."
+      },
+      "tires": {
+        "name": "Cambio de llantas",
+        "body": "Montaje de llantas y cámaras; te ayudamos a elegir la medida correcta."
+      },
+      "valves": {
+        "name": "Calibración de punterías",
+        "body": "Ajuste de válvulas para un motor más suave, silencioso y eficiente."
+      },
+      "accessories": {
+        "name": "Instalación de accesorios",
+        "body": "Instalamos faros, direccionales, sliders, puños y más."
+      },
+      "adjustments": {
+        "name": "Ajustes generales",
+        "body": "Cadena, cables, clutch y frenos ajustados para que manejes con confianza."
+      },
+      "lighting": {
+        "name": "Iluminación",
+        "body": "Instalación y reparación de focos, direccionales, stop y luces LED."
+      }
+    }
+  },
+  "featured": {
+    "eyebrow": "Refacciones y accesorios",
+    "title": "Lo que más nos piden",
+    "body": "¿Buscas algo que no ves aquí? Pregúntanos por WhatsApp.",
+    "ask": "Preguntar disponibilidad",
+    "askMessage": "Hola, Mundo Motos. ¿Tienen disponible: {item}?",
+    "categories": {
+      "lighting": "Iluminación",
+      "accessories": "Accesorios",
+      "protection": "Protección",
+      "tires": "Llantas",
+      "tubes": "Cámaras",
+      "rims": "Rines",
+      "brakePads": "Balatas"
+    },
+    "items": {
+      "h4Bulb": "Foco H4",
+      "halfTurnBulb": "Foco de media vuelta",
+      "brakeLights": "Focos de stop",
+      "turnSignals": "Direccionales",
+      "auxLights": "Faros auxiliares",
+      "ledStrips": "Tiras LED",
+      "grips": "Puños",
+      "levers": "Manijas",
+      "sliders": "Sliders",
+      "spokeCovers": "Popotes para rayos",
+      "helmets": "Cascos",
+      "visors": "Caretas",
+      "goggles": "Goggles",
+      "gloves": "Guantes",
+      "tires": "Llantas",
+      "tubes": "Cámaras",
+      "rims": "Rines",
+      "brakePads": "Balatas"
+    },
+    "pauseLabel": "Pausar carrusel",
+    "playLabel": "Reanudar carrusel"
+  },
+  "location": {
+    "eyebrow": "Visítanos",
+    "title": "Estamos en Tepetlixpa",
+    "areaTitle": "Atendemos a",
+    "photoAlt": "Fachada de Mundo Motos: refaccionaria y taller con letrero rojo y amarillo",
+    "showMap": "Mostrar mapa",
+    "mapNotice": "El mapa se carga desde Google Maps al mostrarlo.",
+    "mapTitle": "Mapa de Mundo Motos en Google Maps",
+    "directions": "Cómo llegar"
+  },
+  "contact": {
+    "eyebrow": "¿Tienes una pregunta?",
+    "title": "Escríbenos y te respondemos por WhatsApp",
+    "body": "Cuéntanos qué necesitas. Al enviar se abre WhatsApp con tu mensaje listo; este sitio no guarda tu información.",
+    "nameLabel": "Tu nombre",
+    "queryLabel": "¿Qué necesitas?",
+    "queryPlaceholder": "Ej. ¿Tienen balatas para Italika FT150?",
+    "submit": "Enviar por WhatsApp",
+    "messageTemplate": "Hola, Mundo Motos. Soy {name}. {query}",
+    "errors": {
+      "nameRequired": "Escribe tu nombre.",
+      "queryRequired": "Cuéntanos qué necesitas (mínimo 5 caracteres).",
+      "tooLong": "El texto es demasiado largo."
+    },
+    "sent": "Abrimos WhatsApp con tu mensaje listo. Si no se abrió, toca el botón otra vez."
+  },
+  "finalCta": {
+    "title": "¿Tu moto necesita algo? Escríbenos hoy.",
+    "body": "Cotiza refacciones o servicios por WhatsApp, o pasa directo al taller.",
+    "cta": "Escríbenos por WhatsApp"
+  },
+  "floating": {
+    "directions": "Cómo llegar"
   }
 }

@@ -6,6 +6,14 @@ import { business, siteConfig } from '@/shared/config/business';
 
 import { WhatsappButton } from './whatsapp-button';
 
+/** In-page anchors to landing sections; absolute so they also work from other pages. */
+const NAV = [
+  { href: '/#servicios', key: 'services' },
+  { href: '/#refacciones', key: 'featured' },
+  { href: '/#ubicacion', key: 'location' },
+  { href: '/#contacto', key: 'contact' },
+] as const;
+
 export function SiteHeader() {
   const t = useTranslations();
 
@@ -30,6 +38,20 @@ export function SiteHeader() {
           </span>
         </span>
       </Link>
+      <nav aria-label={t('nav.label')} className="hidden md:block">
+        <ul className="flex gap-30">
+          {NAV.map(({ href, key }) => (
+            <li key={href}>
+              <a
+                href={href}
+                className="text-nav-label font-semibold tracking-label text-ash-gray uppercase hover:text-bone-white"
+              >
+                {t(`nav.${key}`)}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </nav>
       <WhatsappButton
         number={siteConfig.whatsappNumber}
         message={t('common.whatsappGreeting')}

@@ -5,7 +5,8 @@
 
 /** `https://wa.me/<digits>?text=<message>`; `number` is E.164 without `+` (e.g. 525500000000). */
 export const whatsappUrl = (number: string, message?: string): string => {
-  const text = message?.trim();
+  // toWellFormed: a lone surrogate (e.g. an emoji cut by maxLength) would make encodeURIComponent throw.
+  const text = message?.trim().toWellFormed();
   // encodeURIComponent (spaces as %20), as WhatsApp documents; URLSearchParams would emit `+`.
   return text
     ? `https://wa.me/${number}?text=${encodeURIComponent(text)}`
