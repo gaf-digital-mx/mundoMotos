@@ -1,12 +1,56 @@
 {
   "metadata": {
-    "title": "Mundo Motos | Refaccionaria y taller de motos",
-    "description": "Refacciones, accesorios y taller mecánico para tu moto. Cotiza por WhatsApp y visítanos."
+    "title": "Mundo Motos | Refaccionaria y taller de motos en Tepetlixpa",
+    "description": "Refacciones, accesorios y taller mecánico para tu moto en Tepetlixpa, Estado de México. Cotiza por WhatsApp o visítanos en Av. 20 de Noviembre 159.",
+    "businessDescription": "Refaccionaria y taller de motos en Tepetlixpa: refacciones, accesorios, equipo de protección y servicio mecánico."
+  },
+  "common": {
+    "skipToContent": "Saltar al contenido",
+    "whatsappCta": "Escríbenos por WhatsApp",
+    "whatsappShort": "WhatsApp",
+    "whatsappGreeting": "Hola, Mundo Motos. Quiero hacer una consulta.",
+    "opensInNewTab": "(se abre en una pestaña nueva)"
+  },
+  "header": {
+    "tagline": "Refaccionaria & Taller",
+    "homeLabel": "Mundo Motos, ir al inicio"
   },
   "home": {
     "eyebrow": "Refaccionaria & Taller",
     "title": "Mundo Motos",
     "comingSoon": "Muy pronto, nuestro sitio. Mientras tanto, escríbenos por WhatsApp."
+  },
+  "footer": {
+    "about": "Refacciones, accesorios y taller mecánico para tu moto en Tepetlixpa y alrededores. Buen precio, buen servicio.",
+    "visitTitle": "Visítanos",
+    "viewOnMaps": "Ver en Google Maps",
+    "hoursTitle": "Horario",
+    "hours": {
+      "weekdays": "Lunes a viernes",
+      "weekend": "Sábado y domingo"
+    },
+    "contactTitle": "Contacto",
+    "callUs": "Llámanos",
+    "facebook": "Facebook",
+    "privacy": "Aviso de privacidad",
+    "copyright": "© {year} Mundo Motos. Refaccionaria y taller de motos en Tepetlixpa, Estado de México."
+  },
+  "privacy": {
+    "metaTitle": "Aviso de privacidad | Mundo Motos",
+    "metaDescription": "Aviso de privacidad simplificado del sitio web de Mundo Motos.",
+    "title": "Aviso de privacidad",
+    "updated": "Última actualización: {date}",
+    "intro": "Mundo Motos, con domicilio en {address}, es responsable del tratamiento de los datos personales que llegaras a compartirnos, conforme a la Ley Federal de Protección de Datos Personales en Posesión de los Particulares.",
+    "collectTitle": "¿Qué datos recaba este sitio?",
+    "collectBody": "Ninguno. Este sitio no tiene registro de usuarios ni guarda la información que escribes en el formulario de consulta: al enviarlo, tu mensaje se abre directamente en WhatsApp y solo nos llega si tú decides enviarlo desde ahí.",
+    "whatsappTitle": "Mensajes por WhatsApp",
+    "whatsappBody": "Si nos escribes por WhatsApp, usaremos tu nombre, número y mensaje únicamente para responder tu consulta, cotizar refacciones o servicios y darte seguimiento. No los compartimos con terceros. WhatsApp es un servicio de Meta y tiene su propio aviso de privacidad.",
+    "analyticsTitle": "Estadísticas de visitas",
+    "analyticsBody": "Para saber cuántas personas visitan el sitio usamos estadísticas anónimas que no utilizan cookies ni identifican a nadie.",
+    "rightsTitle": "Tus derechos",
+    "rightsBody": "Puedes pedirnos acceder, corregir o eliminar tus datos, u oponerte a su uso (derechos ARCO), escribiéndonos por WhatsApp o visitándonos en el local.",
+    "changesTitle": "Cambios a este aviso",
+    "changesBody": "Si este aviso cambia, publicaremos la nueva versión en esta misma página."
   },
   "notFound": {
     "title": "Esta página no existe",

@@ -32,7 +32,7 @@ test.describe('site shell @smoke', () => {
 });
 
 test.describe('accessibility', () => {
-  for (const path of ['/', '/esta-ruta-no-existe']) {
+  for (const path of ['/', '/aviso-de-privacidad', '/esta-ruta-no-existe']) {
     test(`has no serious or critical axe violations on ${path}`, async ({ page }) => {
       await page.goto(path);
       const results = await new AxeBuilder({ page })

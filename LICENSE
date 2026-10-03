@@ -23,5 +23,5 @@ SOFTWARE.
 ---
 
 The MIT license above covers the source code only. Brand assets (logo, photos,
-business content) in apps/web/public/brand/ are not covered: see that folder's
+business content) in apps/web/src/assets/brand/ are not covered: see that folder's
 LICENSE file.

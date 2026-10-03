@@ -6,5 +6,8 @@ export const dynamic = 'force-static';
 
 /** Public, unprefixed URLs only. Crawlers always get Spanish (ADR-0008). */
 export default function sitemap(): MetadataRoute.Sitemap {
-  return [{ url: `${siteConfig.siteUrl}/`, changeFrequency: 'weekly', priority: 1 }];
+  return [
+    { url: `${siteConfig.siteUrl}/`, changeFrequency: 'weekly', priority: 1 },
+    { url: `${siteConfig.siteUrl}/aviso-de-privacidad`, changeFrequency: 'yearly', priority: 0.2 },
+  ];
 }
