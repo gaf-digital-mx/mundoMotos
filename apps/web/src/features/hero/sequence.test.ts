@@ -4,11 +4,11 @@ import { decodeTargets } from './particle-field';
 import { PARTICLES_B64 } from './particles-data';
 import {
   assignShapes,
+  easeInOutCubic,
   easeOutCubic,
   flameMask,
   gradientSlot,
   pairStartPoints,
-  pointFromEdges,
   rotateAround,
 } from './sequence';
 
@@ -53,6 +53,13 @@ describe('easeOutCubic / rotateAround', () => {
     expect(easeOutCubic(0.5)).toBeGreaterThan(0.5);
   });
 
+  it('eases in and out symmetrically', () => {
+    expect(easeInOutCubic(0)).toBe(0);
+    expect(easeInOutCubic(0.5)).toBeCloseTo(0.5);
+    expect(easeInOutCubic(1)).toBe(1);
+    expect(easeInOutCubic(0.25)).toBeLessThan(0.25);
+  });
+
   it('rotates a point around a center', () => {
     const point = rotateAround(10, 0, 0, 0, Math.PI / 2);
     expect(point.x).toBeCloseTo(0);
@@ -77,15 +84,5 @@ describe('assignShapes', () => {
     expect(motos).toBeGreaterThan(400);
     expect(motos).toBeLessThan(600);
     expect(shapes.every((shape) => shape === 0 || shape === 1)).toBe(true);
-  });
-});
-
-describe('pointFromEdges', () => {
-  it('always lands outside the box', () => {
-    const random = seeded();
-    for (let i = 0; i < 50; i++) {
-      const { x, y } = pointFromEdges({ width: 300, height: 200 }, random);
-      expect(x < 0 || x > 300 || y < 0 || y > 200).toBe(true);
-    }
   });
 });

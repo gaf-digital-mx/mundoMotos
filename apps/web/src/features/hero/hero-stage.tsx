@@ -4,7 +4,6 @@ import { useEffect, useRef, type ReactNode } from 'react';
 
 import {
   createField,
-  createFieldAt,
   decodeTargets,
   layoutHomes,
   settle,
@@ -15,12 +14,11 @@ import {
 import { PARTICLES_B64 } from './particles-data';
 import {
   assignShapes,
+  easeInOutCubic,
   easeOutCubic,
   flameMask,
-  gradientSlot,
   MOTO_PATH,
   pairStartPoints,
-  pointFromEdges,
   rotateAround,
 } from './sequence';
 
@@ -32,43 +30,33 @@ const COLOR_TOKENS = [
   '--color-amber',
   '--color-ignition-gold',
   '--color-silver-mist',
+  '--color-graphite',
 ];
 const FRAME_MS = 1000 / 60;
 const POINTER_IDLE_MS = 200;
 /** Timeline (ms). */
 const HOLD_MS = 300; // wordmark visible before it disintegrates
-const MOTO_MS = 1000; // motorcycle assembles while the flame particles fly around
-const SPIN_MS = 500; // flame ring spins into place
+const FLOAT_MS = 1200; // every particle floats softly around the hero
+const MOTO_MS = 1000; // the motorcycle forms; flame particles keep floating
+const SPIN_MS = 500; // the flame ring spins into place
 const SPIN_ANGLE = Math.PI * 0.9;
-/** Mean per-particle energy under which a flight counts as "arrived". */
-const ARRIVED = 0.02;
+/** Weak spring + high damping toward drifting targets reads as "floating". */
+const FLOAT_SPRING = 0.006;
+const FLOAT_DAMPING = 0.94;
+const WANDER_EVERY_MS = 350;
+/** Max wobble (px) of motorcycle particles while they glide in; fades to 0 on arrival. */
+const WOBBLE = 6;
+
+type Phase = 'hold' | 'float' | 'moto' | 'spin' | 'done';
 
 /**
- * TEMPORARY A/B: both variants render stacked on the page for the client to compare. Remove the
- * losing variant before merge. Both share the logo choreography; they differ in how the
- * wordmark comes back: A types it letter by letter, B forms it from particles arriving from
- * every edge.
+ * Hero sequence: the server-rendered wordmark (painted before any script, LCP) disintegrates
+ * into particles that float softly around the hero; the motorcycle glides into shape over 1 s
+ * while the flame particles keep floating; the flame ring spins into place; then the wordmark
+ * is typed again. The h1 stays in the DOM the whole time (only its opacity changes).
+ * Reduced motion: no sequence, static logo, text always visible.
  */
-const VARIANTS = { a: { rewrite: 'type' }, b: { rewrite: 'particles' } } as const;
-export type HeroVariant = keyof typeof VARIANTS;
-
-/** `radius` (triangles) and `icon` (motorcycle size) in px; the text layer uses finer particles. */
-type Layer = { field: Field; shapes: Uint8Array; radius: number; icon: number };
-type Phase = 'hold' | 'moto' | 'spin' | 'rewrite' | 'done';
-
-/**
- * Hero sequence: the server-rendered wordmark (painted before any script, LCP) disintegrates,
- * the particles build the motorcycle while the flame particles fly loose, the flame ring spins
- * into place, then the wordmark comes back. The h1 stays in the DOM the whole time (only its
- * opacity changes). Reduced motion: no sequence, static logo, text always visible.
- */
-export function HeroStage({
-  children,
-  variant: variantId,
-}: {
-  children: ReactNode;
-  variant: HeroVariant;
-}) {
+export function HeroStage({ children }: { children: ReactNode }) {
   const stageRef = useRef<HTMLDivElement>(null);
   const logoRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -81,47 +69,46 @@ export function HeroStage({
     const wordmark = stage?.querySelector<HTMLElement>('[data-wordmark]');
     if (!stage || !logoBox || !canvas || !ctx || !wordmark) return;
 
-    const variant = VARIANTS[variantId];
     const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
     const cores = (navigator.hardwareConcurrency as number | undefined) ?? 4;
     const small = window.innerWidth < 768 || cores <= 4;
-    const targets = decodeTargets(PARTICLES_B64, small ? 700 : 1300);
+    const targets = decodeTargets(PARTICLES_B64, small ? 800 : 1600);
     const flame = flameMask(targets.x, targets.y);
     const styles = getComputedStyle(document.documentElement);
     const palette = COLOR_TOKENS.map((token) => styles.getPropertyValue(token).trim());
     const dpr = Math.min(window.devicePixelRatio || 1, small ? 1.5 : 2);
     const radius = small ? 2.4 : 3;
     const iconSize = small ? 9 : 11;
-    // Finer particles for the re-formed wordmark so the letters stay legible.
-    const textRadius = small ? 1.4 : 1.8;
-    const textIcon = small ? 5 : 7;
 
-    // Motorcycle icons are drawn once per (size, color) into sprites, then stamped every frame.
-    const sprites = new Map<string, HTMLCanvasElement>();
-    const sprite = (size: number, slot: number) => {
-      const key = `${size}-${slot}`;
-      let image = sprites.get(key);
+    // Motorcycle icons are drawn once per color into sprites, then stamped every frame.
+    const sprites: (HTMLCanvasElement | undefined)[] = [];
+    const sprite = (slot: number) => {
+      let image = sprites[slot];
       if (!image) {
         image = document.createElement('canvas');
-        image.width = image.height = Math.ceil(size * dpr);
+        image.width = image.height = Math.ceil(iconSize * dpr);
         const sctx = image.getContext('2d');
         if (sctx) {
-          sctx.scale((size * dpr) / 24, (size * dpr) / 24);
+          sctx.scale((iconSize * dpr) / 24, (iconSize * dpr) / 24);
           sctx.fillStyle = palette[slot] ?? 'currentColor';
           sctx.fill(new Path2D(MOTO_PATH), 'evenodd');
         }
-        sprites.set(key, image);
+        sprites[slot] = image;
       }
       return image;
     };
 
     let canvasBox: Box = { width: 0, height: 0 };
-    let logo: Layer | null = null;
-    let text: Layer | null = null; // variant B: particles forming the wordmark
-    let baseHomeX = new Float32Array(0); // final logo homes (flame ring is rotated from these)
+    let field: Field | null = null;
+    let shapes = new Uint8Array(0);
+    let baseHomeX = new Float32Array(0); // final logo positions
     let baseHomeY = new Float32Array(0);
+    let glideFromX = new Float32Array(0); // motorcycle particles: where the glide starts
+    let glideFromY = new Float32Array(0);
+    let wobblePhase = new Float32Array(0);
     let phase: Phase = 'done';
     let phaseStart = 0;
+    let lastWander = 0;
     const pointer = { x: 0, y: 0, lastMove: Number.NEGATIVE_INFINITY };
     let running = false;
     let frame = 0;
@@ -146,7 +133,9 @@ export function HeroStage({
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     };
 
-    const drawLayer = ({ field, shapes, radius: r, icon }: Layer) => {
+    const draw = () => {
+      ctx.clearRect(0, 0, canvasBox.width, canvasBox.height);
+      if (!field) return;
       ctx.lineWidth = 1;
       for (let slot = 0; slot < palette.length; slot++) {
         ctx.strokeStyle = palette[slot] ?? 'currentColor';
@@ -156,30 +145,24 @@ export function HeroStage({
           const x = field.px[i] ?? 0;
           const y = field.py[i] ?? 0;
           const a = field.angle[i] ?? 0;
-          ctx.moveTo(x + Math.cos(a) * r, y + Math.sin(a) * r);
-          ctx.lineTo(x + Math.cos(a + 2.094) * r, y + Math.sin(a + 2.094) * r);
-          ctx.lineTo(x + Math.cos(a + 4.189) * r, y + Math.sin(a + 4.189) * r);
+          ctx.moveTo(x + Math.cos(a) * radius, y + Math.sin(a) * radius);
+          ctx.lineTo(x + Math.cos(a + 2.094) * radius, y + Math.sin(a + 2.094) * radius);
+          ctx.lineTo(x + Math.cos(a + 4.189) * radius, y + Math.sin(a + 4.189) * radius);
           ctx.closePath();
         }
         ctx.stroke();
       }
-      const half = icon / 2;
+      const half = iconSize / 2;
       for (let i = 0; i < field.count; i++) {
         if (shapes[i] !== 1) continue;
         ctx.drawImage(
-          sprite(icon, field.color[i] ?? 0),
+          sprite(field.color[i] ?? 0),
           (field.px[i] ?? 0) - half,
           (field.py[i] ?? 0) - half,
-          icon,
-          icon,
+          iconSize,
+          iconSize,
         );
       }
-    };
-
-    const draw = () => {
-      ctx.clearRect(0, 0, canvasBox.width, canvasBox.height);
-      if (logo) drawLayer(logo);
-      if (text) drawLayer(text);
     };
 
     /** Samples the rendered wordmark into points (canvas coordinates) with gradient color slots. */
@@ -207,104 +190,90 @@ export function HeroStage({
           }
         }
       }
-      const offsetX = rect.left - stageRect.left;
-      const offsetY = rect.top - stageRect.top;
       const x = new Float32Array(count);
       const y = new Float32Array(count);
-      const color = new Uint8Array(count);
       for (let i = 0; i < count; i++) {
         const j = xs.length ? Math.floor(Math.random() * xs.length) : 0;
-        x[i] = offsetX + (xs[j] ?? 0);
-        y[i] = offsetY + (ys[j] ?? 0);
-        color[i] = gradientSlot((xs[j] ?? 0) / Math.max(1, off.width));
+        x[i] = rect.left - stageRect.left + (xs[j] ?? 0);
+        y[i] = rect.top - stageRect.top + (ys[j] ?? 0);
       }
-      return { x, y, color };
+      return { x, y };
     };
 
-    /** Flame particles drift toward random points around the stage while the motorcycle forms. */
-    const scatterFlame = (field: Field) => {
-      for (let i = 0; i < field.count; i++) {
-        if (!flame[i]) continue;
-        field.hx[i] = Math.random() * canvasBox.width;
-        field.hy[i] = Math.random() * canvasBox.height;
+    /** Floating particles drift toward new random points around the hero, a few at a time. */
+    const wander = (f: Field, onlyFlame: boolean) => {
+      for (let i = 0; i < f.count; i++) {
+        if ((onlyFlame && !flame[i]) || Math.random() > 0.35) continue;
+        f.hx[i] = Math.random() * canvasBox.width;
+        f.hy[i] = Math.random() * canvasBox.height;
       }
     };
 
     /** During the spin, flame homes rotate (eased) from SPIN_ANGLE back to their final place. */
-    const spinFlame = (field: Field, progress: number) => {
+    const spinFlame = (f: Field, progress: number) => {
       const area = logoArea();
       const cx = (area.x ?? 0) + area.width / 2;
       const cy = (area.y ?? 0) + area.height / 2;
       const angle = SPIN_ANGLE * (1 - easeOutCubic(progress));
-      for (let i = 0; i < field.count; i++) {
+      for (let i = 0; i < f.count; i++) {
         if (!flame[i]) continue;
         const point = rotateAround(baseHomeX[i] ?? 0, baseHomeY[i] ?? 0, cx, cy, angle);
-        field.hx[i] = point.x;
-        field.hy[i] = point.y;
+        f.hx[i] = point.x;
+        f.hy[i] = point.y;
       }
     };
 
-    const showWordmark = () => {
-      if (variant.rewrite === 'type') {
-        wordmark.dataset.state = 'typing';
-        phase = 'done';
-        return;
+    /** Motorcycle particles glide (eased) from where they floated to their place, with a fading wobble. */
+    const glideMoto = (f: Field, progress: number, time: number) => {
+      const t = easeInOutCubic(progress);
+      const wobble = WOBBLE * (1 - t);
+      for (let i = 0; i < f.count; i++) {
+        if (flame[i]) continue;
+        const phaseOffset = wobblePhase[i] ?? 0;
+        const x = (glideFromX[i] ?? 0) + ((baseHomeX[i] ?? 0) - (glideFromX[i] ?? 0)) * t;
+        const y = (glideFromY[i] ?? 0) + ((baseHomeY[i] ?? 0) - (glideFromY[i] ?? 0)) * t;
+        f.px[i] = x + Math.sin(time / 260 + phaseOffset) * wobble;
+        f.py[i] = y + Math.cos(time / 310 + phaseOffset) * wobble;
+        f.vx[i] = 0;
+        f.vy[i] = 0;
       }
-      // Particles arrive from every edge and form the letters; then the real text fades in.
-      const goal = sampleWordmark(small ? 900 : 1600);
-      const from = { x: new Float32Array(goal.x.length), y: new Float32Array(goal.x.length) };
-      for (let i = 0; i < goal.x.length; i++) {
-        const point = pointFromEdges(canvasBox);
-        from.x[i] = point.x;
-        from.y[i] = point.y;
-      }
-      text = {
-        field: createFieldAt(from, goal, goal.color),
-        shapes: assignShapes(goal.x.length, 0.5),
-        radius: textRadius,
-        icon: textIcon,
-      };
-      phase = 'rewrite';
     };
 
     const loop = (time: number) => {
+      if (!field) return;
       const dt = Math.min(Math.max((time - lastTime) / FRAME_MS, 0.25), 2);
       lastTime = time;
       const elapsed = time - phaseStart;
+      const floating = phase === 'float' || phase === 'moto';
 
-      if (logo && phase === 'moto') {
-        if (Math.floor(elapsed / 400) !== Math.floor((elapsed - dt * FRAME_MS) / 400))
-          scatterFlame(logo.field);
-        if (elapsed >= MOTO_MS) {
-          phase = 'spin';
-          phaseStart = time;
-        }
-      } else if (logo && phase === 'spin') {
-        spinFlame(logo.field, elapsed / SPIN_MS);
-        if (elapsed >= SPIN_MS) {
-          logo.field.hx.set(baseHomeX);
-          logo.field.hy.set(baseHomeY);
-          showWordmark();
-          phaseStart = time;
-        }
+      if (floating && time - lastWander > WANDER_EVERY_MS) {
+        wander(field, phase === 'moto');
+        lastWander = time;
       }
+      if (phase === 'float' && elapsed >= FLOAT_MS) {
+        glideFromX = field.px.slice();
+        glideFromY = field.py.slice();
+        phase = 'moto';
+        phaseStart = time;
+      } else if (phase === 'moto' && elapsed >= MOTO_MS) {
+        phase = 'spin';
+        phaseStart = time;
+      } else if (phase === 'spin' && elapsed >= SPIN_MS) {
+        field.hx.set(baseHomeX);
+        field.hy.set(baseHomeY);
+        wordmark.dataset.state = 'typing';
+        phase = 'done';
+      }
+      if (phase === 'spin') spinFlame(field, (time - phaseStart) / SPIN_MS);
 
       const active = phase === 'done' && time - pointer.lastMove < POINTER_IDLE_MS;
-      const logoEnergy = logo ? stepField(logo.field, active ? pointer : null, dt) : 0;
-      const textEnergy = text ? stepField(text.field, null, dt) : 0;
+      const energy = floating
+        ? stepField(field, null, dt, FLOAT_SPRING, FLOAT_DAMPING)
+        : stepField(field, active ? pointer : null, dt);
+      if (phase === 'moto') glideMoto(field, (time - phaseStart) / MOTO_MS, time);
       draw();
 
-      if (phase === 'rewrite' && text && textEnergy / text.field.count < ARRIVED) {
-        wordmark.dataset.state = 'shown';
-        phase = 'done';
-        window.setTimeout(() => {
-          text = null;
-          draw();
-        }, 300);
-      }
-
-      const busy = phase !== 'done' || active || logoEnergy > 0.01 || textEnergy > 0.01;
-      if (busy) frame = requestAnimationFrame(loop);
+      if (phase !== 'done' || active || energy > 0.01) frame = requestAnimationFrame(loop);
       else running = false;
     };
 
@@ -329,29 +298,24 @@ export function HeroStage({
       wake();
     };
 
-    const finishNow = () => {
-      if (!logo) return;
-      window.clearTimeout(holdTimer);
-      logo.field.hx.set(baseHomeX);
-      logo.field.hy.set(baseHomeY);
-      text = null;
-      wordmark.dataset.state = 'shown';
-      phase = 'done';
-    };
-
     const onResize = () => {
       // ResizeObserver also fires once right after observe(): ignore callbacks without a real change.
       if (
-        !logo ||
+        !field ||
         (stage.clientWidth === canvasBox.width && stage.clientHeight === canvasBox.height)
       )
         return;
       sizeCanvas();
-      layoutHomes(logo.field, targets, logoArea());
-      baseHomeX = logo.field.hx.slice();
-      baseHomeY = logo.field.hy.slice();
-      if (phase !== 'done') finishNow(); // skip to the end state instead of re-sampling moving text
-      if (motionQuery.matches) settle(logo.field);
+      layoutHomes(field, targets, logoArea());
+      baseHomeX = field.hx.slice();
+      baseHomeY = field.hy.slice();
+      if (phase !== 'done') {
+        // Mid-sequence resize: skip to the end state instead of re-sampling moving text.
+        window.clearTimeout(holdTimer);
+        wordmark.dataset.state = 'shown';
+        phase = 'done';
+      }
+      if (motionQuery.matches) settle(field);
       draw();
       wake();
     };
@@ -361,37 +325,41 @@ export function HeroStage({
     const begin = async () => {
       await document.fonts.ready;
       sizeCanvas();
-      const field = createField(targets, logoArea());
-      baseHomeX = field.hx.slice();
-      baseHomeY = field.hy.slice();
-      logo = { field, shapes: assignShapes(field.count, 0.5), radius, icon: iconSize };
+      const f = createField(targets, logoArea());
+      field = f;
+      shapes = assignShapes(f.count, 0.5);
+      baseHomeX = f.hx.slice();
+      baseHomeY = f.hy.slice();
+      wobblePhase = Float32Array.from({ length: f.count }, () => Math.random() * Math.PI * 2);
       stage.addEventListener('pointermove', onPointerMove);
       resizeObserver.observe(stage);
       canvas.dataset.ready = 'true';
 
       if (motionQuery.matches) {
-        settle(field);
+        settle(f);
         draw();
         return;
       }
 
-      // 1) Hold the wordmark, 2) disintegrate it: particles start on the letters (color-paired).
+      // Hold the wordmark, then disintegrate it: particles start on the letters (color-paired)
+      // and drift away softly.
       phase = 'hold';
       holdTimer = window.setTimeout(() => {
-        const start = sampleWordmark(field.count);
-        const pairs = pairStartPoints(field.color, start.x);
-        for (let i = 0; i < field.count; i++) {
+        const start = sampleWordmark(f.count);
+        const pairs = pairStartPoints(f.color, start.x);
+        for (let i = 0; i < f.count; i++) {
           const point = pairs[i] ?? 0;
-          field.px[i] = start.x[point] ?? 0;
-          field.py[i] = start.y[point] ?? 0;
+          f.px[i] = start.x[point] ?? 0;
+          f.py[i] = start.y[point] ?? 0;
           const direction = Math.random() * Math.PI * 2;
-          field.vx[i] = Math.cos(direction) * 2.5;
-          field.vy[i] = Math.sin(direction) * 2.5;
+          f.vx[i] = Math.cos(direction) * 1.2;
+          f.vy[i] = Math.sin(direction) * 1.2;
         }
-        scatterFlame(field);
+        wander(f, false);
         wordmark.dataset.state = 'hidden';
-        phase = 'moto';
+        phase = 'float';
         phaseStart = performance.now();
+        lastWander = phaseStart;
         wake();
       }, HOLD_MS);
     };
@@ -420,7 +388,7 @@ export function HeroStage({
       stage.removeEventListener('pointermove', onPointerMove);
       wordmark.dataset.state = 'shown';
     };
-  }, [variantId]);
+  }, []);
 
   return (
     <div ref={stageRef} className="relative grid items-center gap-36 md:grid-cols-[1.2fr_1fr]">

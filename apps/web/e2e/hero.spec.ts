@@ -43,17 +43,13 @@ test.describe('interactive hero', () => {
     await expect(canvas).toHaveAttribute('aria-hidden', 'true');
   });
 
-  for (const titleId of ['hero-title', 'hero-title-b']) {
-    test(`disintegrates the wordmark and writes it again (${titleId})`, async ({ page }) => {
-      await page.goto('/');
-      const section = page.locator(`section[aria-labelledby="${titleId}"]`);
-      await section.scrollIntoViewIfNeeded();
-      const wordmark = section.locator('[data-wordmark]');
-      await expect(wordmark).toHaveAttribute('data-state', /hidden|typing|shown/);
-      await expect(wordmark).toHaveAttribute('data-state', /typing|shown/, { timeout: 15_000 });
-      await expect(section.locator(`#${titleId}`)).toContainText('Mundo Motos');
-    });
-  }
+  test('holds the wordmark, disintegrates it and types it again', async ({ page }) => {
+    await page.goto('/');
+    const wordmark = page.locator('[data-wordmark]');
+    await expect(wordmark).toHaveAttribute('data-state', 'hidden');
+    await expect(wordmark).toHaveAttribute('data-state', 'typing', { timeout: 15_000 });
+    await expect(page.getByRole('heading', { level: 1 })).toContainText('Mundo Motos');
+  });
 
   test.describe('with reduced motion', () => {
     test.use({ reducedMotion: 'reduce' });

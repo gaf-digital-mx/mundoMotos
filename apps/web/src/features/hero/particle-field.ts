@@ -86,41 +86,6 @@ export const createField = (
   return field;
 };
 
-/**
- * Creates a field that starts at explicit positions and flies to explicit homes (pixels), with
- * an optional outward burst — used to disintegrate text into the logo and back.
- */
-export const createFieldAt = (
-  start: { x: Float32Array; y: Float32Array },
-  home: { x: Float32Array; y: Float32Array },
-  color: Uint8Array,
-  burst = 0,
-  random: () => number = Math.random,
-): Field => {
-  const count = Math.min(start.x.length, home.x.length, color.length);
-  const field: Field = {
-    count,
-    px: start.x.slice(0, count),
-    py: start.y.slice(0, count),
-    vx: new Float32Array(count),
-    vy: new Float32Array(count),
-    hx: home.x.slice(0, count),
-    hy: home.y.slice(0, count),
-    angle: new Float32Array(count),
-    spin: new Float32Array(count),
-    color: color.slice(0, count),
-  };
-  for (let i = 0; i < count; i++) {
-    const direction = random() * Math.PI * 2;
-    const speed = burst * (0.4 + random() * 0.6);
-    field.vx[i] = Math.cos(direction) * speed;
-    field.vy[i] = Math.sin(direction) * speed;
-    field.angle[i] = random() * Math.PI * 2;
-    field.spin[i] = (random() - 0.5) * 0.04;
-  }
-  return field;
-};
-
 /** Snaps every particle home (reduced motion: static figure). */
 export const settle = (field: Field): void => {
   field.px.set(field.hx);
@@ -131,16 +96,23 @@ export const settle = (field: Field): void => {
 
 /**
  * Advances the simulation by `dt` frames-at-60Hz (time-based, so 30/60/120 Hz displays move at
- * the same speed). Returns the kinetic energy so the caller can sleep once the figure settles.
+ * the same speed). `spring`/`baseDamping` default to the assembly feel; lower values float.
+ * Returns the kinetic energy so the caller can sleep once the figure settles.
  */
-export const stepField = (field: Field, pointer: Pointer, dt = 1): number => {
+export const stepField = (
+  field: Field,
+  pointer: Pointer,
+  dt = 1,
+  spring = SPRING,
+  baseDamping = DAMPING,
+): number => {
   let energy = 0;
-  const damping = DAMPING ** dt;
+  const damping = baseDamping ** dt;
   for (let i = 0; i < field.count; i++) {
     const px = field.px[i] ?? 0;
     const py = field.py[i] ?? 0;
-    let vx = ((field.vx[i] ?? 0) + ((field.hx[i] ?? 0) - px) * SPRING * dt) * damping;
-    let vy = ((field.vy[i] ?? 0) + ((field.hy[i] ?? 0) - py) * SPRING * dt) * damping;
+    let vx = ((field.vx[i] ?? 0) + ((field.hx[i] ?? 0) - px) * spring * dt) * damping;
+    let vy = ((field.vy[i] ?? 0) + ((field.hy[i] ?? 0) - py) * spring * dt) * damping;
 
     if (pointer) {
       const dx = px - pointer.x;

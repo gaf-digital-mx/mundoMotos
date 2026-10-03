@@ -1,13 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import {
-  createField,
-  createFieldAt,
-  decodeTargets,
-  settle,
-  stepField,
-  type Targets,
-} from './particle-field';
+import { createField, decodeTargets, settle, stepField, type Targets } from './particle-field';
 import { PARTICLES_B64 } from './particles-data';
 
 const box = { width: 400, height: 400 };
@@ -23,12 +16,12 @@ const seeded = () => {
 };
 
 describe('decodeTargets', () => {
-  it('decodes the generated logo data into normalized points with flame color slots', () => {
+  it('decodes the generated logo data into normalized points with palette color slots', () => {
     const decoded = decodeTargets(PARTICLES_B64);
     expect(decoded.count).toBeGreaterThan(500);
     expect(Math.max(...decoded.x)).toBeLessThanOrEqual(1);
     expect(Math.min(...decoded.y)).toBeGreaterThanOrEqual(0);
-    expect(Math.max(...decoded.color)).toBeLessThanOrEqual(5);
+    expect(Math.max(...decoded.color)).toBeLessThanOrEqual(6); // 0–4 flame, 5 chrome, 6 graphite
   });
 
   it('thins evenly to the requested limit (fewer particles on small devices)', () => {
@@ -47,20 +40,6 @@ describe('particle physics', () => {
     const field = createField(targets, { ...box, x: 100, y: 50 }, seeded());
     expect(field.hx[0]).toBeCloseTo(116);
     expect(field.hy[0]).toBeCloseTo(66);
-  });
-
-  it('flies from explicit start points to explicit homes (text → logo)', () => {
-    const field = createFieldAt(
-      { x: Float32Array.from([10, 20]), y: Float32Array.from([10, 20]) },
-      { x: Float32Array.from([300, 350]), y: Float32Array.from([300, 350]) },
-      Uint8Array.from([0, 4]),
-      3,
-      seeded(),
-    );
-    expect(field.px[0]).toBe(10);
-    expect(Math.hypot(field.vx[0] ?? 0, field.vy[0] ?? 0)).toBeGreaterThan(0);
-    for (let frame = 0; frame < 400; frame++) stepField(field, null);
-    expect(field.px[1]).toBeCloseTo(350, 0);
   });
 
   it('assembles toward the silhouette and comes to rest', () => {
@@ -94,6 +73,15 @@ describe('particle physics', () => {
     stepField(b, null, 0.5);
     stepField(b, null, 0.5);
     expect(Math.abs((a.px[0] ?? 0) - (b.px[0] ?? 0))).toBeLessThan(2);
+  });
+
+  it('floats gently with a weak spring (slower than the assembly spring)', () => {
+    const fast = createField(targets, box, seeded());
+    const slow = createField(targets, box, seeded());
+    stepField(fast, null);
+    stepField(slow, null, 1, 0.006, 0.94);
+    const moved = (field: typeof fast) => Math.hypot(field.vx[0] ?? 0, field.vy[0] ?? 0);
+    expect(moved(slow)).toBeLessThan(moved(fast));
   });
 
   it('settle snaps everything home with no motion (reduced motion)', () => {

@@ -13,7 +13,7 @@ import sharp from 'sharp';
 
 const SOURCE = new URL('../src/assets/brand/logo-primario.png', import.meta.url).pathname;
 const OUTPUT = new URL('../src/features/hero/particles-data.ts', import.meta.url).pathname;
-const TARGET_POINTS = 1400;
+const TARGET_POINTS = 1600;
 
 /** Flame palette (index = color slot used by the canvas), plus chrome for the metal parts. */
 const PALETTE = [
@@ -23,7 +23,13 @@ const PALETTE = [
   [253, 162, 17], // amber
   [251, 195, 21], // ignition-gold
   [189, 189, 189], // silver-mist (chrome)
+  [74, 74, 74], // graphite (the logo's black parts: tires, seat, engine shadows)
 ];
+const GRAPHITE = PALETTE.length - 1;
+/** Dark pixels count as part of the logo only if colored pixels surround them this closely. */
+const ENCLOSE_RADIUS = 3;
+/** Share of particles for the dark parts: enough to fill them without graying the figure. */
+const DARK_SHARE = 0.22;
 
 const SIZE = 220; // sampling resolution (longest side)
 const { data, info } = await sharp(SOURCE)
@@ -32,7 +38,9 @@ const { data, info } = await sharp(SOURCE)
   .toBuffer({ resolveWithObject: true });
 const { width, height, channels } = info;
 
+const isColored = new Uint8Array(width * height);
 const candidates = [];
+const dark = [];
 for (let y = 0; y < height; y++) {
   for (let x = 0; x < width; x++) {
     const i = (y * width + x) * channels;
@@ -44,9 +52,11 @@ for (let y = 0; y < height; y++) {
     const saturation = max === 0 ? 0 : (max - min) / max;
     // Keep the colored body/flames and the bright chrome; drop the black background.
     if (alpha < 128 || value < 0.28 || (saturation < 0.35 && value < 0.55)) continue;
+    isColored[y * width + x] = 1;
     let best = 0;
     let bestDistance = Infinity;
     PALETTE.forEach(([pr, pg, pb], index) => {
+      if (index === GRAPHITE) return; // graphite is reserved for enclosed dark parts
       const distance = (r - pr) ** 2 + (g - pg) ** 2 + (b - pb) ** 2;
       if (distance < bestDistance) [best, bestDistance] = [index, distance];
     });
@@ -54,11 +64,48 @@ for (let y = 0; y < height; y++) {
   }
 }
 
-// Deterministic stride sampling down to the target count.
-const stride = Math.max(1, candidates.length / TARGET_POINTS);
-const picked = [];
-for (let i = 0; i < candidates.length && picked.length < TARGET_POINTS; i += stride)
-  picked.push(candidates[Math.floor(i)]);
+// Dark parts inside the silhouette (not the black background): a dark pixel qualifies when
+// colored pixels exist within ENCLOSE_RADIUS on all four sides.
+const coloredNear = (x, y, dx, dy) => {
+  for (let step = 1; step <= ENCLOSE_RADIUS * 2; step++) {
+    const nx = x + dx * step;
+    const ny = y + dy * step;
+    if (nx < 0 || ny < 0 || nx >= width || ny >= height) return false;
+    if (isColored[ny * width + nx]) return true;
+  }
+  return false;
+};
+for (let y = 0; y < height; y++) {
+  for (let x = 0; x < width; x++) {
+    if (isColored[y * width + x]) continue;
+    const i = (y * width + x) * channels;
+    if (channels === 4 && data[i + 3] < 128) continue;
+    // Inside the ring only (the area between ring and motorcycle stays empty).
+    if (Math.hypot(x / width - 0.5, y / height - 0.5) > 0.33) continue;
+    if (
+      coloredNear(x, y, 1, 0) &&
+      coloredNear(x, y, -1, 0) &&
+      coloredNear(x, y, 0, 1) &&
+      coloredNear(x, y, 0, -1)
+    ) {
+      dark.push([x, y, GRAPHITE]);
+    }
+  }
+}
+
+// Deterministic stride sampling of each group down to its share of the target count.
+const strideSample = (list, target) => {
+  const stride = Math.max(1, list.length / target);
+  const out = [];
+  for (let i = 0; i < list.length && out.length < target; i += stride)
+    out.push(list[Math.floor(i)]);
+  return out;
+};
+const darkTarget = Math.min(dark.length, Math.round(TARGET_POINTS * DARK_SHARE));
+const picked = [
+  ...strideSample(candidates, TARGET_POINTS - darkTarget),
+  ...strideSample(dark, darkTarget),
+];
 
 const xs = picked.map(([x]) => x);
 const ys = picked.map(([, y]) => y);
@@ -84,5 +131,5 @@ writeFileSync(
     `export const PARTICLES_B64 =\n  '${bytes.toString('base64')}';\n`,
 );
 console.log(
-  `✔ ${picked.length} particles from ${candidates.length} candidates → ${OUTPUT.split('/src/')[1]}`,
+  `✔ ${picked.length} particles (${darkTarget} dark of ${dark.length}) from ${candidates.length} colored → ${OUTPUT.split('/src/')[1]}`,
 );

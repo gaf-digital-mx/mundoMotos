@@ -22,6 +22,12 @@ export const flameMask = (x: Float32Array, y: Float32Array): Uint8Array => {
 /** Ease-out cubic, 0–1. */
 export const easeOutCubic = (t: number): number => 1 - (1 - Math.min(1, Math.max(0, t))) ** 3;
 
+/** Ease-in-out cubic, 0–1. */
+export const easeInOutCubic = (t: number): number => {
+  const x = Math.min(1, Math.max(0, t));
+  return x < 0.5 ? 4 * x ** 3 : 1 - (-2 * x + 2) ** 3 / 2;
+};
+
 /** Rotates (x, y) around (cx, cy) by `angle` radians. */
 export const rotateAround = (x: number, y: number, cx: number, cy: number, angle: number) => {
   const cos = Math.cos(angle);
@@ -57,20 +63,6 @@ export const assignShapes = (
   const shapes = new Uint8Array(count);
   for (let i = 0; i < count; i++) shapes[i] = random() < motoShare ? 1 : 0;
   return shapes;
-};
-
-/** A point just outside the box, on a random side: particles "arrive from everywhere". */
-export const pointFromEdges = (
-  box: { width: number; height: number },
-  random: () => number = Math.random,
-  margin = 40,
-) => {
-  const side = Math.floor(random() * 4);
-  const along = random();
-  if (side === 0) return { x: along * box.width, y: -margin };
-  if (side === 1) return { x: box.width + margin, y: along * box.height };
-  if (side === 2) return { x: along * box.width, y: box.height + margin };
-  return { x: -margin, y: along * box.height };
 };
 
 /** 24×24 filled motorcycle icon (even-odd), drawn once into sprites. */

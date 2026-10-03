@@ -190,9 +190,5 @@
   },
   "floating": {
     "directions": "Cómo llegar"
-  },
-  "heroVariants": {
-    "a": "Variante A — el texto se reescribe letra por letra",
-    "b": "Variante B — partículas llegan de todos lados y forman el texto"
   }
 }
