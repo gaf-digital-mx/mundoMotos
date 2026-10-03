@@ -1,30 +1,24 @@
 /**
- * Pure helpers for the hero sequence (wordmark → motorcycle → spinning flame ring → wordmark).
- * Unit-tested; the island only wires them to the DOM and canvas.
+ * Pure, time-parameterized choreography for the hero (wordmark → floating → motorcycle →
+ * spinning flame ring). Every phase blends smoothly into the next (smoothstep / ease-in-out
+ * weights have zero slope at both ends), so particles never stop or jump between phases.
  */
 
-/**
- * Radius (in the targets' bbox-normalized 0–1 space) beyond which a target belongs to the flame
- * ring, not the motorcycle. The generator's 0.33 dark-part radius is in source-image space.
- */
-const FLAME_RADIUS = 0.4;
-
-/** Splits the logo targets (normalized 0–1) into the outer flame ring and the inner motorcycle. */
-export const flameMask = (x: Float32Array, y: Float32Array): Uint8Array => {
-  const mask = new Uint8Array(x.length);
-  for (let i = 0; i < x.length; i++) {
-    mask[i] = Math.hypot((x[i] ?? 0) - 0.5, (y[i] ?? 0) - 0.5) > FLAME_RADIUS ? 1 : 0;
-  }
-  return mask;
-};
+const clamp01 = (t: number) => Math.min(1, Math.max(0, t));
 
 /** Ease-out cubic, 0–1. */
-export const easeOutCubic = (t: number): number => 1 - (1 - Math.min(1, Math.max(0, t))) ** 3;
+export const easeOutCubic = (t: number): number => 1 - (1 - clamp01(t)) ** 3;
 
 /** Ease-in-out cubic, 0–1. */
 export const easeInOutCubic = (t: number): number => {
-  const x = Math.min(1, Math.max(0, t));
+  const x = clamp01(t);
   return x < 0.5 ? 4 * x ** 3 : 1 - (-2 * x + 2) ** 3 / 2;
+};
+
+/** Smoothstep, 0–1 (zero slope at both ends). */
+export const smoothstep = (t: number): number => {
+  const x = clamp01(t);
+  return x * x * (3 - 2 * x);
 };
 
 /** Rotates (x, y) around (cx, cy) by `angle` radians. */
@@ -34,9 +28,63 @@ export const rotateAround = (x: number, y: number, cx: number, cy: number, angle
   return { x: cx + (x - cx) * cos - (y - cy) * sin, y: cy + (x - cx) * sin + (y - cy) * cos };
 };
 
+/** Timeline after the hold (ms). */
+export const TIMING = {
+  release: 800, // text → floating orbit blend
+  float: 1200, // everything floats (release overlaps the start of this window)
+  moto: 1000, // motorcycle glides home; the flame keeps floating
+  spin: 600, // flame ring spins into place
+  maxDelay: 250, // per-particle stagger
+} as const;
+export const SEQUENCE_END = TIMING.float + TIMING.moto + TIMING.spin + TIMING.maxDelay;
+const SPIN_ANGLE = Math.PI * 0.9;
+
+/** Everything needed to place one particle at any time `t` of the sequence. */
+export type Choreo = {
+  sx: number; // start: a point of the wordmark
+  sy: number;
+  hx: number; // home: its place in the logo
+  hy: number;
+  ax: number; // floating orbit: anchor, radii, angular speeds (rad/ms), phases
+  ay: number;
+  rx: number;
+  ry: number;
+  w1: number;
+  w2: number;
+  p1: number;
+  p2: number;
+  delay: number; // stagger 0–maxDelay
+  flame: boolean;
+};
+
+/** Position at `t` ms after the wordmark disintegrates. Pure and continuous in `t`. */
+export const choreoAt = (c: Choreo, t: number, cx: number, cy: number) => {
+  const orbitX = c.ax + Math.cos(c.w1 * t + c.p1) * c.rx;
+  const orbitY = c.ay + Math.sin(c.w2 * t + c.p2) * c.ry;
+  const release = smoothstep((t - c.delay) / TIMING.release);
+  let x = c.sx + (orbitX - c.sx) * release;
+  let y = c.sy + (orbitY - c.sy) * release;
+
+  let homeX = c.hx;
+  let homeY = c.hy;
+  let weight: number;
+  if (c.flame) {
+    const progress = (t - TIMING.float - TIMING.moto - c.delay) / TIMING.spin;
+    const point = rotateAround(c.hx, c.hy, cx, cy, SPIN_ANGLE * (1 - easeOutCubic(progress)));
+    homeX = point.x;
+    homeY = point.y;
+    weight = easeInOutCubic(progress);
+  } else {
+    weight = easeInOutCubic((t - TIMING.float - c.delay) / TIMING.moto);
+  }
+  x += (homeX - x) * weight;
+  y += (homeY - y) * weight;
+  return { x, y };
+};
+
 /**
  * Pairs wordmark points with logo particles so colors travel coherently: logo particles sorted by
- * color slot (red → gold → chrome) start from wordmark points sorted left → right (red → gold).
+ * color slot (red → gold → chrome → graphite) start from wordmark points sorted left → right.
  */
 export const pairStartPoints = (logoColors: Uint8Array, wordmarkX: Float32Array): Uint32Array => {
   const count = logoColors.length;

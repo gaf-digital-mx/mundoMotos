@@ -15,6 +15,7 @@ const targets: Targets = {
   x: Float32Array.from([0, 1]),
   y: Float32Array.from([0, 1]),
   color: Uint8Array.from([0, 4]),
+  flame: Uint8Array.from([0, 1]),
   count: 2,
 };
 const seeded = () => {
@@ -29,6 +30,10 @@ describe('decodeTargets', () => {
     expect(Math.max(...decoded.x)).toBeLessThanOrEqual(1);
     expect(Math.min(...decoded.y)).toBeGreaterThanOrEqual(0);
     expect(Math.max(...decoded.color)).toBeLessThanOrEqual(6); // 0–4 flame, 5 chrome, 6 graphite
+    // Both parts are present: the bike assembles first, the flame ring spins in after.
+    const flame = decoded.flame.reduce((sum, value) => sum + value, 0);
+    expect(flame).toBeGreaterThan(decoded.count * 0.15);
+    expect(flame).toBeLessThan(decoded.count * 0.6);
   });
 
   it('thins evenly to the requested limit (fewer particles on small devices)', () => {

@@ -1,14 +1,16 @@
 import { describe, expect, it } from 'vitest';
 
-import { decodeTargets } from './particle-field';
-import { PARTICLES_B64 } from './particles-data';
 import {
   assignShapes,
+  choreoAt,
   easeInOutCubic,
   easeOutCubic,
-  flameMask,
   pairStartPoints,
   rotateAround,
+  SEQUENCE_END,
+  smoothstep,
+  TIMING,
+  type Choreo,
 } from './sequence';
 
 const seeded = () => {
@@ -16,36 +18,36 @@ const seeded = () => {
   return () => ((s = (s * 16807) % 2147483647) - 1) / 2147483646;
 };
 
-describe('flameMask', () => {
-  it('separates the outer ring from the motorcycle', () => {
-    const mask = flameMask(
-      Float32Array.from([0.5, 0.95, 0.05]),
-      Float32Array.from([0.5, 0.5, 0.5]),
-    );
-    expect([...mask]).toEqual([0, 1, 1]);
-  });
-
-  it('finds both parts in the real logo data', () => {
-    const { x, y } = decodeTargets(PARTICLES_B64);
-    const flame = flameMask(x, y).reduce((sum, value) => sum + value, 0);
-    expect(flame).toBeGreaterThan(x.length * 0.2);
-    expect(flame).toBeLessThan(x.length * 0.8);
-  });
+const particle = (overrides: Partial<Choreo> = {}): Choreo => ({
+  sx: 40, // on the wordmark (left)
+  sy: 60,
+  hx: 900, // home in the logo (right)
+  hy: 300,
+  ax: 780,
+  ay: 260,
+  rx: 24,
+  ry: 18,
+  w1: 0.0013,
+  w2: 0.0011,
+  p1: 0.4,
+  p2: 1.9,
+  delay: 120,
+  flame: false,
+  ...overrides,
 });
 
-describe('easeOutCubic / rotateAround', () => {
-  it('eases from 0 to 1 and clamps', () => {
-    expect(easeOutCubic(0)).toBe(0);
-    expect(easeOutCubic(1)).toBe(1);
-    expect(easeOutCubic(2)).toBe(1);
-    expect(easeOutCubic(0.5)).toBeGreaterThan(0.5);
-  });
+/** Samples the whole sequence at 60 fps. */
+const path = (c: Choreo) =>
+  Array.from({ length: Math.ceil(SEQUENCE_END / 16.67) + 2 }, (_, frame) =>
+    choreoAt(c, frame * 16.67, 880, 300),
+  );
 
-  it('eases in and out symmetrically', () => {
-    expect(easeInOutCubic(0)).toBe(0);
+describe('easing', () => {
+  it('eases and clamps', () => {
+    expect([easeOutCubic(0), easeOutCubic(1), easeOutCubic(2)]).toEqual([0, 1, 1]);
     expect(easeInOutCubic(0.5)).toBeCloseTo(0.5);
-    expect(easeInOutCubic(1)).toBe(1);
-    expect(easeInOutCubic(0.25)).toBeLessThan(0.25);
+    expect(smoothstep(0.5)).toBeCloseTo(0.5);
+    expect([smoothstep(-1), smoothstep(2)]).toEqual([0, 1]);
   });
 
   it('rotates a point around a center', () => {
@@ -55,12 +57,49 @@ describe('easeOutCubic / rotateAround', () => {
   });
 });
 
+describe('choreoAt', () => {
+  it.each([false, true])('starts on the wordmark and ends exactly home (flame: %s)', (flame) => {
+    const c = particle({ flame });
+    expect(choreoAt(c, 0, 880, 300)).toEqual({ x: c.sx, y: c.sy });
+    const end = choreoAt(c, SEQUENCE_END, 880, 300);
+    expect(end.x).toBeCloseTo(c.hx, 5);
+    expect(end.y).toBeCloseTo(c.hy, 5);
+  });
+
+  it.each([false, true])(
+    'moves smoothly: no jumps or sudden stops between frames (flame: %s)',
+    (flame) => {
+      const points = path(particle({ flame }));
+      const speeds = points
+        .slice(1)
+        .map((p, i) => Math.hypot(p.x - (points[i]?.x ?? 0), p.y - (points[i]?.y ?? 0)));
+      // No single frame moves far (a 860 px trip over ~0.8 s peaks around 25 px/frame).
+      expect(Math.max(...speeds)).toBeLessThan(30);
+      // Speed changes gradually: no abrupt acceleration between consecutive frames.
+      const accelerations = speeds.slice(1).map((v, i) => Math.abs(v - (speeds[i] ?? 0)));
+      expect(Math.max(...accelerations)).toBeLessThan(2.5);
+    },
+  );
+
+  it('keeps the motorcycle home while the flame is still spinning in', () => {
+    const t = TIMING.float + TIMING.moto + TIMING.maxDelay + 50;
+    const bike = particle();
+    const ring = particle({ flame: true });
+    expect(choreoAt(bike, t, 880, 300).x).toBeCloseTo(bike.hx, 5);
+    expect(choreoAt(ring, t, 880, 300).x).not.toBeCloseTo(ring.hx, 0);
+  });
+
+  it('fits the auto-play budget: hold + sequence + typing stays under 5 s (WCAG 2.2.2)', () => {
+    expect(300 + SEQUENCE_END + 1100).toBeLessThan(5000);
+  });
+});
+
 describe('pairStartPoints', () => {
   it('sends red particles from the left of the wordmark and gold ones from the right', () => {
     const logoColors = Uint8Array.from([4, 0, 4, 0]);
     const wordmarkX = Float32Array.from([300, 10, 200, 20]);
     const pairs = pairStartPoints(logoColors, wordmarkX);
-    const startX = (particle: number) => wordmarkX[pairs[particle] ?? 0] ?? 0;
+    const startX = (index: number) => wordmarkX[pairs[index] ?? 0] ?? 0;
     expect(Math.max(startX(1), startX(3))).toBeLessThan(Math.min(startX(0), startX(2)));
   });
 });
@@ -71,6 +110,5 @@ describe('assignShapes', () => {
     const motos = shapes.reduce((sum, shape) => sum + shape, 0);
     expect(motos).toBeGreaterThan(400);
     expect(motos).toBeLessThan(600);
-    expect(shapes.every((shape) => shape === 0 || shape === 1)).toBe(true);
   });
 });

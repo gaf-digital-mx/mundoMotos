@@ -4,9 +4,19 @@
  * lives in the island. Kept small on purpose: it ships to the browser.
  */
 
-export type Targets = { x: Float32Array; y: Float32Array; color: Uint8Array; count: number };
+/** `flame` = 1 when the particle belongs to the flame ring (0 = motorcycle). */
+export type Targets = {
+  x: Float32Array;
+  y: Float32Array;
+  color: Uint8Array;
+  flame: Uint8Array;
+  count: number;
+};
 
-/** Decodes base64 [x, y, colorIndex] byte triples, evenly thinned to at most `limit` points. */
+/**
+ * Decodes base64 [x, y, info] byte triples (info = color slot | 0x80 flame flag), evenly thinned
+ * to at most `limit` points.
+ */
 export const decodeTargets = (b64: string, limit = Number.POSITIVE_INFINITY): Targets => {
   const bin = atob(b64);
   const total = Math.floor(bin.length / 3);
@@ -15,13 +25,16 @@ export const decodeTargets = (b64: string, limit = Number.POSITIVE_INFINITY): Ta
   const x = new Float32Array(count);
   const y = new Float32Array(count);
   const color = new Uint8Array(count);
+  const flame = new Uint8Array(count);
   for (let i = 0; i < count; i++) {
     const j = Math.floor(i * stride) * 3;
+    const info = bin.charCodeAt(j + 2);
     x[i] = bin.charCodeAt(j) / 255;
     y[i] = bin.charCodeAt(j + 1) / 255;
-    color[i] = bin.charCodeAt(j + 2);
+    color[i] = info & 0x7f;
+    flame[i] = info >> 7;
   }
-  return { x, y, color, count };
+  return { x, y, color, flame, count };
 };
 
 export type Field = {

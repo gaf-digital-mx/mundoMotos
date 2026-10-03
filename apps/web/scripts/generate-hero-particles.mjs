@@ -1,117 +1,107 @@
 #!/usr/bin/env node
 /**
- * Samples the brand logo into particle targets for the interactive hero (run after replacing
- * the logo): `pnpm --filter @mundomotos/web generate:particles`.
+ * Samples the transparent vector logo into particle targets for the interactive hero (run after
+ * replacing the logo): `pnpm --filter @mundomotos/web generate:particles`.
  *
- * Output: src/features/hero/particles-data.ts with a base64 string of [x, y, colorIndex] byte
- * triples (x/y normalized to 0–255 inside the logo's bounding box), so the browser never has to
- * download or decode the image.
+ * - Silhouette = opaque pixels (alpha), so black parts (tires, outlines, seat) are included and
+ *   the background never is.
+ * - Each particle is flagged as flame ring or motorcycle (outer warm band = ring), so the hero
+ *   can assemble the bike first and spin the ring in afterwards.
+ *
+ * Output: src/features/hero/particles-data.ts, base64 [x, y, info] byte triples. x/y are
+ * normalized to 0–255 inside the bounding box; info = color slot (bits 0–6) | flame flag (bit 7).
  */
 import { writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 import sharp from 'sharp';
 
-const SOURCE = fileURLToPath(new URL('../src/assets/brand/logo-primario.png', import.meta.url));
+const SOURCE = fileURLToPath(new URL('../src/assets/brand/logo-vector.png', import.meta.url));
 const OUTPUT = fileURLToPath(new URL('../src/features/hero/particles-data.ts', import.meta.url));
 /** Desktop particle count; the hero thins it for small devices (keep in sync with hero-stage). */
 const TARGET_POINTS = 1600;
+const SIZE = 360; // sampling resolution (longest side)
+/** Cap for graphite (outline/tire) particles so the figure keeps its flame colors. */
+const DARK_SHARE = 0.24;
 
-/** Flame palette (index = color slot used by the canvas), plus chrome for the metal parts. */
-const PALETTE = [
-  [240, 21, 19], // flame-red
-  [253, 70, 22], // flame-orange
-  [238, 117, 28], // ember
-  [253, 162, 17], // amber
-  [251, 195, 21], // ignition-gold
-  [189, 189, 189], // silver-mist (chrome)
-  [74, 74, 74], // graphite (the logo's black parts: tires, seat, engine shadows)
+/** Color slots (index = slot used by the canvas). */
+const FLAME = [
+  [240, 21, 19], // 0 flame-red
+  [253, 70, 22], // 1 flame-orange
+  [238, 117, 28], // 2 ember
+  [253, 162, 17], // 3 amber
+  [251, 195, 21], // 4 ignition-gold
 ];
-const GRAPHITE = PALETTE.length - 1;
-/** Dark pixels count as part of the logo only if colored pixels surround them this closely. */
-const ENCLOSE_RADIUS = 3;
-/** Share of particles for the dark parts: enough to fill them without graying the figure. */
-const DARK_SHARE = 0.22;
+const SILVER = 5; // silver-mist: chrome, rims, windshield highlights
+const GRAPHITE = 6; // graphite: black parts
 
-const SIZE = 220; // sampling resolution (longest side)
 const { data, info } = await sharp(SOURCE)
   .resize(SIZE, SIZE, { fit: 'inside' })
+  .ensureAlpha()
   .raw()
   .toBuffer({ resolveWithObject: true });
-const { width, height, channels } = info;
+const { width, height } = info;
+const opaque = new Uint8Array(width * height);
+for (let i = 0; i < width * height; i++) opaque[i] = data[i * 4 + 3] >= 128 ? 1 : 0;
 
-const isColored = new Uint8Array(width * height);
-const candidates = [];
+// Ring vs motorcycle: the ring touches the bike (front tire, handlebar), so connectivity can't
+// separate them. Rule: a pixel belongs to the flame ring when it lies in the outer band of the
+// circle around the logo center AND is a warm flame color (the ring is never chrome or black).
+const RING_INNER = 0.36; // radius as a fraction of the longest side
+const cx = width / 2;
+const cy = height / 2;
+const isRingBand = (x, y) => Math.hypot(x - cx, y - cy) / Math.max(width, height) >= RING_INNER;
+
+const classify = (r, g, b) => {
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  const value = max / 255;
+  const saturation = max === 0 ? 0 : (max - min) / max;
+  if (value < 0.3) return GRAPHITE;
+  // Chrome and glass read gray or blue-ish in the illustration.
+  if (saturation < 0.3 || (b > r && b > g)) return value < 0.45 ? GRAPHITE : SILVER;
+  let best = 0;
+  let bestDistance = Infinity;
+  FLAME.forEach(([pr, pg, pb], index) => {
+    const distance = (r - pr) ** 2 + (g - pg) ** 2 + (b - pb) ** 2;
+    if (distance < bestDistance) [best, bestDistance] = [index, distance];
+  });
+  return best;
+};
+
+const colored = [];
 const dark = [];
 for (let y = 0; y < height; y++) {
   for (let x = 0; x < width; x++) {
-    const i = (y * width + x) * channels;
-    const [r, g, b] = [data[i], data[i + 1], data[i + 2]];
-    const alpha = channels === 4 ? data[i + 3] : 255;
-    const max = Math.max(r, g, b);
-    const min = Math.min(r, g, b);
-    const value = max / 255;
-    const saturation = max === 0 ? 0 : (max - min) / max;
-    // Keep the colored body/flames and the bright chrome; drop the black background.
-    if (alpha < 128 || value < 0.28 || (saturation < 0.35 && value < 0.55)) continue;
-    isColored[y * width + x] = 1;
-    let best = 0;
-    let bestDistance = Infinity;
-    PALETTE.forEach(([pr, pg, pb], index) => {
-      if (index === GRAPHITE) return; // graphite is reserved for enclosed dark parts
-      const distance = (r - pr) ** 2 + (g - pg) ** 2 + (b - pb) ** 2;
-      if (distance < bestDistance) [best, bestDistance] = [index, distance];
-    });
-    candidates.push([x, y, best]);
+    const p = y * width + x;
+    if (!opaque[p]) continue;
+    const slot = classify(data[p * 4], data[p * 4 + 1], data[p * 4 + 2]);
+    const flame = slot <= 4 && isRingBand(x, y);
+    const point = [x, y, slot | (flame ? 0x80 : 0)];
+    (slot === GRAPHITE ? dark : colored).push(point);
   }
 }
 
-// Dark parts inside the silhouette (not the black background): a dark pixel qualifies when
-// colored pixels exist within ENCLOSE_RADIUS on all four sides.
-const coloredNear = (x, y, dx, dy) => {
-  for (let step = 1; step <= ENCLOSE_RADIUS * 2; step++) {
-    const nx = x + dx * step;
-    const ny = y + dy * step;
-    if (nx < 0 || ny < 0 || nx >= width || ny >= height) return false;
-    if (isColored[ny * width + nx]) return true;
-  }
-  return false;
+/** Seeded PRNG (mulberry32): deterministic output for the same logo. */
+const prng = (seed) => () => {
+  seed = (seed + 0x6d2b79f5) | 0;
+  let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+  t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+  return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
 };
-for (let y = 0; y < height; y++) {
-  for (let x = 0; x < width; x++) {
-    if (isColored[y * width + x]) continue;
-    const i = (y * width + x) * channels;
-    if (channels === 4 && data[i + 3] < 128) continue;
-    // Inside the ring only (the area between ring and motorcycle stays empty).
-    // Source-image space (the hero's FLAME_RADIUS = 0.4 is in bbox-normalized space).
-    if (Math.hypot(x / width - 0.5, y / height - 0.5) > 0.33) continue;
-    if (
-      coloredNear(x, y, 1, 0) &&
-      coloredNear(x, y, -1, 0) &&
-      coloredNear(x, y, 0, 1) &&
-      coloredNear(x, y, 0, -1)
-    ) {
-      dark.push([x, y, GRAPHITE]);
-    }
+/** Uniform random sample without replacement (seeded Fisher–Yates). */
+const sample = (list, target, random = prng(20261003)) => {
+  const copy = list.slice();
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
   }
-}
-
-// Deterministic stride sampling of each group down to its share of the target count.
-const strideSample = (list, target) => {
-  const stride = Math.max(1, list.length / target);
-  const out = [];
-  for (let i = 0; i < list.length && out.length < target; i += stride)
-    out.push(list[Math.floor(i)]);
-  return out;
+  return copy.slice(0, Math.min(target, copy.length));
 };
 const darkTarget = Math.min(dark.length, Math.round(TARGET_POINTS * DARK_SHARE));
-const picked = [
-  ...strideSample(candidates, TARGET_POINTS - darkTarget),
-  ...strideSample(dark, darkTarget),
-];
+const picked = [...sample(colored, TARGET_POINTS - darkTarget), ...sample(dark, darkTarget)];
+if (picked.length === 0) throw new Error('No particles sampled: check the logo source.');
 
-if (picked.length === 0)
-  throw new Error('No particles sampled: check the logo source and thresholds.');
 const xs = picked.map(([x]) => x);
 const ys = picked.map(([, y]) => y);
 const [minX, maxX, minY, maxY] = [
@@ -121,20 +111,20 @@ const [minX, maxX, minY, maxY] = [
   Math.max(...ys),
 ];
 const span = Math.max(maxX - minX, maxY - minY) || 1;
-
 const bytes = Buffer.alloc(picked.length * 3);
-picked.forEach(([x, y, c], i) => {
+picked.forEach(([x, y, infoByte], i) => {
   bytes[i * 3] = Math.round(((x - minX) / span) * 255);
   bytes[i * 3 + 1] = Math.round(((y - minY) / span) * 255);
-  bytes[i * 3 + 2] = c;
+  bytes[i * 3 + 2] = infoByte;
 });
 
 writeFileSync(
   OUTPUT,
   `// Generated by scripts/generate-hero-particles.mjs — do not edit by hand.\n` +
-    `/** ${picked.length} particles as base64 [x, y, colorIndex] byte triples (x/y: 0–255). */\n` +
+    `/** ${picked.length} particles as base64 [x, y, info] byte triples (x/y: 0–255; info: color slot | flame bit 0x80). */\n` +
     `export const PARTICLES_B64 =\n  '${bytes.toString('base64')}';\n`,
 );
+const flameCount = picked.filter(([, , infoByte]) => infoByte & 0x80).length;
 console.log(
-  `✔ ${picked.length} particles (${darkTarget} dark of ${dark.length}) from ${candidates.length} colored → ${OUTPUT.split('/src/')[1]}`,
+  `✔ ${picked.length} particles (${flameCount} flame, ${darkTarget} graphite) from ${colored.length + dark.length} opaque px`,
 );

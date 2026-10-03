@@ -15,12 +15,11 @@ import {
 import { PARTICLES_B64 } from './particles-data';
 import {
   assignShapes,
-  easeInOutCubic,
-  easeOutCubic,
-  flameMask,
+  choreoAt,
   MOTO_PATH,
   pairStartPoints,
-  rotateAround,
+  SEQUENCE_END,
+  type Choreo,
 } from './sequence';
 
 /** Theme tokens in generator color-slot order. */
@@ -35,30 +34,20 @@ const COLOR_TOKENS = [
 ];
 const FRAME_MS = 1000 / 60;
 const POINTER_IDLE_MS = 200;
-/** Timeline (ms). */
 const HOLD_MS = 300; // wordmark visible before it disintegrates
-const FLOAT_MS = 1200; // every particle floats softly around the hero
-const MOTO_MS = 1000; // the motorcycle forms; flame particles keep floating
-const SPIN_MS = 500; // the flame ring spins into place
-const SPIN_ANGLE = Math.PI * 0.9;
-const TYPE_MS = 1100; // matches --animate-type
-/** Auto-playing motion must stay under 5 s (WCAG 2.2.2); a unit test guards this. */
-export const SEQUENCE_MS = HOLD_MS + FLOAT_MS + MOTO_MS + SPIN_MS + TYPE_MS;
-/** Weak spring + high damping toward drifting targets reads as "floating". */
-const FLOAT_SPRING = 0.006;
-const FLOAT_DAMPING = 0.94;
-const WANDER_EVERY_MS = 350;
-/** Max wobble (px) of motorcycle particles while they glide in; fades to 0 on arrival. */
-const WOBBLE = 6;
-
-type Phase = 'hold' | 'float' | 'moto' | 'spin' | 'done';
+/** Sizes at the desktop logo width; they scale with the logo box (crisper figure on phones). */
+const REFERENCE_WIDTH = 520;
+const TRIANGLE_RADIUS = 3;
+const ICON_SIZE = 11;
+const SPRITE_DPR = 2; // sprites always rasterized at 2× so small icons stay sharp
 
 /**
- * Hero sequence: the server-rendered wordmark (painted before any script, LCP) disintegrates
- * into particles that float softly around the hero; the motorcycle glides into shape over 1 s
- * while the flame particles keep floating; the flame ring spins into place; then the wordmark
- * is typed again. The h1 stays in the DOM the whole time (only its opacity changes).
- * Reduced motion: no sequence, static logo, text always visible.
+ * Hero sequence: the server-rendered wordmark (painted before any script) disintegrates; the
+ * particles float softly near the logo; the motorcycle glides into shape over 1 s while the
+ * flame particles keep floating; the flame ring spins into place; the wordmark is typed again.
+ * Motion during the sequence is fully time-parameterized (see sequence.ts) so it never jumps;
+ * physics only takes over afterwards for pointer interaction. The h1 stays in the DOM the
+ * whole time. Reduced motion: no sequence, static logo, text always visible.
  */
 export function HeroStage({ children }: { children: ReactNode }) {
   const stageRef = useRef<HTMLDivElement>(null);
@@ -75,29 +64,29 @@ export function HeroStage({ children }: { children: ReactNode }) {
 
     const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
     const cores = (navigator.hardwareConcurrency as number | undefined) ?? 4;
-    const small = window.innerWidth < 768 || cores <= 4;
-    const targets = decodeTargets(PARTICLES_B64, small ? 800 : 1600);
-    const flame = flameMask(targets.x, targets.y);
+    const phone = window.innerWidth < 768;
+    const count = cores <= 4 ? 800 : phone ? 1000 : 1600;
+    const targets = decodeTargets(PARTICLES_B64, count);
     const styles = getComputedStyle(document.documentElement);
     const palette = COLOR_TOKENS.map((token) => styles.getPropertyValue(token).trim() || 'gray');
-    const dpr = Math.min(window.devicePixelRatio || 1, small ? 1.5 : 2);
-    const radius = small ? 2.4 : 3;
-    const iconSize = small ? 9 : 11;
+    const dpr = Math.min(window.devicePixelRatio || 1, phone ? 1.5 : 2);
 
-    // Motorcycle icons are drawn once per color into sprites, then stamped every frame.
-    const sprites: (HTMLCanvasElement | undefined)[] = [];
+    let radius = TRIANGLE_RADIUS;
+    let iconSize = ICON_SIZE;
+    const sprites = new Map<string, HTMLCanvasElement>();
     const sprite = (slot: number) => {
-      let image = sprites[slot];
+      const key = `${iconSize}-${slot}`;
+      let image = sprites.get(key);
       if (!image) {
         image = document.createElement('canvas');
-        image.width = image.height = Math.ceil(iconSize * dpr);
+        image.width = image.height = Math.ceil(iconSize * SPRITE_DPR);
         const sctx = image.getContext('2d');
         if (sctx) {
-          sctx.scale((iconSize * dpr) / 24, (iconSize * dpr) / 24);
+          sctx.scale((iconSize * SPRITE_DPR) / 24, (iconSize * SPRITE_DPR) / 24);
           sctx.fillStyle = palette[slot] ?? 'gray';
           sctx.fill(new Path2D(MOTO_PATH), 'evenodd');
         }
-        sprites[slot] = image;
+        sprites.set(key, image);
       }
       return image;
     };
@@ -105,14 +94,12 @@ export function HeroStage({ children }: { children: ReactNode }) {
     let canvasBox: Box = { width: 0, height: 0 };
     let field: Field | null = null;
     let shapes = new Uint8Array(0);
-    let baseHomeX = new Float32Array(0); // final logo positions
-    let baseHomeY = new Float32Array(0);
-    let glideFromX = new Float32Array(0); // motorcycle particles: where the glide starts
-    let glideFromY = new Float32Array(0);
-    let wobblePhase = new Float32Array(0);
-    let phase: Phase = 'done';
-    let phaseStart = 0;
-    let lastWander = 0;
+    let choreo: Choreo[] = [];
+    let homeX = new Float32Array(0);
+    let homeY = new Float32Array(0);
+    let center = { x: 0, y: 0 };
+    let phase: 'hold' | 'sequence' | 'done' = 'done';
+    let sequenceStart = 0;
     const pointer = { x: 0, y: 0, lastMove: Number.NEGATIVE_INFINITY };
     let running = false;
     let frame = 0;
@@ -121,7 +108,7 @@ export function HeroStage({ children }: { children: ReactNode }) {
     let watchdog = 0;
     let disposed = false;
 
-    const logoArea = (): Box => {
+    const logoArea = () => {
       const stageRect = stage.getBoundingClientRect();
       const rect = logoBox.getBoundingClientRect();
       return {
@@ -132,11 +119,17 @@ export function HeroStage({ children }: { children: ReactNode }) {
       };
     };
 
-    const sizeCanvas = () => {
+    const layout = () => {
       canvasBox = { width: stage.clientWidth, height: stage.clientHeight };
       canvas.width = Math.round(canvasBox.width * dpr);
       canvas.height = Math.round(canvasBox.height * dpr);
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      const area = logoArea();
+      const scale = area.width / REFERENCE_WIDTH;
+      radius = Math.min(TRIANGLE_RADIUS, Math.max(1.6, TRIANGLE_RADIUS * scale));
+      iconSize = Math.round(Math.min(ICON_SIZE, Math.max(6, ICON_SIZE * scale)));
+      center = { x: area.x + area.width / 2, y: area.y + area.height / 2 };
+      return area;
     };
 
     const draw = () => {
@@ -171,20 +164,19 @@ export function HeroStage({ children }: { children: ReactNode }) {
       }
     };
 
-    /** Samples the rendered wordmark into points (canvas coordinates) with gradient color slots. */
-    const sampleWordmark = (count: number) => {
+    /** Samples the rendered wordmark into start points (canvas coordinates). */
+    const sampleWordmark = (n: number) => {
       const stageRect = stage.getBoundingClientRect();
       const rect = wordmark.getBoundingClientRect();
       const style = getComputedStyle(wordmark);
       const off = document.createElement('canvas');
-      off.width = Math.ceil(rect.width);
-      off.height = Math.ceil(rect.height);
+      off.width = Math.max(1, Math.ceil(rect.width));
+      off.height = Math.max(1, Math.ceil(rect.height));
       const octx = off.getContext('2d', { willReadFrequently: true });
       const xs: number[] = [];
       const ys: number[] = [];
       if (octx) {
         octx.font = `${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
-        // Match the DOM rendering (tracking) so particles start on the real letters.
         if ('letterSpacing' in octx) octx.letterSpacing = style.letterSpacing;
         octx.textBaseline = 'middle';
         octx.fillText(wordmark.textContent, 0, off.height / 2);
@@ -198,95 +190,89 @@ export function HeroStage({ children }: { children: ReactNode }) {
           }
         }
       }
-      const x = new Float32Array(count);
-      const y = new Float32Array(count);
-      for (let i = 0; i < count; i++) {
+      const x = new Float32Array(n);
+      const y = new Float32Array(n);
+      for (let i = 0; i < n; i++) {
         const j = xs.length ? Math.floor(Math.random() * xs.length) : 0;
-        x[i] = rect.left - stageRect.left + (xs[j] ?? 0);
-        y[i] = rect.top - stageRect.top + (ys[j] ?? 0);
+        x[i] = rect.left - stageRect.left + (xs[j] ?? off.width / 2);
+        y[i] = rect.top - stageRect.top + (ys[j] ?? off.height / 2);
       }
       return { x, y };
     };
 
-    /** Floating particles drift toward new random points around the hero, a few at a time. */
-    const wander = (f: Field, onlyFlame: boolean) => {
-      for (let i = 0; i < f.count; i++) {
-        if ((onlyFlame && !flame[i]) || Math.random() > 0.35) continue;
-        f.hx[i] = Math.random() * canvasBox.width;
-        f.hy[i] = Math.random() * canvasBox.height;
-      }
+    /** Floating orbits live in a bounded zone around the logo (not the whole hero). */
+    const buildChoreo = (f: Field, area: Box) => {
+      const start = sampleWordmark(f.count);
+      const pairs = pairStartPoints(f.color, start.x);
+      const zoneRx = area.width * 0.62;
+      const zoneRy = area.height * 0.55;
+      choreo = Array.from({ length: f.count }, (_, i) => {
+        const point = pairs[i] ?? 0;
+        const angle = Math.random() * Math.PI * 2;
+        const distance = Math.sqrt(Math.random());
+        const ax = Math.min(
+          canvasBox.width - 8,
+          Math.max(8, center.x + Math.cos(angle) * zoneRx * distance),
+        );
+        const ay = Math.min(
+          canvasBox.height - 8,
+          Math.max(8, center.y + Math.sin(angle) * zoneRy * distance),
+        );
+        return {
+          sx: start.x[point] ?? 0,
+          sy: start.y[point] ?? 0,
+          hx: homeX[i] ?? 0,
+          hy: homeY[i] ?? 0,
+          ax,
+          ay,
+          rx: 8 + Math.random() * 22,
+          ry: 6 + Math.random() * 18,
+          w1: 0.0008 + Math.random() * 0.001,
+          w2: 0.0007 + Math.random() * 0.001,
+          p1: Math.random() * Math.PI * 2,
+          p2: Math.random() * Math.PI * 2,
+          delay: Math.random() * 250,
+          flame: (targets.flame[i] ?? 0) === 1,
+        };
+      });
     };
 
-    /** During the spin, flame homes rotate (eased) from SPIN_ANGLE back to their final place. */
-    let spinArea: Box = { width: 0, height: 0 };
-    const spinFlame = (f: Field, progress: number) => {
-      const area = spinArea;
-      const cx = (area.x ?? 0) + area.width / 2;
-      const cy = (area.y ?? 0) + area.height / 2;
-      const angle = SPIN_ANGLE * (1 - easeOutCubic(progress));
-      for (let i = 0; i < f.count; i++) {
-        if (!flame[i]) continue;
-        const point = rotateAround(baseHomeX[i] ?? 0, baseHomeY[i] ?? 0, cx, cy, angle);
-        f.hx[i] = point.x;
-        f.hy[i] = point.y;
+    const finish = () => {
+      window.clearTimeout(holdTimer);
+      window.clearTimeout(watchdog);
+      if (field) {
+        snapToHome(field, homeX, homeY, () => true);
+        draw();
       }
-    };
-
-    /** Motorcycle particles glide (eased) from where they floated to their place, with a fading wobble. */
-    const glideMoto = (f: Field, progress: number, time: number) => {
-      const t = easeInOutCubic(progress);
-      const wobble = WOBBLE * (1 - t);
-      for (let i = 0; i < f.count; i++) {
-        if (flame[i]) continue;
-        const phaseOffset = wobblePhase[i] ?? 0;
-        const x = (glideFromX[i] ?? 0) + ((baseHomeX[i] ?? 0) - (glideFromX[i] ?? 0)) * t;
-        const y = (glideFromY[i] ?? 0) + ((baseHomeY[i] ?? 0) - (glideFromY[i] ?? 0)) * t;
-        f.px[i] = x + Math.sin(time / 260 + phaseOffset) * wobble;
-        f.py[i] = y + Math.cos(time / 310 + phaseOffset) * wobble;
-        f.vx[i] = 0;
-        f.vy[i] = 0;
-      }
+      if (wordmark.dataset.state === 'hidden') wordmark.dataset.state = 'typing';
+      phase = 'done';
     };
 
     const loop = (time: number) => {
       if (!field) return;
       const dt = Math.min(Math.max((time - lastTime) / FRAME_MS, 0.25), 2);
       lastTime = time;
-      const elapsed = time - phaseStart;
-      const floating = phase === 'float' || phase === 'moto';
+      let energy = 0;
+      let active = false;
 
-      if (floating && time - lastWander > WANDER_EVERY_MS) {
-        wander(field, phase === 'moto');
-        lastWander = time;
+      if (phase === 'sequence') {
+        const t = time - sequenceStart;
+        for (let i = 0; i < field.count; i++) {
+          const c = choreo[i];
+          if (!c) continue;
+          const point = choreoAt(c, t, center.x, center.y);
+          field.px[i] = point.x;
+          field.py[i] = point.y;
+          field.angle[i] = (field.angle[i] ?? 0) + (field.spin[i] ?? 0) * dt;
+        }
+        if (t >= SEQUENCE_END) finish();
+      } else {
+        active = time - pointer.lastMove < POINTER_IDLE_MS;
+        energy = stepField(field, active ? pointer : null, dt);
       }
-      if (phase === 'float' && elapsed >= FLOAT_MS) {
-        glideFromX = field.px.slice();
-        glideFromY = field.py.slice();
-        phase = 'moto';
-        phaseStart = time;
-      } else if (phase === 'moto' && elapsed >= MOTO_MS) {
-        // The motorcycle is complete: pin it home (its float targets are stale) before the spin.
-        snapToHome(field, baseHomeX, baseHomeY, (i) => !flame[i]);
-        spinArea = logoArea();
-        phase = 'spin';
-        phaseStart = time;
-      } else if (phase === 'spin' && elapsed >= SPIN_MS) {
-        field.hx.set(baseHomeX);
-        field.hy.set(baseHomeY);
-        wordmark.dataset.state = 'typing';
-        window.clearTimeout(watchdog);
-        phase = 'done';
-      }
-      if (phase === 'spin') spinFlame(field, (time - phaseStart) / SPIN_MS);
-
-      const active = phase === 'done' && time - pointer.lastMove < POINTER_IDLE_MS;
-      const energy = floating
-        ? stepField(field, null, dt, FLOAT_SPRING, FLOAT_DAMPING)
-        : stepField(field, active ? pointer : null, dt);
-      if (phase === 'moto') glideMoto(field, (time - phaseStart) / MOTO_MS, time);
       draw();
 
-      if (phase !== 'done' || active || energy > 0.01) frame = requestAnimationFrame(loop);
+      if (phase === 'sequence' || active || energy > 0.01) frame = requestAnimationFrame(loop);
       else running = false;
     };
 
@@ -298,17 +284,20 @@ export function HeroStage({ children }: { children: ReactNode }) {
     };
 
     const onPointerMove = (event: PointerEvent) => {
+      if (phase !== 'done') return;
       const stageRect = stage.getBoundingClientRect();
       const area = logoArea();
       const x = event.clientX - stageRect.left;
       const y = event.clientY - stageRect.top;
-      const ax = area.x ?? 0;
-      const ay = area.y ?? 0;
-      if (x < ax || x > ax + area.width || y < ay || y > ay + area.height) return;
+      if (x < area.x || x > area.x + area.width || y < area.y || y > area.y + area.height) return;
       pointer.x = x;
       pointer.y = y;
       pointer.lastMove = performance.now();
       wake();
+    };
+
+    const onMotionChange = () => {
+      if (motionQuery.matches) finish();
     };
 
     const onResize = () => {
@@ -318,45 +307,25 @@ export function HeroStage({ children }: { children: ReactNode }) {
         (stage.clientWidth === canvasBox.width && stage.clientHeight === canvasBox.height)
       )
         return;
-      sizeCanvas();
-      layoutHomes(field, targets, logoArea());
-      baseHomeX = field.hx.slice();
-      baseHomeY = field.hy.slice();
-      // Mid-sequence resize: skip to the end state instead of re-sampling moving text.
-      if (phase !== 'done') finish();
-      if (motionQuery.matches) settle(field);
-      draw();
+      const area = layout();
+      layoutHomes(field, targets, area);
+      homeX = field.hx.slice();
+      homeY = field.hy.slice();
+      finish(); // mid-sequence resize: jump to the end state instead of re-sampling moving text
       wake();
     };
 
     const resizeObserver = new ResizeObserver(onResize);
 
-    /** Ends the sequence immediately: text visible, logo in place. Safe to call at any time. */
-    const finish = () => {
-      window.clearTimeout(holdTimer);
-      window.clearTimeout(watchdog);
-      if (field) {
-        snapToHome(field, baseHomeX, baseHomeY, () => true);
-        draw();
-      }
-      if (wordmark.dataset.state === 'hidden') wordmark.dataset.state = 'shown';
-      phase = 'done';
-    };
-
-    const onMotionChange = () => {
-      if (motionQuery.matches) finish();
-    };
-
     const begin = async () => {
       await document.fonts.ready;
       if (disposed) return; // unmounted while fonts were loading
-      sizeCanvas();
-      const f = createField(targets, logoArea());
+      const area = layout();
+      const f = createField(targets, area);
       field = f;
       shapes = assignShapes(f.count, 0.5);
-      baseHomeX = f.hx.slice();
-      baseHomeY = f.hy.slice();
-      wobblePhase = Float32Array.from({ length: f.count }, () => Math.random() * Math.PI * 2);
+      homeX = f.hx.slice();
+      homeY = f.hy.slice();
       stage.addEventListener('pointermove', onPointerMove);
       motionQuery.addEventListener('change', onMotionChange);
       resizeObserver.observe(stage);
@@ -368,28 +337,15 @@ export function HeroStage({ children }: { children: ReactNode }) {
         return;
       }
 
-      // Hold the wordmark, then disintegrate it: particles start on the letters (color-paired)
-      // and drift away softly.
       phase = 'hold';
       holdTimer = window.setTimeout(() => {
         if (disposed || motionQuery.matches) return;
-        const start = sampleWordmark(f.count);
-        const pairs = pairStartPoints(f.color, start.x);
-        for (let i = 0; i < f.count; i++) {
-          const point = pairs[i] ?? 0;
-          f.px[i] = start.x[point] ?? 0;
-          f.py[i] = start.y[point] ?? 0;
-          const direction = Math.random() * Math.PI * 2;
-          f.vx[i] = Math.cos(direction) * 1.2;
-          f.vy[i] = Math.sin(direction) * 1.2;
-        }
-        wander(f, false);
+        buildChoreo(f, area);
         wordmark.dataset.state = 'hidden';
         // Safety net: whatever happens (exceptions, throttled tabs), the text comes back.
-        watchdog = window.setTimeout(finish, SEQUENCE_MS + 1500);
-        phase = 'float';
-        phaseStart = performance.now();
-        lastWander = phaseStart;
+        watchdog = window.setTimeout(finish, SEQUENCE_END + 1500);
+        phase = 'sequence';
+        sequenceStart = performance.now();
         wake();
       }, HOLD_MS);
     };
@@ -409,9 +365,9 @@ export function HeroStage({ children }: { children: ReactNode }) {
       : window.setTimeout(watch, 300);
 
     return () => {
+      disposed = true;
       if (hasIdle) window.cancelIdleCallback(idle);
       else window.clearTimeout(idle);
-      disposed = true;
       window.clearTimeout(holdTimer);
       window.clearTimeout(watchdog);
       cancelAnimationFrame(frame);
