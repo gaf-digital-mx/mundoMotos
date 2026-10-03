@@ -53,6 +53,22 @@ describe('particle physics', () => {
     expect(field.px[0]).toBeLessThan(before);
   });
 
+  it('falls asleep with the full logo data (energy under the 0.01 sleep threshold)', () => {
+    const field = createField(decodeTargets(PARTICLES_B64), box, seeded());
+    let energy = Infinity;
+    for (let frame = 0; frame < 600 && energy >= 0.01; frame++) energy = stepField(field, null);
+    expect(energy).toBeLessThan(0.01);
+  });
+
+  it('is time-based: two half-steps travel about as far as one full step', () => {
+    const a = createField(targets, box, seeded());
+    const b = createField(targets, box, seeded());
+    stepField(a, null, 1);
+    stepField(b, null, 0.5);
+    stepField(b, null, 0.5);
+    expect(Math.abs((a.px[0] ?? 0) - (b.px[0] ?? 0))).toBeLessThan(2);
+  });
+
   it('settle snaps everything home with no motion (reduced motion)', () => {
     const field = createField(targets, box, seeded());
     settle(field);

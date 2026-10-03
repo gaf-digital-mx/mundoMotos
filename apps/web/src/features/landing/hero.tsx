@@ -1,6 +1,5 @@
 import { useTranslations } from 'next-intl';
 
-import logo from '@/assets/brand/generated/logo-512.webp';
 import { HeroParticles } from '@/features/hero/hero-particles';
 import { business, siteConfig } from '@/shared/config/business';
 import { directionsUrl } from '@/shared/lib/contact-links';
@@ -43,7 +42,7 @@ export function Hero() {
       </div>
       {/* After the copy on mobile: the headline and CTA must stay above the fold. */}
       <div className="mx-auto w-full max-w-[340px] md:max-w-none">
-        <HeroParticles posterSrc={logo.src} posterWidth={logo.width} posterHeight={logo.height} />
+        <HeroParticles />
       </div>
     </section>
   );

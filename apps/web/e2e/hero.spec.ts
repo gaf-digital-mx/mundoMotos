@@ -1,31 +1,38 @@
 import { expect, test } from '@playwright/test';
 
 test.describe('interactive hero', () => {
-  test('keeps the headline as the LCP element (canvas starts after idle)', async ({ page }) => {
-    await page.goto('/');
-    const lcpTag = await page.evaluate(
-      () =>
-        new Promise<string>((resolve) => {
-          new PerformanceObserver((list) => {
-            const entries = list.getEntries() as (PerformanceEntry & {
-              element?: Element | null;
-            })[];
-            resolve(entries.at(-1)?.element?.tagName ?? 'none');
-          }).observe({ type: 'largest-contentful-paint', buffered: true });
-        }),
-    );
-    expect(lcpTag).toBe('H1');
-  });
+  for (const viewport of [
+    { width: 390, height: 844 },
+    { width: 1440, height: 900 },
+  ]) {
+    test(`keeps the headline as the final LCP element at ${viewport.width}px`, async ({ page }) => {
+      await page.setViewportSize(viewport);
+      await page.goto('/');
+      await page.waitForLoadState('load');
+      // Collect every candidate for a settle window (canvas fades in after idle), then take the last.
+      const lcpTag = await page.evaluate(
+        () =>
+          new Promise<string>((resolve) => {
+            let last = 'none';
+            new PerformanceObserver((list) => {
+              const entries = list.getEntries() as (PerformanceEntry & {
+                element?: Element | null;
+              })[];
+              last = entries.at(-1)?.element?.tagName ?? last;
+            }).observe({ type: 'largest-contentful-paint', buffered: true });
+            setTimeout(() => {
+              resolve(last);
+            }, 3000);
+          }),
+      );
+      expect(lcpTag).toBe('H1');
+    });
+  }
 
-  test('renders a decorative canvas and hides the poster once particles start', async ({
-    page,
-  }) => {
+  test('renders a decorative canvas that fades in once particles start', async ({ page }) => {
     await page.goto('/');
     const canvas = page.locator('section[aria-labelledby="hero-title"] canvas');
     await expect(canvas).toHaveAttribute('aria-hidden', 'true');
-    await expect(page.locator('section[aria-labelledby="hero-title"] img')).toHaveClass(
-      /opacity-0/,
-    );
   });
 
   test.describe('with reduced motion', () => {
@@ -33,9 +40,6 @@ test.describe('interactive hero', () => {
 
     test('still shows the figure without animating it', async ({ page }) => {
       await page.goto('/');
-      await expect(page.locator('section[aria-labelledby="hero-title"] img')).toHaveClass(
-        /opacity-0/,
-      );
       const painted = await page
         .locator('section[aria-labelledby="hero-title"] canvas')
         .evaluate((canvas: HTMLCanvasElement) => {

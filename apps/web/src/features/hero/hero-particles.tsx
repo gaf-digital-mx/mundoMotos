@@ -10,7 +10,6 @@ import {
   stepField,
   type Box,
   type Field,
-  type Pointer,
 } from './particle-field';
 import { PARTICLES_B64 } from './particles-data';
 
@@ -23,15 +22,17 @@ const COLOR_TOKENS = [
   '--color-ignition-gold',
   '--color-silver-mist',
 ];
-
-type Props = { posterSrc: string; posterWidth: number; posterHeight: number };
+/** A resting pointer stops counting after this long, so the loop can sleep. */
+const POINTER_IDLE_MS = 200;
+const FRAME_MS = 1000 / 60;
 
 /**
- * Decorative particle version of the logo. Starts when the browser is idle (the headline stays
- * the LCP element), sleeps when settled or off-screen, uses fewer particles on small devices, and
- * shows a static figure under reduced motion. On desktop the logo image is the no-JS/loading fallback.
+ * Decorative particle version of the logo. It starts when the browser is idle and fades in, so
+ * the headline is always the LCP element (there is deliberately no image poster). It sleeps when
+ * settled, idle or off-screen, uses fewer particles and a lower pixel ratio on small devices, and
+ * shows a static figure under reduced motion (also when that preference changes at runtime).
  */
-export function HeroParticles({ posterSrc, posterWidth, posterHeight }: Props) {
+export function HeroParticles() {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [ready, setReady] = useState(false);
@@ -42,80 +43,100 @@ export function HeroParticles({ posterSrc, posterWidth, posterHeight }: Props) {
     const ctx = canvas?.getContext('2d');
     if (!wrapper || !canvas || !ctx) return;
 
-    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const small = window.innerWidth < 768 || navigator.hardwareConcurrency <= 4;
+    const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    // hardwareConcurrency can be undefined at runtime despite its typing: treat unknown as low-end.
+    const cores = (navigator.hardwareConcurrency as number | undefined) ?? 4;
+    const small = window.innerWidth < 768 || cores <= 4;
     const targets = decodeTargets(PARTICLES_B64, small ? 700 : 1400);
     const styles = getComputedStyle(document.documentElement);
     const palette = COLOR_TOKENS.map((token) => styles.getPropertyValue(token).trim());
+    // Particle indices grouped by color: one stroke() per color per frame.
     const buckets = palette.map(() => [] as number[]);
     for (let i = 0; i < targets.count; i++) buckets[targets.color[i] ?? 0]?.push(i);
 
     const radius = small ? 2.4 : 3;
+    const pointer = { x: 0, y: 0, lastMove: Number.NEGATIVE_INFINITY };
+    let reduced = motionQuery.matches;
     let box: Box = { width: 0, height: 0 };
     let field: Field | null = null;
-    let pointer: Pointer = null;
     let visible = true;
     let running = false;
     let frame = 0;
+    let lastTime = 0;
 
-    const draw = () => {
-      if (!field) return;
+    const draw = (f: Field) => {
       ctx.clearRect(0, 0, box.width, box.height);
       ctx.lineWidth = 1;
-      buckets.forEach((indices, slot) => {
-        ctx.strokeStyle = palette[slot] ?? '';
+      for (let slot = 0; slot < buckets.length; slot++) {
+        const indices = buckets[slot] ?? [];
+        ctx.strokeStyle = palette[slot] ?? 'currentColor';
         ctx.beginPath();
         for (const i of indices) {
-          const x = field?.px[i] ?? 0;
-          const y = field?.py[i] ?? 0;
-          const a = field?.angle[i] ?? 0;
+          const x = f.px[i] ?? 0;
+          const y = f.py[i] ?? 0;
+          const a = f.angle[i] ?? 0;
           ctx.moveTo(x + Math.cos(a) * radius, y + Math.sin(a) * radius);
           ctx.lineTo(x + Math.cos(a + 2.094) * radius, y + Math.sin(a + 2.094) * radius);
           ctx.lineTo(x + Math.cos(a + 4.189) * radius, y + Math.sin(a + 4.189) * radius);
           ctx.closePath();
         }
         ctx.stroke();
-      });
+      }
     };
 
-    const loop = () => {
+    const loop = (time: number) => {
       if (!field) return;
-      const energy = stepField(field, pointer);
-      draw();
-      if (visible && (pointer !== null || energy > 0.01)) {
-        frame = requestAnimationFrame(loop);
-      } else {
-        running = false; // sleep until the pointer moves or it scrolls back into view
-      }
+      const dt = Math.min(Math.max((time - lastTime) / FRAME_MS, 0.25), 2); // clamp tab-switch gaps
+      lastTime = time;
+      const active = time - pointer.lastMove < POINTER_IDLE_MS;
+      const energy = stepField(field, active ? pointer : null, dt);
+      draw(field);
+      if (visible && (active || energy > 0.01)) frame = requestAnimationFrame(loop);
+      else running = false; // sleep until the pointer moves or the figure scrolls back into view
     };
 
     const wake = () => {
       if (running || reduced || !visible || !field) return;
       running = true;
+      lastTime = performance.now();
       frame = requestAnimationFrame(loop);
     };
 
     const resize = () => {
-      box = { width: wrapper.clientWidth, height: wrapper.clientHeight };
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      canvas.width = Math.round(box.width * dpr);
-      canvas.height = Math.round(box.height * dpr);
+      const width = wrapper.clientWidth;
+      const height = wrapper.clientHeight;
+      if (width === box.width && height === box.height) return;
+      box = { width, height };
+      const dpr = Math.min(window.devicePixelRatio || 1, small ? 1.5 : 2);
+      canvas.width = Math.round(width * dpr);
+      canvas.height = Math.round(height * dpr);
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       if (!field) return;
       layoutHomes(field, targets, box);
       if (reduced) settle(field);
-      draw();
+      draw(field);
       wake();
     };
 
     const onPointerMove = (event: PointerEvent) => {
       const rect = wrapper.getBoundingClientRect();
-      pointer = { x: event.clientX - rect.left, y: event.clientY - rect.top };
+      pointer.x = event.clientX - rect.left;
+      pointer.y = event.clientY - rect.top;
+      pointer.lastMove = performance.now();
       wake();
     };
     const onPointerLeave = () => {
-      pointer = null;
-      wake();
+      pointer.lastMove = Number.NEGATIVE_INFINITY;
+    };
+    const onMotionChange = () => {
+      reduced = motionQuery.matches;
+      if (!field) return;
+      if (reduced) {
+        cancelAnimationFrame(frame);
+        running = false;
+        settle(field);
+        draw(field);
+      } else wake();
     };
 
     const resizeObserver = new ResizeObserver(resize);
@@ -128,13 +149,12 @@ export function HeroParticles({ posterSrc, posterWidth, posterHeight }: Props) {
       resize();
       field = createField(targets, box);
       if (reduced) settle(field);
-      else {
-        wrapper.addEventListener('pointermove', onPointerMove);
-        wrapper.addEventListener('pointerleave', onPointerLeave);
-      }
+      wrapper.addEventListener('pointermove', onPointerMove);
+      wrapper.addEventListener('pointerleave', onPointerLeave);
+      motionQuery.addEventListener('change', onMotionChange);
       resizeObserver.observe(wrapper);
       visibilityObserver.observe(wrapper);
-      draw();
+      draw(field);
       setReady(true);
       wake();
     };
@@ -153,22 +173,17 @@ export function HeroParticles({ posterSrc, posterWidth, posterHeight }: Props) {
       visibilityObserver.disconnect();
       wrapper.removeEventListener('pointermove', onPointerMove);
       wrapper.removeEventListener('pointerleave', onPointerLeave);
+      motionQuery.removeEventListener('change', onMotionChange);
+      setReady(false);
     };
   }, []);
 
   return (
+    // pan-y + pinch-zoom: vertical scrolling and page zoom keep working over the figure.
     <div
       ref={wrapperRef}
-      className="relative mx-auto aspect-square w-full max-w-[520px] touch-pan-y"
+      className="relative mx-auto aspect-square w-full max-w-[520px] touch-pan-y touch-pinch-zoom"
     >
-      <img
-        src={posterSrc}
-        alt=""
-        width={posterWidth}
-        height={posterHeight}
-        // Desktop-only poster: on phones it would outsize the headline and become the LCP element.
-        className={`absolute inset-0 hidden size-full object-contain transition-opacity duration-700 md:block ${ready ? 'opacity-0' : 'opacity-100'}`}
-      />
       <canvas
         ref={canvasRef}
         aria-hidden="true"
