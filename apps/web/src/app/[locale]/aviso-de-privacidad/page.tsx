@@ -1,6 +1,7 @@
 import { getTranslations } from 'next-intl/server';
 
-import { business } from '@/shared/config/business';
+import { business, siteConfig } from '@/shared/config/business';
+import { formatPhoneMx } from '@/shared/lib/contact-links';
 
 import type { Metadata } from 'next';
 
@@ -13,10 +14,15 @@ export async function generateMetadata(): Promise<Metadata> {
     title: t('metaTitle'),
     description: t('metaDescription'),
     alternates: { canonical: '/aviso-de-privacidad' },
+    openGraph: {
+      title: t('metaTitle'),
+      description: t('metaDescription'),
+      url: '/aviso-de-privacidad',
+    },
   };
 }
 
-const SECTIONS = ['collect', 'whatsapp', 'analytics', 'rights', 'changes'] as const;
+const SECTIONS = ['collect', 'whatsapp', 'rights', 'changes'] as const;
 
 export default async function PrivacyPage() {
   const t = await getTranslations('privacy');
@@ -26,7 +32,7 @@ export default async function PrivacyPage() {
   );
 
   return (
-    <main className="mx-auto flex max-w-[760px] flex-col gap-36 px-4 py-60 md:px-24">
+    <div className="mx-auto flex max-w-[760px] flex-col gap-36 px-4 py-60 md:px-24">
       <header className="flex flex-col gap-12">
         <h1 className="text-heading-sm font-normal tracking-display">{t('title')}</h1>
         <p className="text-caption text-ash-gray">{t('updated', { date: updated })}</p>
@@ -37,9 +43,11 @@ export default async function PrivacyPage() {
       {SECTIONS.map((section) => (
         <section key={section} className="flex flex-col gap-12">
           <h2 className="text-heading-2xs font-normal">{t(`${section}Title`)}</h2>
-          <p className="text-silver-mist">{t(`${section}Body`)}</p>
+          <p className="text-silver-mist">
+            {t(`${section}Body`, { phone: formatPhoneMx(siteConfig.whatsappNumber) })}
+          </p>
         </section>
       ))}
-    </main>
+    </div>
   );
 }

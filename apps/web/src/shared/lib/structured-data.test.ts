@@ -53,7 +53,8 @@ describe('localBusinessJsonLd', () => {
       { '@type': 'City', name: 'Pueblo' },
       { '@type': 'City', name: 'Vecino' },
     ]);
-    expect(data.sameAs).toEqual(['https://www.facebook.com/example', 'https://maps.example/x']);
+    expect(data.sameAs).toEqual(['https://www.facebook.com/example']);
+    expect(data.hasMap).toBe('https://maps.example/x');
   });
 });
 

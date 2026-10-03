@@ -5,9 +5,11 @@
 
 /** `https://wa.me/<digits>?text=<message>`; `number` is E.164 without `+` (e.g. 525500000000). */
 export const whatsappUrl = (number: string, message?: string): string => {
-  const url = new URL(`https://wa.me/${number}`);
-  if (message?.trim()) url.searchParams.set('text', message.trim());
-  return url.toString();
+  const text = message?.trim();
+  // encodeURIComponent (spaces as %20), as WhatsApp documents; URLSearchParams would emit `+`.
+  return text
+    ? `https://wa.me/${number}?text=${encodeURIComponent(text)}`
+    : `https://wa.me/${number}`;
 };
 
 /** `tel:+<digits>` */

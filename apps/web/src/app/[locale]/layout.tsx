@@ -6,8 +6,7 @@ import { getTranslations } from 'next-intl/server';
 import { inter } from '@/app/fonts';
 import fachada from '@/assets/brand/generated/fachada-1280.webp';
 import { routing } from '@/i18n/routing';
-import { siteConfig } from '@/shared/config/business';
-import { BusinessJsonLd } from '@/shared/ui/business-json-ld';
+import { business, siteConfig } from '@/shared/config/business';
 import { SiteFooter } from '@/shared/ui/site-footer';
 import { SiteHeader } from '@/shared/ui/site-header';
 
@@ -28,11 +27,13 @@ export async function generateMetadata(): Promise<Metadata> {
     alternates: { canonical: '/' },
     openGraph: {
       type: 'website',
-      siteName: 'Mundo Motos',
+      siteName: business.name,
       locale: 'es_MX',
       title: t('title'),
       description: t('description'),
-      images: [{ url: fachada.src, width: fachada.width, height: fachada.height }],
+      images: [
+        { url: fachada.src, width: fachada.width, height: fachada.height, alt: t('ogImageAlt') },
+      ],
     },
     robots: siteConfig.indexable ? { index: true, follow: true } : { index: false, follow: false },
   };
@@ -57,9 +58,11 @@ export default async function LocaleLayout({ children }: LayoutProps<'/[locale]'
           {t('skipToContent')}
         </a>
         <SiteHeader />
-        <div id="contenido">{children}</div>
+        {/* Skip-link target: the main landmark, focusable programmatically only. */}
+        <main id="contenido" tabIndex={-1} className="focus:outline-none">
+          {children}
+        </main>
         <SiteFooter />
-        <BusinessJsonLd />
       </body>
     </html>
   );

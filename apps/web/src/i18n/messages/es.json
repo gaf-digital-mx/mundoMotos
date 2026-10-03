@@ -2,7 +2,8 @@
   "metadata": {
     "title": "Mundo Motos | Refaccionaria y taller de motos en Tepetlixpa",
     "description": "Refacciones, accesorios y taller mecánico para tu moto en Tepetlixpa, Estado de México. Cotiza por WhatsApp o visítanos en Av. 20 de Noviembre 159.",
-    "businessDescription": "Refaccionaria y taller de motos en Tepetlixpa: refacciones, accesorios, equipo de protección y servicio mecánico."
+    "businessDescription": "Refaccionaria y taller de motos en Tepetlixpa: refacciones, accesorios, equipo de protección y servicio mecánico.",
+    "ogImageAlt": "Fachada de Mundo Motos, refaccionaria y taller de motos en Tepetlixpa"
   },
   "common": {
     "skipToContent": "Saltar al contenido",
@@ -12,8 +13,7 @@
     "opensInNewTab": "(se abre en una pestaña nueva)"
   },
   "header": {
-    "tagline": "Refaccionaria & Taller",
-    "homeLabel": "Mundo Motos, ir al inicio"
+    "tagline": "Refaccionaria & Taller"
   },
   "home": {
     "eyebrow": "Refaccionaria & Taller",
@@ -33,22 +33,20 @@
     "callUs": "Llámanos",
     "facebook": "Facebook",
     "privacy": "Aviso de privacidad",
-    "copyright": "© {year} Mundo Motos. Refaccionaria y taller de motos en Tepetlixpa, Estado de México."
+    "copyright": "© Mundo Motos. Refaccionaria y taller de motos en Tepetlixpa, Estado de México."
   },
   "privacy": {
     "metaTitle": "Aviso de privacidad | Mundo Motos",
     "metaDescription": "Aviso de privacidad simplificado del sitio web de Mundo Motos.",
     "title": "Aviso de privacidad",
     "updated": "Última actualización: {date}",
-    "intro": "Mundo Motos, con domicilio en {address}, es responsable del tratamiento de los datos personales que llegaras a compartirnos, conforme a la Ley Federal de Protección de Datos Personales en Posesión de los Particulares.",
+    "intro": "Mundo Motos, con domicilio en {address}, es responsable del tratamiento de los datos personales que llegues a compartirnos, conforme a la Ley Federal de Protección de Datos Personales en Posesión de los Particulares.",
     "collectTitle": "¿Qué datos recaba este sitio?",
-    "collectBody": "Ninguno. Este sitio no tiene registro de usuarios ni guarda la información que escribes en el formulario de consulta: al enviarlo, tu mensaje se abre directamente en WhatsApp y solo nos llega si tú decides enviarlo desde ahí.",
-    "whatsappTitle": "Mensajes por WhatsApp",
-    "whatsappBody": "Si nos escribes por WhatsApp, usaremos tu nombre, número y mensaje únicamente para responder tu consulta, cotizar refacciones o servicios y darte seguimiento. No los compartimos con terceros. WhatsApp es un servicio de Meta y tiene su propio aviso de privacidad.",
-    "analyticsTitle": "Estadísticas de visitas",
-    "analyticsBody": "Para saber cuántas personas visitan el sitio usamos estadísticas anónimas que no utilizan cookies ni identifican a nadie.",
-    "rightsTitle": "Tus derechos",
-    "rightsBody": "Puedes pedirnos acceder, corregir o eliminar tus datos, u oponerte a su uso (derechos ARCO), escribiéndonos por WhatsApp o visitándonos en el local.",
+    "collectBody": "El sitio por sí mismo no recaba ni guarda datos personales: no tiene registro de usuarios ni formularios que almacenen información. Los únicos datos que recibimos son los que tú decides enviarnos por WhatsApp.",
+    "whatsappTitle": "Datos que nos envías por WhatsApp",
+    "whatsappBody": "Si nos escribes, usaremos tu nombre, número y mensaje únicamente para responder tu consulta, cotizar refacciones o servicios y darte seguimiento (finalidades necesarias). No los usamos para publicidad ni para otras finalidades, y no los vendemos ni los transferimos a terceros. Los mensajes se transmiten a través de WhatsApp, un servicio de Meta que tiene su propio aviso de privacidad.",
+    "rightsTitle": "Tus derechos ARCO",
+    "rightsBody": "Puedes solicitar el acceso, rectificación o cancelación de tus datos, oponerte a su uso o revocar tu consentimiento escribiéndonos por WhatsApp al {phone} o acudiendo al local. Responderemos tu solicitud en un plazo máximo de 20 días hábiles.",
     "changesTitle": "Cambios a este aviso",
     "changesBody": "Si este aviso cambia, publicaremos la nueva versión en esta misma página."
   },

@@ -50,7 +50,9 @@ export const localBusinessJsonLd = (input: Input) => ({
     closes,
   })),
   areaServed: input.serviceArea.map((name) => ({ '@type': 'City', name })),
-  sameAs: [input.facebookUrl, input.mapsUrl],
+  priceRange: '$',
+  // Identity profiles only (the Maps link is already in hasMap).
+  sameAs: [input.facebookUrl],
 });
 
 /** Serializes JSON-LD for a <script> tag, escaping `<` so content can't close the tag. */

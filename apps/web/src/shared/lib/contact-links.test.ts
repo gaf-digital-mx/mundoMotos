@@ -13,6 +13,8 @@ describe('whatsappUrl', () => {
     );
     expect(url.origin + url.pathname).toBe('https://wa.me/525500000000');
     expect(url.searchParams.get('text')).toBe('Hola, ¿tienen balatas?\nMoto: Italika & Co.');
+    expect(url.search).toContain('%20');
+    expect(url.search).not.toContain('+');
   });
 
   it('omits an empty message', () => {

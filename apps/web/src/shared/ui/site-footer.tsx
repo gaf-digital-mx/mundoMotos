@@ -95,7 +95,7 @@ export function SiteFooter() {
       </div>
 
       <div className="mx-auto flex max-w-(--container-page) flex-col gap-12 px-4 pb-36 text-caption text-ash-gray md:flex-row md:justify-between md:px-24">
-        <p>{t('footer.copyright', { year: new Date().getFullYear() })}</p>
+        <p>{t('footer.copyright')}</p>
         <Link href="/aviso-de-privacidad" className={linkClass}>
           {t('footer.privacy')}
         </Link>
