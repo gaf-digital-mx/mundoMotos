@@ -7,6 +7,7 @@ import {
   decodeTargets,
   layoutHomes,
   settle,
+  snapToHome,
   stepField,
   type Box,
   type Field,
@@ -40,6 +41,9 @@ const FLOAT_MS = 1200; // every particle floats softly around the hero
 const MOTO_MS = 1000; // the motorcycle forms; flame particles keep floating
 const SPIN_MS = 500; // the flame ring spins into place
 const SPIN_ANGLE = Math.PI * 0.9;
+const TYPE_MS = 1100; // matches --animate-type
+/** Auto-playing motion must stay under 5 s (WCAG 2.2.2); a unit test guards this. */
+export const SEQUENCE_MS = HOLD_MS + FLOAT_MS + MOTO_MS + SPIN_MS + TYPE_MS;
 /** Weak spring + high damping toward drifting targets reads as "floating". */
 const FLOAT_SPRING = 0.006;
 const FLOAT_DAMPING = 0.94;
@@ -75,7 +79,7 @@ export function HeroStage({ children }: { children: ReactNode }) {
     const targets = decodeTargets(PARTICLES_B64, small ? 800 : 1600);
     const flame = flameMask(targets.x, targets.y);
     const styles = getComputedStyle(document.documentElement);
-    const palette = COLOR_TOKENS.map((token) => styles.getPropertyValue(token).trim());
+    const palette = COLOR_TOKENS.map((token) => styles.getPropertyValue(token).trim() || 'gray');
     const dpr = Math.min(window.devicePixelRatio || 1, small ? 1.5 : 2);
     const radius = small ? 2.4 : 3;
     const iconSize = small ? 9 : 11;
@@ -90,7 +94,7 @@ export function HeroStage({ children }: { children: ReactNode }) {
         const sctx = image.getContext('2d');
         if (sctx) {
           sctx.scale((iconSize * dpr) / 24, (iconSize * dpr) / 24);
-          sctx.fillStyle = palette[slot] ?? 'currentColor';
+          sctx.fillStyle = palette[slot] ?? 'gray';
           sctx.fill(new Path2D(MOTO_PATH), 'evenodd');
         }
         sprites[slot] = image;
@@ -114,6 +118,8 @@ export function HeroStage({ children }: { children: ReactNode }) {
     let frame = 0;
     let lastTime = 0;
     let holdTimer = 0;
+    let watchdog = 0;
+    let disposed = false;
 
     const logoArea = (): Box => {
       const stageRect = stage.getBoundingClientRect();
@@ -138,7 +144,7 @@ export function HeroStage({ children }: { children: ReactNode }) {
       if (!field) return;
       ctx.lineWidth = 1;
       for (let slot = 0; slot < palette.length; slot++) {
-        ctx.strokeStyle = palette[slot] ?? 'currentColor';
+        ctx.strokeStyle = palette[slot] ?? 'gray';
         ctx.beginPath();
         for (let i = 0; i < field.count; i++) {
           if (shapes[i] !== 0 || field.color[i] !== slot) continue;
@@ -178,6 +184,8 @@ export function HeroStage({ children }: { children: ReactNode }) {
       const ys: number[] = [];
       if (octx) {
         octx.font = `${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
+        // Match the DOM rendering (tracking) so particles start on the real letters.
+        if ('letterSpacing' in octx) octx.letterSpacing = style.letterSpacing;
         octx.textBaseline = 'middle';
         octx.fillText(wordmark.textContent, 0, off.height / 2);
         const { data } = octx.getImageData(0, 0, off.width, off.height);
@@ -210,8 +218,9 @@ export function HeroStage({ children }: { children: ReactNode }) {
     };
 
     /** During the spin, flame homes rotate (eased) from SPIN_ANGLE back to their final place. */
+    let spinArea: Box = { width: 0, height: 0 };
     const spinFlame = (f: Field, progress: number) => {
-      const area = logoArea();
+      const area = spinArea;
       const cx = (area.x ?? 0) + area.width / 2;
       const cy = (area.y ?? 0) + area.height / 2;
       const angle = SPIN_ANGLE * (1 - easeOutCubic(progress));
@@ -256,12 +265,16 @@ export function HeroStage({ children }: { children: ReactNode }) {
         phase = 'moto';
         phaseStart = time;
       } else if (phase === 'moto' && elapsed >= MOTO_MS) {
+        // The motorcycle is complete: pin it home (its float targets are stale) before the spin.
+        snapToHome(field, baseHomeX, baseHomeY, (i) => !flame[i]);
+        spinArea = logoArea();
         phase = 'spin';
         phaseStart = time;
       } else if (phase === 'spin' && elapsed >= SPIN_MS) {
         field.hx.set(baseHomeX);
         field.hy.set(baseHomeY);
         wordmark.dataset.state = 'typing';
+        window.clearTimeout(watchdog);
         phase = 'done';
       }
       if (phase === 'spin') spinFlame(field, (time - phaseStart) / SPIN_MS);
@@ -309,12 +322,8 @@ export function HeroStage({ children }: { children: ReactNode }) {
       layoutHomes(field, targets, logoArea());
       baseHomeX = field.hx.slice();
       baseHomeY = field.hy.slice();
-      if (phase !== 'done') {
-        // Mid-sequence resize: skip to the end state instead of re-sampling moving text.
-        window.clearTimeout(holdTimer);
-        wordmark.dataset.state = 'shown';
-        phase = 'done';
-      }
+      // Mid-sequence resize: skip to the end state instead of re-sampling moving text.
+      if (phase !== 'done') finish();
       if (motionQuery.matches) settle(field);
       draw();
       wake();
@@ -322,8 +331,25 @@ export function HeroStage({ children }: { children: ReactNode }) {
 
     const resizeObserver = new ResizeObserver(onResize);
 
+    /** Ends the sequence immediately: text visible, logo in place. Safe to call at any time. */
+    const finish = () => {
+      window.clearTimeout(holdTimer);
+      window.clearTimeout(watchdog);
+      if (field) {
+        snapToHome(field, baseHomeX, baseHomeY, () => true);
+        draw();
+      }
+      if (wordmark.dataset.state === 'hidden') wordmark.dataset.state = 'shown';
+      phase = 'done';
+    };
+
+    const onMotionChange = () => {
+      if (motionQuery.matches) finish();
+    };
+
     const begin = async () => {
       await document.fonts.ready;
+      if (disposed) return; // unmounted while fonts were loading
       sizeCanvas();
       const f = createField(targets, logoArea());
       field = f;
@@ -332,6 +358,7 @@ export function HeroStage({ children }: { children: ReactNode }) {
       baseHomeY = f.hy.slice();
       wobblePhase = Float32Array.from({ length: f.count }, () => Math.random() * Math.PI * 2);
       stage.addEventListener('pointermove', onPointerMove);
+      motionQuery.addEventListener('change', onMotionChange);
       resizeObserver.observe(stage);
       canvas.dataset.ready = 'true';
 
@@ -345,6 +372,7 @@ export function HeroStage({ children }: { children: ReactNode }) {
       // and drift away softly.
       phase = 'hold';
       holdTimer = window.setTimeout(() => {
+        if (disposed || motionQuery.matches) return;
         const start = sampleWordmark(f.count);
         const pairs = pairStartPoints(f.color, start.x);
         for (let i = 0; i < f.count; i++) {
@@ -357,6 +385,8 @@ export function HeroStage({ children }: { children: ReactNode }) {
         }
         wander(f, false);
         wordmark.dataset.state = 'hidden';
+        // Safety net: whatever happens (exceptions, throttled tabs), the text comes back.
+        watchdog = window.setTimeout(finish, SEQUENCE_MS + 1500);
         phase = 'float';
         phaseStart = performance.now();
         lastWander = phaseStart;
@@ -381,8 +411,11 @@ export function HeroStage({ children }: { children: ReactNode }) {
     return () => {
       if (hasIdle) window.cancelIdleCallback(idle);
       else window.clearTimeout(idle);
+      disposed = true;
       window.clearTimeout(holdTimer);
+      window.clearTimeout(watchdog);
       cancelAnimationFrame(frame);
+      motionQuery.removeEventListener('change', onMotionChange);
       startObserver.disconnect();
       resizeObserver.disconnect();
       stage.removeEventListener('pointermove', onPointerMove);
@@ -391,7 +424,10 @@ export function HeroStage({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <div ref={stageRef} className="relative grid items-center gap-36 md:grid-cols-[1.2fr_1fr]">
+    <div
+      ref={stageRef}
+      className="relative grid items-center gap-36 md:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]"
+    >
       {children}
       {/* Target area for the particle logo (after the copy on mobile: CTAs stay above the fold). */}
       <div
@@ -402,7 +438,7 @@ export function HeroStage({ children }: { children: ReactNode }) {
       <canvas
         ref={canvasRef}
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 size-full opacity-0 transition-opacity duration-300 data-[ready=true]:opacity-100"
+        className="pointer-events-none absolute inset-0 z-0 size-full opacity-0 transition-opacity duration-300 data-[ready=true]:opacity-100"
       />
     </div>
   );

@@ -86,6 +86,26 @@ export const createField = (
   return field;
 };
 
+/** Pins the selected particles to the given homes (position and target) with no velocity. */
+export const snapToHome = (
+  field: Field,
+  homeX: Float32Array,
+  homeY: Float32Array,
+  include: (index: number) => boolean,
+): void => {
+  for (let i = 0; i < field.count; i++) {
+    if (!include(i)) continue;
+    const x = homeX[i] ?? 0;
+    const y = homeY[i] ?? 0;
+    field.hx[i] = x;
+    field.hy[i] = y;
+    field.px[i] = x;
+    field.py[i] = y;
+    field.vx[i] = 0;
+    field.vy[i] = 0;
+  }
+};
+
 /** Snaps every particle home (reduced motion: static figure). */
 export const settle = (field: Field): void => {
   field.px.set(field.hx);

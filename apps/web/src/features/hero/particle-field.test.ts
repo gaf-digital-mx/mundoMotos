@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
-import { createField, decodeTargets, settle, stepField, type Targets } from './particle-field';
+import {
+  createField,
+  decodeTargets,
+  settle,
+  snapToHome,
+  stepField,
+  type Targets,
+} from './particle-field';
 import { PARTICLES_B64 } from './particles-data';
 
 const box = { width: 400, height: 400 };
@@ -82,6 +89,14 @@ describe('particle physics', () => {
     stepField(slow, null, 1, 0.006, 0.94);
     const moved = (field: typeof fast) => Math.hypot(field.vx[0] ?? 0, field.vy[0] ?? 0);
     expect(moved(slow)).toBeLessThan(moved(fast));
+  });
+
+  it('snapToHome pins only the selected particles (motorcycle before the flame spin)', () => {
+    const field = createField(targets, box, seeded());
+    field.hx[0] = 999; // stale float target
+    snapToHome(field, Float32Array.from([10, 20]), Float32Array.from([30, 40]), (i) => i === 0);
+    expect([field.px[0], field.py[0], field.hx[0], field.vx[0]]).toEqual([10, 30, 10, 0]);
+    expect(field.hx[1]).not.toBe(20);
   });
 
   it('settle snaps everything home with no motion (reduced motion)', () => {

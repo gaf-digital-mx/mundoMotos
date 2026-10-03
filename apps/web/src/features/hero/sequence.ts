@@ -3,12 +3,11 @@
  * Unit-tested; the island only wires them to the DOM and canvas.
  */
 
-/** Gradient color slot (0 red … 4 gold) for a horizontal position 0–1 across the wordmark. */
-export const gradientSlot = (fraction: number): number =>
-  Math.min(4, Math.max(0, Math.floor(fraction * 5)));
-
-/** Normalized logo radius beyond which a target belongs to the flame ring, not the motorcycle. */
-export const FLAME_RADIUS = 0.4;
+/**
+ * Radius (in the targets' bbox-normalized 0–1 space) beyond which a target belongs to the flame
+ * ring, not the motorcycle. The generator's 0.33 dark-part radius is in source-image space.
+ */
+const FLAME_RADIUS = 0.4;
 
 /** Splits the logo targets (normalized 0–1) into the outer flame ring and the inner motorcycle. */
 export const flameMask = (x: Float32Array, y: Float32Array): Uint8Array => {

@@ -54,8 +54,15 @@ test.describe('interactive hero', () => {
   test.describe('with reduced motion', () => {
     test.use({ reducedMotion: 'reduce' });
 
-    test('still shows the figure without animating it', async ({ page }) => {
+    test('still shows the figure without animating it, and never hides the text', async ({
+      page,
+    }) => {
       await page.goto('/');
+      const canvas = page.locator('section[aria-labelledby="hero-title"] canvas');
+      await expect(canvas).toHaveAttribute('data-ready', 'true');
+      await page.waitForTimeout(800); // longer than the hold: the sequence must not start
+      await expect(page.locator('[data-wordmark]')).toHaveAttribute('data-state', 'shown');
+      await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
       const painted = await page
         .locator('section[aria-labelledby="hero-title"] canvas')
         .evaluate((canvas: HTMLCanvasElement) => {

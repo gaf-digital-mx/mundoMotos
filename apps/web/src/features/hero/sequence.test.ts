@@ -7,7 +7,6 @@ import {
   easeInOutCubic,
   easeOutCubic,
   flameMask,
-  gradientSlot,
   pairStartPoints,
   rotateAround,
 } from './sequence';
@@ -16,17 +15,6 @@ const seeded = () => {
   let s = 7;
   return () => ((s = (s * 16807) % 2147483647) - 1) / 2147483646;
 };
-
-describe('gradientSlot', () => {
-  it.each([
-    [0, 0],
-    [0.5, 2],
-    [1, 4],
-    [-1, 0],
-  ])('maps %s to slot %s', (fraction, slot) => {
-    expect(gradientSlot(fraction)).toBe(slot);
-  });
-});
 
 describe('flameMask', () => {
   it('separates the outer ring from the motorcycle', () => {

@@ -8,11 +8,13 @@
  * download or decode the image.
  */
 import { writeFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 
 import sharp from 'sharp';
 
-const SOURCE = new URL('../src/assets/brand/logo-primario.png', import.meta.url).pathname;
-const OUTPUT = new URL('../src/features/hero/particles-data.ts', import.meta.url).pathname;
+const SOURCE = fileURLToPath(new URL('../src/assets/brand/logo-primario.png', import.meta.url));
+const OUTPUT = fileURLToPath(new URL('../src/features/hero/particles-data.ts', import.meta.url));
+/** Desktop particle count; the hero thins it for small devices (keep in sync with hero-stage). */
 const TARGET_POINTS = 1600;
 
 /** Flame palette (index = color slot used by the canvas), plus chrome for the metal parts. */
@@ -81,6 +83,7 @@ for (let y = 0; y < height; y++) {
     const i = (y * width + x) * channels;
     if (channels === 4 && data[i + 3] < 128) continue;
     // Inside the ring only (the area between ring and motorcycle stays empty).
+    // Source-image space (the hero's FLAME_RADIUS = 0.4 is in bbox-normalized space).
     if (Math.hypot(x / width - 0.5, y / height - 0.5) > 0.33) continue;
     if (
       coloredNear(x, y, 1, 0) &&
@@ -107,6 +110,8 @@ const picked = [
   ...strideSample(dark, darkTarget),
 ];
 
+if (picked.length === 0)
+  throw new Error('No particles sampled: check the logo source and thresholds.');
 const xs = picked.map(([x]) => x);
 const ys = picked.map(([, y]) => y);
 const [minX, maxX, minY, maxY] = [
