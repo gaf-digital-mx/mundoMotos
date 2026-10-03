@@ -87,15 +87,6 @@ describe('particle physics', () => {
     expect(Math.abs((a.px[0] ?? 0) - (b.px[0] ?? 0))).toBeLessThan(2);
   });
 
-  it('floats gently with a weak spring (slower than the assembly spring)', () => {
-    const fast = createField(targets, box, seeded());
-    const slow = createField(targets, box, seeded());
-    stepField(fast, null);
-    stepField(slow, null, 1, 0.006, 0.94);
-    const moved = (field: typeof fast) => Math.hypot(field.vx[0] ?? 0, field.vy[0] ?? 0);
-    expect(moved(slow)).toBeLessThan(moved(fast));
-  });
-
   it('snapToHome pins only the selected particles (motorcycle before the flame spin)', () => {
     const field = createField(targets, box, seeded());
     field.hx[0] = 999; // stale float target

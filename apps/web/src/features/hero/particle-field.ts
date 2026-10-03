@@ -129,23 +129,17 @@ export const settle = (field: Field): void => {
 
 /**
  * Advances the simulation by `dt` frames-at-60Hz (time-based, so 30/60/120 Hz displays move at
- * the same speed). `spring`/`baseDamping` default to the assembly feel; lower values float.
+ * the same speed).
  * Returns the kinetic energy so the caller can sleep once the figure settles.
  */
-export const stepField = (
-  field: Field,
-  pointer: Pointer,
-  dt = 1,
-  spring = SPRING,
-  baseDamping = DAMPING,
-): number => {
+export const stepField = (field: Field, pointer: Pointer, dt = 1): number => {
   let energy = 0;
-  const damping = baseDamping ** dt;
+  const damping = DAMPING ** dt;
   for (let i = 0; i < field.count; i++) {
     const px = field.px[i] ?? 0;
     const py = field.py[i] ?? 0;
-    let vx = ((field.vx[i] ?? 0) + ((field.hx[i] ?? 0) - px) * spring * dt) * damping;
-    let vy = ((field.vy[i] ?? 0) + ((field.hy[i] ?? 0) - py) * spring * dt) * damping;
+    let vx = ((field.vx[i] ?? 0) + ((field.hx[i] ?? 0) - px) * SPRING * dt) * damping;
+    let vy = ((field.vy[i] ?? 0) + ((field.hy[i] ?? 0) - py) * SPRING * dt) * damping;
 
     if (pointer) {
       const dx = px - pointer.x;

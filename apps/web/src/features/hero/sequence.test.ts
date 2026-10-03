@@ -92,6 +92,7 @@ describe('choreoAt', () => {
   });
 
   it('fits the auto-play budget: hold + sequence + typing stays under 5 s (WCAG 2.2.2)', () => {
+    expect(SEQUENCE_END).toBeLessThan(5000);
     expect(300 + SEQUENCE_END + 1100).toBeLessThan(5000);
   });
 });

@@ -20,6 +20,7 @@ import {
   idleOffset,
   MOTO_PATH,
   pairStartPoints,
+  randomOrbit,
   SEQUENCE_END,
   type Choreo,
 } from './sequence';
@@ -85,10 +86,9 @@ export function HeroStage({ children, pauseLabel, playLabel }: Props) {
 
     let radius = TRIANGLE_RADIUS;
     let iconSize = ICON_SIZE;
-    const sprites = new Map<string, HTMLCanvasElement>();
+    const sprites = new Map<number, HTMLCanvasElement>(); // per color slot, at the current size
     const sprite = (slot: number) => {
-      const key = `${iconSize}-${slot}`;
-      let image = sprites.get(key);
+      let image = sprites.get(slot);
       if (!image) {
         image = document.createElement('canvas');
         image.width = image.height = Math.ceil(iconSize * SPRITE_DPR);
@@ -98,7 +98,7 @@ export function HeroStage({ children, pauseLabel, playLabel }: Props) {
           sctx.fillStyle = palette[slot] ?? 'gray';
           sctx.fill(new Path2D(MOTO_PATH), 'evenodd');
         }
-        sprites.set(key, image);
+        sprites.set(slot, image);
       }
       return image;
     };
@@ -106,11 +106,13 @@ export function HeroStage({ children, pauseLabel, playLabel }: Props) {
     let canvasBox: Box = { width: 0, height: 0 };
     let field: Field | null = null;
     let shapes = new Uint8Array(0);
+    /** Triangle indices per color slot (colors never change): one path per slot without scanning. */
+    let triangles: number[][] = [];
+    let icons: number[] = [];
     let choreo: Choreo[] = [];
     /** Idle drift parameters for the flame particles (orbit-like, softer than the float). */
     let idleParams: Pick<Choreo, 'rx' | 'ry' | 'w1' | 'w2' | 'p1' | 'p2'>[] = [];
-    let idleStart = 0;
-    let lastIdleFrame = 0;
+    let idleTime = 0; // advances only while idling, so pause/off-screen resume where they left off
     let visible = true;
     let homeX = new Float32Array(0);
     let homeY = new Float32Array(0);
@@ -144,7 +146,9 @@ export function HeroStage({ children, pauseLabel, playLabel }: Props) {
       const area = logoArea();
       const scale = area.width / REFERENCE_WIDTH;
       radius = Math.min(TRIANGLE_RADIUS, Math.max(1.6, TRIANGLE_RADIUS * scale));
-      iconSize = Math.round(Math.min(ICON_SIZE, Math.max(6, ICON_SIZE * scale)));
+      const nextIconSize = Math.round(Math.min(ICON_SIZE, Math.max(6, ICON_SIZE * scale)));
+      if (nextIconSize !== iconSize) sprites.clear();
+      iconSize = nextIconSize;
       center = { x: area.x + area.width / 2, y: area.y + area.height / 2 };
       return area;
     };
@@ -153,11 +157,10 @@ export function HeroStage({ children, pauseLabel, playLabel }: Props) {
       ctx.clearRect(0, 0, canvasBox.width, canvasBox.height);
       if (!field) return;
       ctx.lineWidth = 1;
-      for (let slot = 0; slot < palette.length; slot++) {
+      for (const [slot, indices] of triangles.entries()) {
         ctx.strokeStyle = palette[slot] ?? 'gray';
         ctx.beginPath();
-        for (let i = 0; i < field.count; i++) {
-          if (shapes[i] !== 0 || field.color[i] !== slot) continue;
+        for (const i of indices) {
           const x = field.px[i] ?? 0;
           const y = field.py[i] ?? 0;
           const a = field.angle[i] ?? 0;
@@ -169,8 +172,7 @@ export function HeroStage({ children, pauseLabel, playLabel }: Props) {
         ctx.stroke();
       }
       const half = iconSize / 2;
-      for (let i = 0; i < field.count; i++) {
-        if (shapes[i] !== 1) continue;
+      for (const i of icons) {
         ctx.drawImage(
           sprite(field.color[i] ?? 0),
           (field.px[i] ?? 0) - half,
@@ -242,12 +244,7 @@ export function HeroStage({ children, pauseLabel, playLabel }: Props) {
           hy: homeY[i] ?? 0,
           ax,
           ay,
-          rx: 8 + Math.random() * 22,
-          ry: 6 + Math.random() * 18,
-          w1: 0.0008 + Math.random() * 0.001,
-          w2: 0.0007 + Math.random() * 0.001,
-          p1: Math.random() * Math.PI * 2,
-          p2: Math.random() * Math.PI * 2,
+          ...randomOrbit(),
           delay: Math.random() * 250,
           flame: (targets.flame[i] ?? 0) === 1,
         };
@@ -263,7 +260,7 @@ export function HeroStage({ children, pauseLabel, playLabel }: Props) {
       }
       if (wordmark.dataset.state === 'hidden') wordmark.dataset.state = 'typing';
       phase = 'done';
-      idleStart = performance.now();
+      idleTime = 0;
       wake(); // continue into the idle drift (no-op if the loop is already running)
     };
 
@@ -272,10 +269,17 @@ export function HeroStage({ children, pauseLabel, playLabel }: Props) {
 
     const loop = (time: number) => {
       if (!field) return;
-      const dt = Math.min(Math.max((time - lastTime) / FRAME_MS, 0.25), 2);
+      const idle = idling();
+      const active = phase === 'done' && time - pointer.lastMove < POINTER_IDLE_MS;
+      // ~30 fps while only idling (2 ms tolerance so 60 Hz displays don't drop to 20 fps).
+      if (idle && !active && time - lastTime < IDLE_FRAME_MS - 2) {
+        frame = requestAnimationFrame(loop);
+        return;
+      }
+      const elapsed = time - lastTime;
+      const dt = Math.min(Math.max(elapsed / FRAME_MS, 0.25), 2);
       lastTime = time;
       let energy = 0;
-      let active = false;
 
       if (phase === 'sequence') {
         const t = time - sequenceStart;
@@ -289,15 +293,9 @@ export function HeroStage({ children, pauseLabel, playLabel }: Props) {
         }
         if (t >= SEQUENCE_END) finish();
       } else {
-        const idle = idling();
-        active = time - pointer.lastMove < POINTER_IDLE_MS;
-        if (idle && !active && time - lastIdleFrame < IDLE_FRAME_MS) {
-          frame = requestAnimationFrame(loop); // ~30 fps while idling
-          return;
-        }
-        lastIdleFrame = time;
         if (idle) {
-          const t = time - idleStart;
+          idleTime += Math.min(elapsed, 100);
+          const t = idleTime;
           for (let i = 0; i < field.count; i++) {
             const params = idleParams[i];
             if (!params || !targets.flame[i]) continue;
@@ -307,7 +305,6 @@ export function HeroStage({ children, pauseLabel, playLabel }: Props) {
           }
         }
         energy = stepField(field, active ? pointer : null, dt);
-        if (idle) energy = Math.max(energy, 1); // keep the loop alive while idling
       }
       draw();
 
@@ -317,7 +314,8 @@ export function HeroStage({ children, pauseLabel, playLabel }: Props) {
     };
 
     const wake = () => {
-      if (running || motionQuery.matches) return;
+      // During the hold the wordmark is the only thing on screen: nothing to draw yet.
+      if (running || motionQuery.matches || phase === 'hold') return;
       running = true;
       lastTime = performance.now();
       frame = requestAnimationFrame(loop);
@@ -346,8 +344,8 @@ export function HeroStage({ children, pauseLabel, playLabel }: Props) {
     };
 
     // Stop drawing while the hero is off-screen (battery); resume when it scrolls back.
-    const visibilityObserver = new IntersectionObserver(([entry]) => {
-      visible = entry?.isIntersecting ?? true;
+    const visibilityObserver = new IntersectionObserver((entries) => {
+      visible = entries.at(-1)?.isIntersecting ?? true;
       if (visible) wake();
     });
 
@@ -377,14 +375,13 @@ export function HeroStage({ children, pauseLabel, playLabel }: Props) {
       shapes = assignShapes(f.count, 0.5);
       homeX = f.hx.slice();
       homeY = f.hy.slice();
-      idleParams = Array.from({ length: f.count }, () => ({
-        rx: 8 + Math.random() * 22,
-        ry: 6 + Math.random() * 18,
-        w1: 0.0008 + Math.random() * 0.001,
-        w2: 0.0007 + Math.random() * 0.001,
-        p1: Math.random() * Math.PI * 2,
-        p2: Math.random() * Math.PI * 2,
-      }));
+      triangles = palette.map(() => []);
+      icons = [];
+      for (let i = 0; i < f.count; i++) {
+        if (shapes[i] === 1) icons.push(i);
+        else triangles[f.color[i] ?? 0]?.push(i);
+      }
+      idleParams = Array.from({ length: f.count }, randomOrbit);
       visibilityObserver.observe(stage);
       stage.addEventListener('pointermove', onPointerMove);
       motionQuery.addEventListener('change', onMotionChange);
@@ -400,6 +397,13 @@ export function HeroStage({ children, pauseLabel, playLabel }: Props) {
       phase = 'hold';
       holdTimer = window.setTimeout(() => {
         if (disposed || motionQuery.matches) return;
+        if (pausedRef.current) {
+          // Paused before the sequence started: skip it and show the finished logo.
+          phase = 'done';
+          settle(f);
+          draw();
+          return;
+        }
         buildChoreo(f, area);
         wordmark.dataset.state = 'hidden';
         // Safety net: whatever happens (exceptions, throttled tabs), the text comes back.
@@ -411,8 +415,8 @@ export function HeroStage({ children, pauseLabel, playLabel }: Props) {
     };
 
     // Start once the browser is idle AND the stage is on screen, so the sequence is actually seen.
-    const startObserver = new IntersectionObserver(([entry]) => {
-      if (!entry?.isIntersecting) return;
+    const startObserver = new IntersectionObserver((entries) => {
+      if (!entries.at(-1)?.isIntersecting) return;
       startObserver.disconnect();
       void begin();
     });
@@ -455,7 +459,6 @@ export function HeroStage({ children, pauseLabel, playLabel }: Props) {
         />
         <button
           type="button"
-          aria-pressed={paused}
           onClick={() => {
             const next = !pausedRef.current;
             pausedRef.current = next;

@@ -57,6 +57,16 @@ export type Choreo = {
   flame: boolean;
 };
 
+/** Random orbit parameters, shared by the floating phase and the idle drift. */
+export const randomOrbit = (): Pick<Choreo, 'rx' | 'ry' | 'w1' | 'w2' | 'p1' | 'p2'> => ({
+  rx: 8 + Math.random() * 22,
+  ry: 6 + Math.random() * 18,
+  w1: 0.0008 + Math.random() * 0.001,
+  w2: 0.0007 + Math.random() * 0.001,
+  p1: Math.random() * Math.PI * 2,
+  p2: Math.random() * Math.PI * 2,
+});
+
 /** Position at `t` ms after the wordmark disintegrates. Pure and continuous in `t`. */
 export const choreoAt = (c: Choreo, t: number, cx: number, cy: number) => {
   const orbitX = c.ax + Math.cos(c.w1 * t + c.p1) * c.rx;
@@ -85,7 +95,7 @@ export const choreoAt = (c: Choreo, t: number, cx: number, cy: number) => {
 /** Fraction of the floating orbit kept while the finished flame ring idles (softer motion). */
 export const IDLE_AMPLITUDE = 0.35;
 /** The idle drift fades in over this long so the ring never jumps when the sequence ends. */
-export const IDLE_FADE_IN_MS = 900;
+const IDLE_FADE_IN_MS = 900;
 /** The idle loop runs at ~30 fps: imperceptible for slow drift, half the CPU/battery. */
 export const IDLE_FRAME_MS = 1000 / 30;
 
