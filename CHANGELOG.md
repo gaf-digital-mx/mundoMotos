@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.0](https://github.com/gaf-digital-mx/mundoMotos/compare/v0.1.0...v0.2.0) (2026-10-03)
+
+
+### Features
+
+* **web:** add business data, site layout, local SEO and privacy notice ([#5](https://github.com/gaf-digital-mx/mundoMotos/issues/5)) ([1673b1f](https://github.com/gaf-digital-mx/mundoMotos/commit/1673b1fc2902284d38d7763d4250a2f89813fd48))
+* **web:** add landing sections and WhatsApp inquiry form ([#7](https://github.com/gaf-digital-mx/mundoMotos/issues/7)) ([7089e98](https://github.com/gaf-digital-mx/mundoMotos/commit/7089e987909767ba6de0e62f63cd2de5946b9abe))
+
 ## 0.1.0 (2026-10-02)
 
 
