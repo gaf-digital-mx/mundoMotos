@@ -1,16 +1,37 @@
 /**
- * Pure helpers for the "disintegrate the wordmark into the logo" sequence. Unit-tested; the
- * island only wires them to the DOM and canvas.
+ * Pure helpers for the hero sequence (wordmark → motorcycle → spinning flame ring → wordmark).
+ * Unit-tested; the island only wires them to the DOM and canvas.
  */
 
 /** Gradient color slot (0 red … 4 gold) for a horizontal position 0–1 across the wordmark. */
 export const gradientSlot = (fraction: number): number =>
   Math.min(4, Math.max(0, Math.floor(fraction * 5)));
 
+/** Normalized logo radius beyond which a target belongs to the flame ring, not the motorcycle. */
+export const FLAME_RADIUS = 0.4;
+
+/** Splits the logo targets (normalized 0–1) into the outer flame ring and the inner motorcycle. */
+export const flameMask = (x: Float32Array, y: Float32Array): Uint8Array => {
+  const mask = new Uint8Array(x.length);
+  for (let i = 0; i < x.length; i++) {
+    mask[i] = Math.hypot((x[i] ?? 0) - 0.5, (y[i] ?? 0) - 0.5) > FLAME_RADIUS ? 1 : 0;
+  }
+  return mask;
+};
+
+/** Ease-out cubic, 0–1. */
+export const easeOutCubic = (t: number): number => 1 - (1 - Math.min(1, Math.max(0, t))) ** 3;
+
+/** Rotates (x, y) around (cx, cy) by `angle` radians. */
+export const rotateAround = (x: number, y: number, cx: number, cy: number, angle: number) => {
+  const cos = Math.cos(angle);
+  const sin = Math.sin(angle);
+  return { x: cx + (x - cx) * cos - (y - cy) * sin, y: cy + (x - cx) * sin + (y - cy) * cos };
+};
+
 /**
  * Pairs wordmark points with logo particles so colors travel coherently: logo particles sorted by
  * color slot (red → gold → chrome) start from wordmark points sorted left → right (red → gold).
- * Returns, for each logo particle, the index of its starting wordmark point.
  */
 export const pairStartPoints = (logoColors: Uint8Array, wordmarkX: Float32Array): Uint32Array => {
   const count = logoColors.length;
@@ -22,27 +43,36 @@ export const pairStartPoints = (logoColors: Uint8Array, wordmarkX: Float32Array)
   );
   const pairs = new Uint32Array(count);
   byColor.forEach((particle, rank) => {
-    const point = byX[Math.floor((rank / count) * byX.length)] ?? 0;
-    pairs[particle] = point;
+    pairs[particle] = byX[Math.floor((rank / count) * byX.length)] ?? 0;
   });
   return pairs;
 };
 
-/** Particle shapes: 0 = outlined triangle, 1 = motorcycle icon, 2 = helmet icon. */
+/** Particle shapes: 0 = outlined triangle, 1 = motorcycle icon. `motoShare` of them are icons. */
 export const assignShapes = (
   count: number,
-  iconShare: number,
+  motoShare: number,
   random: () => number = Math.random,
 ) => {
   const shapes = new Uint8Array(count);
-  for (let i = 0; i < count; i++) {
-    if (random() < iconShare) shapes[i] = random() < 0.5 ? 1 : 2;
-  }
+  for (let i = 0; i < count; i++) shapes[i] = random() < motoShare ? 1 : 0;
   return shapes;
 };
 
-/** 24×24 filled icon paths (even-odd), drawn once into sprites. */
-export const ICON_PATHS: Record<1 | 2, string> = {
-  1: 'M5 13a4 4 0 1 0 0 8 4 4 0 0 0 0-8Zm0 2.2a1.8 1.8 0 1 1 0 3.6 1.8 1.8 0 0 1 0-3.6ZM19 13a4 4 0 1 0 0 8 4 4 0 0 0 0-8Zm0 2.2a1.8 1.8 0 1 1 0 3.6 1.8 1.8 0 0 1 0-3.6ZM6.5 14l3-5h5.5l2-3h3.5l-1.2 2.2h-1.5l-1.6 2.6 3 3.8h-2.4l-1.9-2.6h-3.4l-2.2 3.6h-1.8Z',
-  2: 'M2 17.5C2 10.6 6.5 5 12.5 5S22 9.6 22 14.5V19H2v-1.5Zm10.5-8.6c-3.2 0-5.8 2.1-6.6 5.1H16a2 2 0 0 0 2-2v-1.4c-1.4-1.1-3.4-1.7-5.5-1.7Z',
+/** A point just outside the box, on a random side: particles "arrive from everywhere". */
+export const pointFromEdges = (
+  box: { width: number; height: number },
+  random: () => number = Math.random,
+  margin = 40,
+) => {
+  const side = Math.floor(random() * 4);
+  const along = random();
+  if (side === 0) return { x: along * box.width, y: -margin };
+  if (side === 1) return { x: box.width + margin, y: along * box.height };
+  if (side === 2) return { x: along * box.width, y: box.height + margin };
+  return { x: -margin, y: along * box.height };
 };
+
+/** 24×24 filled motorcycle icon (even-odd), drawn once into sprites. */
+export const MOTO_PATH =
+  'M5 13a4 4 0 1 0 0 8 4 4 0 0 0 0-8Zm0 2.2a1.8 1.8 0 1 1 0 3.6 1.8 1.8 0 0 1 0-3.6ZM19 13a4 4 0 1 0 0 8 4 4 0 0 0 0-8Zm0 2.2a1.8 1.8 0 1 1 0 3.6 1.8 1.8 0 0 1 0-3.6ZM6.5 14l3-5h5.5l2-3h3.5l-1.2 2.2h-1.5l-1.6 2.6 3 3.8h-2.4l-1.9-2.6h-3.4l-2.2 3.6h-1.8Z';

@@ -13,7 +13,16 @@ import {
   type Field,
 } from './particle-field';
 import { PARTICLES_B64 } from './particles-data';
-import { assignShapes, gradientSlot, ICON_PATHS, pairStartPoints } from './sequence';
+import {
+  assignShapes,
+  easeOutCubic,
+  flameMask,
+  gradientSlot,
+  MOTO_PATH,
+  pairStartPoints,
+  pointFromEdges,
+  rotateAround,
+} from './sequence';
 
 /** Theme tokens in generator color-slot order. */
 const COLOR_TOKENS = [
@@ -26,29 +35,33 @@ const COLOR_TOKENS = [
 ];
 const FRAME_MS = 1000 / 60;
 const POINTER_IDLE_MS = 200;
+/** Timeline (ms). */
+const HOLD_MS = 300; // wordmark visible before it disintegrates
+const MOTO_MS = 1000; // motorcycle assembles while the flame particles fly around
+const SPIN_MS = 500; // flame ring spins into place
+const SPIN_ANGLE = Math.PI * 0.9;
 /** Mean per-particle energy under which a flight counts as "arrived". */
 const ARRIVED = 0.02;
 
 /**
  * TEMPORARY A/B: both variants render stacked on the page for the client to compare. Remove the
- * losing variant before merge.
- * A: wordmark retypes letter by letter; mixed triangles + ~15% icons.
- * B: particles fly back from the logo to re-form the wordmark; small icons only.
+ * losing variant before merge. Both share the logo choreography; they differ in how the
+ * wordmark comes back: A types it letter by letter, B forms it from particles arriving from
+ * every edge.
  */
-const VARIANTS = {
-  a: { rewrite: 'type', iconShare: 0.15, iconSize: 12, desktop: 1400, mobile: 700 },
-  b: { rewrite: 'reform', iconShare: 1, iconSize: 8, desktop: 900, mobile: 500 },
-} as const;
-
-type Layer = { field: Field; shapes: Uint8Array };
-
-/**
- * Hero visual sequence: the server-rendered wordmark (the LCP element) disintegrates into
- * particles that assemble the logo, then the wordmark is written again. The h1 stays in the DOM
- * the whole time (only its opacity changes). Reduced motion: no sequence, static logo.
- */
+const VARIANTS = { a: { rewrite: 'type' }, b: { rewrite: 'particles' } } as const;
 export type HeroVariant = keyof typeof VARIANTS;
 
+/** `radius` (triangles) and `icon` (motorcycle size) in px; the text layer uses finer particles. */
+type Layer = { field: Field; shapes: Uint8Array; radius: number; icon: number };
+type Phase = 'hold' | 'moto' | 'spin' | 'rewrite' | 'done';
+
+/**
+ * Hero sequence: the server-rendered wordmark (painted before any script, LCP) disintegrates,
+ * the particles build the motorcycle while the flame particles fly loose, the flame ring spins
+ * into place, then the wordmark comes back. The h1 stays in the DOM the whole time (only its
+ * opacity changes). Reduced motion: no sequence, static logo, text always visible.
+ */
 export function HeroStage({
   children,
   variant: variantId,
@@ -68,31 +81,34 @@ export function HeroStage({
     const wordmark = stage?.querySelector<HTMLElement>('[data-wordmark]');
     if (!stage || !logoBox || !canvas || !ctx || !wordmark) return;
 
-    const variant =
-      VARIANTS[new URLSearchParams(window.location.search).get('hero') === 'b' ? 'b' : 'a'];
+    const variant = VARIANTS[variantId];
     const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
     const cores = (navigator.hardwareConcurrency as number | undefined) ?? 4;
     const small = window.innerWidth < 768 || cores <= 4;
-    const targets = decodeTargets(PARTICLES_B64, small ? variant.mobile : variant.desktop);
+    const targets = decodeTargets(PARTICLES_B64, small ? 700 : 1300);
+    const flame = flameMask(targets.x, targets.y);
     const styles = getComputedStyle(document.documentElement);
     const palette = COLOR_TOKENS.map((token) => styles.getPropertyValue(token).trim());
     const dpr = Math.min(window.devicePixelRatio || 1, small ? 1.5 : 2);
     const radius = small ? 2.4 : 3;
-    const iconSize = small ? variant.iconSize - 1 : variant.iconSize;
+    const iconSize = small ? 9 : 11;
+    // Finer particles for the re-formed wordmark so the letters stay legible.
+    const textRadius = small ? 1.4 : 1.8;
+    const textIcon = small ? 5 : 7;
 
-    // Icons are drawn once per (shape, color) into small sprites, then stamped every frame.
+    // Motorcycle icons are drawn once per (size, color) into sprites, then stamped every frame.
     const sprites = new Map<string, HTMLCanvasElement>();
-    const sprite = (shape: 1 | 2, slot: number) => {
-      const key = `${shape}-${slot}`;
+    const sprite = (size: number, slot: number) => {
+      const key = `${size}-${slot}`;
       let image = sprites.get(key);
       if (!image) {
         image = document.createElement('canvas');
-        image.width = image.height = Math.ceil(iconSize * dpr);
+        image.width = image.height = Math.ceil(size * dpr);
         const sctx = image.getContext('2d');
         if (sctx) {
-          sctx.scale((iconSize * dpr) / 24, (iconSize * dpr) / 24);
+          sctx.scale((size * dpr) / 24, (size * dpr) / 24);
           sctx.fillStyle = palette[slot] ?? 'currentColor';
-          sctx.fill(new Path2D(ICON_PATHS[shape]), 'evenodd');
+          sctx.fill(new Path2D(MOTO_PATH), 'evenodd');
         }
         sprites.set(key, image);
       }
@@ -101,12 +117,16 @@ export function HeroStage({
 
     let canvasBox: Box = { width: 0, height: 0 };
     let logo: Layer | null = null;
-    let text: Layer | null = null; // particles re-forming the wordmark (variant B)
-    let phase: 'idle' | 'assemble' | 'reform' | 'done' = 'idle';
+    let text: Layer | null = null; // variant B: particles forming the wordmark
+    let baseHomeX = new Float32Array(0); // final logo homes (flame ring is rotated from these)
+    let baseHomeY = new Float32Array(0);
+    let phase: Phase = 'done';
+    let phaseStart = 0;
     const pointer = { x: 0, y: 0, lastMove: Number.NEGATIVE_INFINITY };
     let running = false;
     let frame = 0;
     let lastTime = 0;
+    let holdTimer = 0;
 
     const logoArea = (): Box => {
       const stageRect = stage.getBoundingClientRect();
@@ -126,7 +146,7 @@ export function HeroStage({
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     };
 
-    const drawLayer = ({ field, shapes }: Layer) => {
+    const drawLayer = ({ field, shapes, radius: r, icon }: Layer) => {
       ctx.lineWidth = 1;
       for (let slot = 0; slot < palette.length; slot++) {
         ctx.strokeStyle = palette[slot] ?? 'currentColor';
@@ -136,23 +156,22 @@ export function HeroStage({
           const x = field.px[i] ?? 0;
           const y = field.py[i] ?? 0;
           const a = field.angle[i] ?? 0;
-          ctx.moveTo(x + Math.cos(a) * radius, y + Math.sin(a) * radius);
-          ctx.lineTo(x + Math.cos(a + 2.094) * radius, y + Math.sin(a + 2.094) * radius);
-          ctx.lineTo(x + Math.cos(a + 4.189) * radius, y + Math.sin(a + 4.189) * radius);
+          ctx.moveTo(x + Math.cos(a) * r, y + Math.sin(a) * r);
+          ctx.lineTo(x + Math.cos(a + 2.094) * r, y + Math.sin(a + 2.094) * r);
+          ctx.lineTo(x + Math.cos(a + 4.189) * r, y + Math.sin(a + 4.189) * r);
           ctx.closePath();
         }
         ctx.stroke();
       }
-      const half = iconSize / 2;
+      const half = icon / 2;
       for (let i = 0; i < field.count; i++) {
-        const shape = shapes[i];
-        if (shape !== 1 && shape !== 2) continue;
+        if (shapes[i] !== 1) continue;
         ctx.drawImage(
-          sprite(shape, field.color[i] ?? 0),
+          sprite(icon, field.color[i] ?? 0),
           (field.px[i] ?? 0) - half,
           (field.py[i] ?? 0) - half,
-          iconSize,
-          iconSize,
+          icon,
+          icon,
         );
       }
     };
@@ -202,48 +221,89 @@ export function HeroStage({
       return { x, y, color };
     };
 
-    const finishReform = () => {
-      wordmark.dataset.state = 'shown';
-      phase = 'done';
-      window.setTimeout(() => {
-        text = null;
-        draw();
-      }, 300);
+    /** Flame particles drift toward random points around the stage while the motorcycle forms. */
+    const scatterFlame = (field: Field) => {
+      for (let i = 0; i < field.count; i++) {
+        if (!flame[i]) continue;
+        field.hx[i] = Math.random() * canvasBox.width;
+        field.hy[i] = Math.random() * canvasBox.height;
+      }
+    };
+
+    /** During the spin, flame homes rotate (eased) from SPIN_ANGLE back to their final place. */
+    const spinFlame = (field: Field, progress: number) => {
+      const area = logoArea();
+      const cx = (area.x ?? 0) + area.width / 2;
+      const cy = (area.y ?? 0) + area.height / 2;
+      const angle = SPIN_ANGLE * (1 - easeOutCubic(progress));
+      for (let i = 0; i < field.count; i++) {
+        if (!flame[i]) continue;
+        const point = rotateAround(baseHomeX[i] ?? 0, baseHomeY[i] ?? 0, cx, cy, angle);
+        field.hx[i] = point.x;
+        field.hy[i] = point.y;
+      }
+    };
+
+    const showWordmark = () => {
+      if (variant.rewrite === 'type') {
+        wordmark.dataset.state = 'typing';
+        phase = 'done';
+        return;
+      }
+      // Particles arrive from every edge and form the letters; then the real text fades in.
+      const goal = sampleWordmark(small ? 900 : 1600);
+      const from = { x: new Float32Array(goal.x.length), y: new Float32Array(goal.x.length) };
+      for (let i = 0; i < goal.x.length; i++) {
+        const point = pointFromEdges(canvasBox);
+        from.x[i] = point.x;
+        from.y[i] = point.y;
+      }
+      text = {
+        field: createFieldAt(from, goal, goal.color),
+        shapes: assignShapes(goal.x.length, 0.5),
+        radius: textRadius,
+        icon: textIcon,
+      };
+      phase = 'rewrite';
     };
 
     const loop = (time: number) => {
       const dt = Math.min(Math.max((time - lastTime) / FRAME_MS, 0.25), 2);
       lastTime = time;
-      const active = time - pointer.lastMove < POINTER_IDLE_MS && phase === 'done';
+      const elapsed = time - phaseStart;
+
+      if (logo && phase === 'moto') {
+        if (Math.floor(elapsed / 400) !== Math.floor((elapsed - dt * FRAME_MS) / 400))
+          scatterFlame(logo.field);
+        if (elapsed >= MOTO_MS) {
+          phase = 'spin';
+          phaseStart = time;
+        }
+      } else if (logo && phase === 'spin') {
+        spinFlame(logo.field, elapsed / SPIN_MS);
+        if (elapsed >= SPIN_MS) {
+          logo.field.hx.set(baseHomeX);
+          logo.field.hy.set(baseHomeY);
+          showWordmark();
+          phaseStart = time;
+        }
+      }
+
+      const active = phase === 'done' && time - pointer.lastMove < POINTER_IDLE_MS;
       const logoEnergy = logo ? stepField(logo.field, active ? pointer : null, dt) : 0;
       const textEnergy = text ? stepField(text.field, null, dt) : 0;
       draw();
 
-      if (phase === 'assemble' && logo && logoEnergy / logo.field.count < ARRIVED) {
-        if (variant.rewrite === 'type') {
-          wordmark.dataset.state = 'typing';
-          phase = 'done';
-        } else {
-          // Copies of the logo particles fly back and re-form the wordmark.
-          const goal = sampleWordmark(logo.field.count);
-          const from = { x: new Float32Array(goal.x.length), y: new Float32Array(goal.x.length) };
-          for (let i = 0; i < goal.x.length; i++) {
-            from.x[i] = logo.field.hx[i] ?? 0;
-            from.y[i] = logo.field.hy[i] ?? 0;
-          }
-          text = { field: createFieldAt(from, goal, goal.color, 1.5), shapes: logo.shapes };
-          phase = 'reform';
-        }
-      } else if (phase === 'reform' && text && textEnergy / text.field.count < ARRIVED) {
-        finishReform();
+      if (phase === 'rewrite' && text && textEnergy / text.field.count < ARRIVED) {
+        wordmark.dataset.state = 'shown';
+        phase = 'done';
+        window.setTimeout(() => {
+          text = null;
+          draw();
+        }, 300);
       }
 
-      const busy =
-        phase === 'assemble' ||
-        phase === 'reform' ||
-        active ||
-        logoEnergy > 0.01 ||
-        textEnergy > 0.01;
+      const busy = phase !== 'done' || active || logoEnergy > 0.01 || textEnergy > 0.01;
       if (busy) frame = requestAnimationFrame(loop);
       else running = false;
     };
@@ -260,16 +320,23 @@ export function HeroStage({
       const area = logoArea();
       const x = event.clientX - stageRect.left;
       const y = event.clientY - stageRect.top;
-      const inside =
-        x >= (area.x ?? 0) &&
-        x <= (area.x ?? 0) + area.width &&
-        y >= (area.y ?? 0) &&
-        y <= (area.y ?? 0) + area.height;
-      if (!inside) return;
+      const ax = area.x ?? 0;
+      const ay = area.y ?? 0;
+      if (x < ax || x > ax + area.width || y < ay || y > ay + area.height) return;
       pointer.x = x;
       pointer.y = y;
       pointer.lastMove = performance.now();
       wake();
+    };
+
+    const finishNow = () => {
+      if (!logo) return;
+      window.clearTimeout(holdTimer);
+      logo.field.hx.set(baseHomeX);
+      logo.field.hy.set(baseHomeY);
+      text = null;
+      wordmark.dataset.state = 'shown';
+      phase = 'done';
     };
 
     const onResize = () => {
@@ -281,12 +348,9 @@ export function HeroStage({
         return;
       sizeCanvas();
       layoutHomes(logo.field, targets, logoArea());
-      // A resize mid-sequence: skip to the end state instead of re-sampling moving text.
-      if (phase !== 'done') {
-        text = null;
-        wordmark.dataset.state = 'shown';
-        phase = 'done';
-      }
+      baseHomeX = logo.field.hx.slice();
+      baseHomeY = logo.field.hy.slice();
+      if (phase !== 'done') finishNow(); // skip to the end state instead of re-sampling moving text
       if (motionQuery.matches) settle(logo.field);
       draw();
       wake();
@@ -298,12 +362,22 @@ export function HeroStage({
       await document.fonts.ready;
       sizeCanvas();
       const field = createField(targets, logoArea());
-      logo = { field, shapes: assignShapes(field.count, variant.iconShare) };
+      baseHomeX = field.hx.slice();
+      baseHomeY = field.hy.slice();
+      logo = { field, shapes: assignShapes(field.count, 0.5), radius, icon: iconSize };
+      stage.addEventListener('pointermove', onPointerMove);
+      resizeObserver.observe(stage);
+      canvas.dataset.ready = 'true';
 
       if (motionQuery.matches) {
         settle(field);
-        phase = 'done';
-      } else {
+        draw();
+        return;
+      }
+
+      // 1) Hold the wordmark, 2) disintegrate it: particles start on the letters (color-paired).
+      phase = 'hold';
+      holdTimer = window.setTimeout(() => {
         const start = sampleWordmark(field.count);
         const pairs = pairStartPoints(field.color, start.x);
         for (let i = 0; i < field.count; i++) {
@@ -314,14 +388,12 @@ export function HeroStage({
           field.vx[i] = Math.cos(direction) * 2.5;
           field.vy[i] = Math.sin(direction) * 2.5;
         }
+        scatterFlame(field);
         wordmark.dataset.state = 'hidden';
-        phase = 'assemble';
-      }
-      stage.addEventListener('pointermove', onPointerMove);
-      resizeObserver.observe(stage);
-      draw();
-      canvas.dataset.ready = 'true';
-      wake();
+        phase = 'moto';
+        phaseStart = performance.now();
+        wake();
+      }, HOLD_MS);
     };
 
     // Start once the browser is idle AND the stage is on screen, so the sequence is actually seen.
@@ -341,6 +413,7 @@ export function HeroStage({
     return () => {
       if (hasIdle) window.cancelIdleCallback(idle);
       else window.clearTimeout(idle);
+      window.clearTimeout(holdTimer);
       cancelAnimationFrame(frame);
       startObserver.disconnect();
       resizeObserver.disconnect();

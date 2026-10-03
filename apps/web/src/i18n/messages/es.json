@@ -192,7 +192,7 @@
     "directions": "Cómo llegar"
   },
   "heroVariants": {
-    "a": "Variante A — se reescribe letra por letra · partículas mixtas",
-    "b": "Variante B — las partículas vuelven a formar el texto · solo íconos"
+    "a": "Variante A — el texto se reescribe letra por letra",
+    "b": "Variante B — partículas llegan de todos lados y forman el texto"
   }
 }
