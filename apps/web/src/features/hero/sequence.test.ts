@@ -5,6 +5,8 @@ import {
   choreoAt,
   easeInOutCubic,
   easeOutCubic,
+  IDLE_AMPLITUDE,
+  idleOffset,
   pairStartPoints,
   rotateAround,
   SEQUENCE_END,
@@ -91,6 +93,33 @@ describe('choreoAt', () => {
 
   it('fits the auto-play budget: hold + sequence + typing stays under 5 s (WCAG 2.2.2)', () => {
     expect(300 + SEQUENCE_END + 1100).toBeLessThan(5000);
+  });
+});
+
+describe('idleOffset', () => {
+  const c = particle();
+
+  it('starts at exactly zero so the finished ring never jumps', () => {
+    expect(idleOffset(c, 0)).toEqual({ x: 0, y: 0 });
+  });
+
+  it('stays small: softer than the floating orbit', () => {
+    let max = 0;
+    for (let t = 0; t < 20_000; t += 50) {
+      const { x, y } = idleOffset(c, t);
+      max = Math.max(max, Math.abs(x), Math.abs(y));
+    }
+    expect(max).toBeGreaterThan(0);
+    expect(max).toBeLessThanOrEqual(2 * Math.max(c.rx, c.ry) * IDLE_AMPLITUDE + 1e-9);
+  });
+
+  it('moves continuously frame to frame', () => {
+    let previous = idleOffset(c, 0);
+    for (let t = 33; t < 10_000; t += 33) {
+      const next = idleOffset(c, t);
+      expect(Math.hypot(next.x - previous.x, next.y - previous.y)).toBeLessThan(1);
+      previous = next;
+    }
   });
 });
 

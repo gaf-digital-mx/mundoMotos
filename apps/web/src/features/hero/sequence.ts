@@ -82,6 +82,26 @@ export const choreoAt = (c: Choreo, t: number, cx: number, cy: number) => {
   return { x, y };
 };
 
+/** Fraction of the floating orbit kept while the finished flame ring idles (softer motion). */
+export const IDLE_AMPLITUDE = 0.35;
+/** The idle drift fades in over this long so the ring never jumps when the sequence ends. */
+export const IDLE_FADE_IN_MS = 900;
+/** The idle loop runs at ~30 fps: imperceptible for slow drift, half the CPU/battery. */
+export const IDLE_FRAME_MS = 1000 / 30;
+
+/**
+ * Idle drift of a flame particle around its home, `t` ms after the ring formed: the same kind
+ * of orbit as while floating, smaller and slower, faded in smoothly.
+ */
+export const idleOffset = (c: Pick<Choreo, 'rx' | 'ry' | 'w1' | 'w2' | 'p1' | 'p2'>, t: number) => {
+  const fade = smoothstep(t / IDLE_FADE_IN_MS) * IDLE_AMPLITUDE;
+  // Subtract the t = 0 term so the offset starts at exactly 0.
+  return {
+    x: (Math.cos(c.w1 * 0.6 * t + c.p1) - Math.cos(c.p1)) * c.rx * fade,
+    y: (Math.sin(c.w2 * 0.6 * t + c.p2) - Math.sin(c.p2)) * c.ry * fade,
+  };
+};
+
 /**
  * Pairs wordmark points with logo particles so colors travel coherently: logo particles sorted by
  * color slot (red → gold → chrome → graphite) start from wordmark points sorted left → right.

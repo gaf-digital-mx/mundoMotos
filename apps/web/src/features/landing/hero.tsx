@@ -15,7 +15,7 @@ export function Hero() {
       aria-labelledby="hero-title"
       className="mx-auto max-w-(--container-page) px-4 pt-36 pb-60 md:px-24 md:pt-60 md:pb-96"
     >
-      <HeroStage>
+      <HeroStage pauseLabel={t('hero.pauseAnimation')} playLabel={t('hero.playAnimation')}>
         {/* Above the canvas: floating particles pass behind the copy and CTAs, never over them. */}
         <div className="relative z-10 flex flex-col gap-24">
           {/* The wordmark is the LCP element: real text, painted before any script runs. */}

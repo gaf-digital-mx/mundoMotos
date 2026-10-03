@@ -16,7 +16,7 @@ import { fileURLToPath } from 'node:url';
 
 import sharp from 'sharp';
 
-const SOURCE = fileURLToPath(new URL('../src/assets/brand/logo-primario.png', import.meta.url));
+const SOURCE = fileURLToPath(new URL('../src/assets/brand/logo-vector.png', import.meta.url));
 const OUTPUT = fileURLToPath(new URL('../src/features/hero/particles-data.ts', import.meta.url));
 /** Desktop particle count; the hero thins it for small devices (keep in sync with hero-stage). */
 const TARGET_POINTS = 1600;

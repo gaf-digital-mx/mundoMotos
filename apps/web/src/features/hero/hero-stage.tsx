@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 
 import {
   createField,
@@ -16,6 +16,8 @@ import { PARTICLES_B64 } from './particles-data';
 import {
   assignShapes,
   choreoAt,
+  IDLE_FRAME_MS,
+  idleOffset,
   MOTO_PATH,
   pairStartPoints,
   SEQUENCE_END,
@@ -49,7 +51,17 @@ const SPRITE_DPR = 2; // sprites always rasterized at 2× so small icons stay sh
  * physics only takes over afterwards for pointer interaction. The h1 stays in the DOM the
  * whole time. Reduced motion: no sequence, static logo, text always visible.
  */
-export function HeroStage({ children }: { children: ReactNode }) {
+type Props = {
+  children: ReactNode;
+  /** Visible control for the continuous flame motion (WCAG 2.2.2: motion longer than 5 s). */
+  pauseLabel: string;
+  playLabel: string;
+};
+
+export function HeroStage({ children, pauseLabel, playLabel }: Props) {
+  const [paused, setPaused] = useState(false);
+  const pausedRef = useRef(false);
+  const wakeRef = useRef<() => void>(() => undefined);
   const stageRef = useRef<HTMLDivElement>(null);
   const logoRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -95,6 +107,11 @@ export function HeroStage({ children }: { children: ReactNode }) {
     let field: Field | null = null;
     let shapes = new Uint8Array(0);
     let choreo: Choreo[] = [];
+    /** Idle drift parameters for the flame particles (orbit-like, softer than the float). */
+    let idleParams: Pick<Choreo, 'rx' | 'ry' | 'w1' | 'w2' | 'p1' | 'p2'>[] = [];
+    let idleStart = 0;
+    let lastIdleFrame = 0;
+    let visible = true;
     let homeX = new Float32Array(0);
     let homeY = new Float32Array(0);
     let center = { x: 0, y: 0 };
@@ -246,7 +263,12 @@ export function HeroStage({ children }: { children: ReactNode }) {
       }
       if (wordmark.dataset.state === 'hidden') wordmark.dataset.state = 'typing';
       phase = 'done';
+      idleStart = performance.now();
+      wake(); // continue into the idle drift (no-op if the loop is already running)
     };
+
+    /** The finished ring keeps drifting softly unless paused, off-screen or reduced motion. */
+    const idling = () => phase === 'done' && !pausedRef.current && visible && !motionQuery.matches;
 
     const loop = (time: number) => {
       if (!field) return;
@@ -267,12 +289,30 @@ export function HeroStage({ children }: { children: ReactNode }) {
         }
         if (t >= SEQUENCE_END) finish();
       } else {
+        const idle = idling();
         active = time - pointer.lastMove < POINTER_IDLE_MS;
+        if (idle && !active && time - lastIdleFrame < IDLE_FRAME_MS) {
+          frame = requestAnimationFrame(loop); // ~30 fps while idling
+          return;
+        }
+        lastIdleFrame = time;
+        if (idle) {
+          const t = time - idleStart;
+          for (let i = 0; i < field.count; i++) {
+            const params = idleParams[i];
+            if (!params || !targets.flame[i]) continue;
+            const offset = idleOffset(params, t);
+            field.hx[i] = (homeX[i] ?? 0) + offset.x;
+            field.hy[i] = (homeY[i] ?? 0) + offset.y;
+          }
+        }
         energy = stepField(field, active ? pointer : null, dt);
+        if (idle) energy = Math.max(energy, 1); // keep the loop alive while idling
       }
       draw();
 
-      if (phase === 'sequence' || active || energy > 0.01) frame = requestAnimationFrame(loop);
+      if (phase === 'sequence' || idling() || active || energy > 0.01)
+        frame = requestAnimationFrame(loop);
       else running = false;
     };
 
@@ -298,7 +338,18 @@ export function HeroStage({ children }: { children: ReactNode }) {
 
     const onMotionChange = () => {
       if (motionQuery.matches) finish();
+      else wake();
     };
+    wakeRef.current = () => {
+      if (pausedRef.current && phase === 'sequence') finish();
+      wake();
+    };
+
+    // Stop drawing while the hero is off-screen (battery); resume when it scrolls back.
+    const visibilityObserver = new IntersectionObserver(([entry]) => {
+      visible = entry?.isIntersecting ?? true;
+      if (visible) wake();
+    });
 
     const onResize = () => {
       // ResizeObserver also fires once right after observe(): ignore callbacks without a real change.
@@ -326,6 +377,15 @@ export function HeroStage({ children }: { children: ReactNode }) {
       shapes = assignShapes(f.count, 0.5);
       homeX = f.hx.slice();
       homeY = f.hy.slice();
+      idleParams = Array.from({ length: f.count }, () => ({
+        rx: 8 + Math.random() * 22,
+        ry: 6 + Math.random() * 18,
+        w1: 0.0008 + Math.random() * 0.001,
+        w2: 0.0007 + Math.random() * 0.001,
+        p1: Math.random() * Math.PI * 2,
+        p2: Math.random() * Math.PI * 2,
+      }));
+      visibilityObserver.observe(stage);
       stage.addEventListener('pointermove', onPointerMove);
       motionQuery.addEventListener('change', onMotionChange);
       resizeObserver.observe(stage);
@@ -374,6 +434,7 @@ export function HeroStage({ children }: { children: ReactNode }) {
       motionQuery.removeEventListener('change', onMotionChange);
       startObserver.disconnect();
       resizeObserver.disconnect();
+      visibilityObserver.disconnect();
       stage.removeEventListener('pointermove', onPointerMove);
       wordmark.dataset.state = 'shown';
     };
@@ -386,11 +447,26 @@ export function HeroStage({ children }: { children: ReactNode }) {
     >
       {children}
       {/* Target area for the particle logo (after the copy on mobile: CTAs stay above the fold). */}
-      <div
-        ref={logoRef}
-        aria-hidden="true"
-        className="mx-auto aspect-square w-full max-w-[340px] touch-pan-y touch-pinch-zoom md:max-w-[520px]"
-      />
+      <div className="relative z-10 mx-auto flex w-full max-w-[340px] flex-col items-end gap-12 md:max-w-[520px]">
+        <div
+          ref={logoRef}
+          aria-hidden="true"
+          className="aspect-square w-full touch-pan-y touch-pinch-zoom"
+        />
+        <button
+          type="button"
+          aria-pressed={paused}
+          onClick={() => {
+            const next = !pausedRef.current;
+            pausedRef.current = next;
+            setPaused(next);
+            wakeRef.current();
+          }}
+          className="min-h-11 rounded-3xl border border-ash-gray/50 px-18 py-6 text-caption font-semibold tracking-label text-silver-mist uppercase hover:border-bone-white hover:text-bone-white motion-reduce:hidden"
+        >
+          {paused ? playLabel : pauseLabel}
+        </button>
+      </div>
       <canvas
         ref={canvasRef}
         aria-hidden="true"

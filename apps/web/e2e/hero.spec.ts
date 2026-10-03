@@ -51,6 +51,19 @@ test.describe('interactive hero', () => {
     await expect(page.getByRole('heading', { level: 1 })).toContainText('Mundo Motos');
   });
 
+  test('the continuous flame motion can be paused and resumed (WCAG 2.2.2)', async ({ page }) => {
+    await page.goto('/');
+    const pause = page.getByRole('button', { name: 'Pausar animación' });
+    await expect(pause).toHaveAttribute('aria-pressed', 'false');
+    await pause.click();
+    const resume = page.getByRole('button', { name: 'Reanudar animación' });
+    await expect(resume).toHaveAttribute('aria-pressed', 'true');
+    // Pausing mid-sequence finishes it: the wordmark comes back immediately.
+    await expect(page.locator('[data-wordmark]')).toHaveAttribute('data-state', /typing|shown/);
+    await resume.click();
+    await expect(page.getByRole('button', { name: 'Pausar animación' })).toBeVisible();
+  });
+
   test.describe('with reduced motion', () => {
     test.use({ reducedMotion: 'reduce' });
 
