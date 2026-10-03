@@ -94,5 +94,5 @@ See [CONTRIBUTING.md](CONTRIBUTING.md). Commits follow [Conventional Commits](ht
 
 ## License
 
-Code under the [MIT License](LICENSE). Brand assets in `apps/web/public/brand/` are © Mundo Motos, all rights
-reserved ([details](apps/web/public/brand/LICENSE)).
+Code under the [MIT License](LICENSE). Brand assets in `apps/web/src/assets/brand/` are © Mundo Motos, all rights
+reserved ([details](apps/web/src/assets/brand/LICENSE)).

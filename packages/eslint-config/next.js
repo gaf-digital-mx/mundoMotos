@@ -18,7 +18,16 @@ export const next = defineConfig(
     plugins: { i18next },
     rules: {
       // All user-facing copy lives in i18n catalogs (ADR-0008).
-      'i18next/no-literal-string': ['error', { mode: 'jsx-only' }],
+      // Only human-readable attributes are checked; hrefs, classNames, ids etc. are code.
+      'i18next/no-literal-string': [
+        'error',
+        {
+          mode: 'jsx-only',
+          'jsx-attributes': { include: ['alt', 'aria-label', 'title', 'placeholder'] },
+        },
+      ],
+      // Static export: images are pre-optimized at build time and next/image adds client JS for no gain.
+      '@next/next/no-img-element': 'off',
       // Colors come from design tokens, never hex literals in components.
       'no-restricted-syntax': [
         'error',
@@ -28,6 +37,10 @@ export const next = defineConfig(
         },
       ],
     },
+  },
+  {
+    files: ['scripts/**/*.{js,mjs}'],
+    languageOptions: { globals: { ...globals.node } },
   },
   {
     files: ['**/*.test.{ts,tsx}', '**/e2e/**'],

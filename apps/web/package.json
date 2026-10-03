@@ -12,7 +12,8 @@
     "typecheck": "next typegen && tsc --noEmit",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "optimize:assets": "node scripts/optimize-brand-assets.mjs"
   },
   "dependencies": {
     "@mundomotos/contracts": "workspace:*",
@@ -20,7 +21,8 @@
     "next-intl": "4.14.7",
     "react": "19.3.0",
     "react-dom": "19.3.0",
-    "server-only": "^0.0.1"
+    "server-only": "^0.0.1",
+    "zod": "4.6.5"
   },
   "devDependencies": {
     "@axe-core/playwright": "4.13.0",
@@ -34,6 +36,7 @@
     "@types/react-dom": "19.3.0",
     "@vitejs/plugin-react": "^6.1.1",
     "happy-dom": "20.14.5",
+    "sharp": "0.35.4",
     "tailwindcss": "4.3.3"
   }
 }

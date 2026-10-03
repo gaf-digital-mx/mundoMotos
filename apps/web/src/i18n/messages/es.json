@@ -1,12 +1,54 @@
 {
   "metadata": {
-    "title": "Mundo Motos | Refaccionaria y taller de motos",
-    "description": "Refacciones, accesorios y taller mecánico para tu moto. Cotiza por WhatsApp y visítanos."
+    "title": "Mundo Motos | Refaccionaria y taller de motos en Tepetlixpa",
+    "description": "Refacciones, accesorios y taller mecánico para tu moto en Tepetlixpa, Estado de México. Cotiza por WhatsApp o visítanos en Av. 20 de Noviembre 159.",
+    "businessDescription": "Refaccionaria y taller de motos en Tepetlixpa: refacciones, accesorios, equipo de protección y servicio mecánico.",
+    "ogImageAlt": "Fachada de Mundo Motos, refaccionaria y taller de motos en Tepetlixpa"
+  },
+  "common": {
+    "skipToContent": "Saltar al contenido",
+    "whatsappCta": "Escríbenos por WhatsApp",
+    "whatsappShort": "WhatsApp",
+    "whatsappGreeting": "Hola, Mundo Motos. Quiero hacer una consulta.",
+    "opensInNewTab": "(se abre en una pestaña nueva)"
+  },
+  "header": {
+    "tagline": "Refaccionaria & Taller"
   },
   "home": {
     "eyebrow": "Refaccionaria & Taller",
     "title": "Mundo Motos",
     "comingSoon": "Muy pronto, nuestro sitio. Mientras tanto, escríbenos por WhatsApp."
+  },
+  "footer": {
+    "about": "Refacciones, accesorios y taller mecánico para tu moto en Tepetlixpa y alrededores. Buen precio, buen servicio.",
+    "visitTitle": "Visítanos",
+    "viewOnMaps": "Ver en Google Maps",
+    "hoursTitle": "Horario",
+    "hours": {
+      "weekdays": "Lunes a viernes",
+      "weekend": "Sábado y domingo"
+    },
+    "contactTitle": "Contacto",
+    "callUs": "Llámanos",
+    "facebook": "Facebook",
+    "privacy": "Aviso de privacidad",
+    "copyright": "© Mundo Motos. Refaccionaria y taller de motos en Tepetlixpa, Estado de México."
+  },
+  "privacy": {
+    "metaTitle": "Aviso de privacidad | Mundo Motos",
+    "metaDescription": "Aviso de privacidad simplificado del sitio web de Mundo Motos.",
+    "title": "Aviso de privacidad",
+    "updated": "Última actualización: {date}",
+    "intro": "Mundo Motos, con domicilio en {address}, es responsable del tratamiento de los datos personales que llegues a compartirnos, conforme a la Ley Federal de Protección de Datos Personales en Posesión de los Particulares.",
+    "collectTitle": "¿Qué datos recaba este sitio?",
+    "collectBody": "El sitio por sí mismo no recaba ni guarda datos personales: no tiene registro de usuarios ni formularios que almacenen información. Los únicos datos que recibimos son los que tú decides enviarnos por WhatsApp.",
+    "whatsappTitle": "Datos que nos envías por WhatsApp",
+    "whatsappBody": "Si nos escribes, usaremos tu nombre, número y mensaje únicamente para responder tu consulta, cotizar refacciones o servicios y darte seguimiento (finalidades necesarias). No los usamos para publicidad ni para otras finalidades, y no los vendemos ni los transferimos a terceros. Los mensajes se transmiten a través de WhatsApp, un servicio de Meta que tiene su propio aviso de privacidad.",
+    "rightsTitle": "Tus derechos ARCO",
+    "rightsBody": "Puedes solicitar el acceso, rectificación o cancelación de tus datos, oponerte a su uso o revocar tu consentimiento escribiéndonos por WhatsApp al {phone} o acudiendo al local. Responderemos tu solicitud en un plazo máximo de 20 días hábiles.",
+    "changesTitle": "Cambios a este aviso",
+    "changesBody": "Si este aviso cambia, publicaremos la nueva versión en esta misma página."
   },
   "notFound": {
     "title": "Esta página no existe",
