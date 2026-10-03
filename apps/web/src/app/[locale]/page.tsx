@@ -11,7 +11,9 @@ import { BusinessJsonLd } from '@/shared/ui/business-json-ld';
 export default function HomePage() {
   return (
     <>
-      <Hero />
+      {/* TEMPORARY A/B: the client picks one hero; the other is removed before merge. */}
+      <Hero variant="a" />
+      <Hero variant="b" />
       <ValueProp />
       <Services />
       <FeaturedCarousel />

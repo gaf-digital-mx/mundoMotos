@@ -5,7 +5,9 @@ test.describe('interactive hero', () => {
     { width: 390, height: 844 },
     { width: 1440, height: 900 },
   ]) {
-    test(`keeps the headline as the final LCP element at ${viewport.width}px`, async ({ page }) => {
+    test(`keeps server-rendered hero text as the final LCP element at ${viewport.width}px`, async ({
+      page,
+    }) => {
       await page.setViewportSize(viewport);
       await page.goto('/');
       await page.waitForLoadState('load');
@@ -18,14 +20,20 @@ test.describe('interactive hero', () => {
               const entries = list.getEntries() as (PerformanceEntry & {
                 element?: Element | null;
               })[];
-              last = entries.at(-1)?.element?.tagName ?? last;
+              const element = entries.at(-1)?.element;
+              // Text painted without JS (wordmark, tagline or intro), never the canvas or an image.
+              last = element?.closest(
+                'section[aria-labelledby="hero-title"] h1, section[aria-labelledby="hero-title"] p',
+              )
+                ? 'TEXT'
+                : (element?.tagName ?? last);
             }).observe({ type: 'largest-contentful-paint', buffered: true });
             setTimeout(() => {
               resolve(last);
             }, 3000);
           }),
       );
-      expect(lcpTag).toBe('H1');
+      expect(lcpTag).toBe('TEXT');
     });
   }
 
@@ -34,6 +42,18 @@ test.describe('interactive hero', () => {
     const canvas = page.locator('section[aria-labelledby="hero-title"] canvas');
     await expect(canvas).toHaveAttribute('aria-hidden', 'true');
   });
+
+  for (const titleId of ['hero-title', 'hero-title-b']) {
+    test(`disintegrates the wordmark and writes it again (${titleId})`, async ({ page }) => {
+      await page.goto('/');
+      const section = page.locator(`section[aria-labelledby="${titleId}"]`);
+      await section.scrollIntoViewIfNeeded();
+      const wordmark = section.locator('[data-wordmark]');
+      await expect(wordmark).toHaveAttribute('data-state', /hidden|typing|shown/);
+      await expect(wordmark).toHaveAttribute('data-state', /typing|shown/, { timeout: 15_000 });
+      await expect(section.locator(`#${titleId}`)).toContainText('Mundo Motos');
+    });
+  }
 
   test.describe('with reduced motion', () => {
     test.use({ reducedMotion: 'reduce' });

@@ -58,9 +58,8 @@
     "contact": "Contacto"
   },
   "hero": {
-    "eyebrow": "Refaccionaria & Taller en Tepetlixpa",
-    "title": "Refacciones y taller para tu moto",
-    "body": "Encuentra refacciones, accesorios y servicio mecánico con la mejor relación calidad–precio de Tepetlixpa y alrededores.",
+    "tagline": "Refacciones y taller de motos en Tepetlixpa",
+    "body": "Refacciones, accesorios y servicio mecánico con la mejor relación calidad–precio de Tepetlixpa y alrededores.",
     "cta": "Cotiza por WhatsApp",
     "directions": "Cómo llegar",
     "whatsappMessage": "Hola, Mundo Motos. Quiero cotizar una refacción o un servicio."
@@ -191,5 +190,9 @@
   },
   "floating": {
     "directions": "Cómo llegar"
+  },
+  "heroVariants": {
+    "a": "Variante A — se reescribe letra por letra · partículas mixtas",
+    "b": "Variante B — las partículas vuelven a formar el texto · solo íconos"
   }
 }

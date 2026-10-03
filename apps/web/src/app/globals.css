@@ -52,6 +52,16 @@
   --container-page: 1280px;
 
   --animate-marquee: marquee 60s linear infinite;
+  /* Wordmark rewrite: reveal "Mundo Motos" one character step at a time (11 characters). */
+  --animate-type: type 1.1s steps(11, end) both;
+  @keyframes type {
+    from {
+      clip-path: inset(0 100% 0 0);
+    }
+    to {
+      clip-path: inset(0 0 0 0);
+    }
+  }
   @keyframes marquee {
     to {
       transform: translateX(-50%);

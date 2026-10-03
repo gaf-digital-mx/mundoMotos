@@ -37,7 +37,8 @@ export type Field = {
   color: Uint8Array;
 };
 
-export type Box = { width: number; height: number };
+/** Area in canvas pixels; `x`/`y` offset it inside a larger canvas (default 0). */
+export type Box = { width: number; height: number; x?: number; y?: number };
 export type Pointer = { x: number; y: number } | null;
 
 const SPRING = 0.035;
@@ -48,8 +49,8 @@ const REPEL_FORCE = 2.4;
 /** Fits normalized targets into the box (centered, aspect preserved, small margin). */
 export const layoutHomes = (field: Field, targets: Targets, box: Box): void => {
   const size = Math.min(box.width, box.height) * 0.92;
-  const offsetX = (box.width - size) / 2;
-  const offsetY = (box.height - size) / 2;
+  const offsetX = (box.x ?? 0) + (box.width - size) / 2;
+  const offsetY = (box.y ?? 0) + (box.height - size) / 2;
   for (let i = 0; i < field.count; i++) {
     field.hx[i] = offsetX + (targets.x[i] ?? 0) * size;
     field.hy[i] = offsetY + (targets.y[i] ?? 0) * size;
@@ -79,6 +80,41 @@ export const createField = (
   for (let i = 0; i < count; i++) {
     field.px[i] = random() * box.width;
     field.py[i] = random() * box.height;
+    field.angle[i] = random() * Math.PI * 2;
+    field.spin[i] = (random() - 0.5) * 0.04;
+  }
+  return field;
+};
+
+/**
+ * Creates a field that starts at explicit positions and flies to explicit homes (pixels), with
+ * an optional outward burst — used to disintegrate text into the logo and back.
+ */
+export const createFieldAt = (
+  start: { x: Float32Array; y: Float32Array },
+  home: { x: Float32Array; y: Float32Array },
+  color: Uint8Array,
+  burst = 0,
+  random: () => number = Math.random,
+): Field => {
+  const count = Math.min(start.x.length, home.x.length, color.length);
+  const field: Field = {
+    count,
+    px: start.x.slice(0, count),
+    py: start.y.slice(0, count),
+    vx: new Float32Array(count),
+    vy: new Float32Array(count),
+    hx: home.x.slice(0, count),
+    hy: home.y.slice(0, count),
+    angle: new Float32Array(count),
+    spin: new Float32Array(count),
+    color: color.slice(0, count),
+  };
+  for (let i = 0; i < count; i++) {
+    const direction = random() * Math.PI * 2;
+    const speed = burst * (0.4 + random() * 0.6);
+    field.vx[i] = Math.cos(direction) * speed;
+    field.vy[i] = Math.sin(direction) * speed;
     field.angle[i] = random() * Math.PI * 2;
     field.spin[i] = (random() - 0.5) * 0.04;
   }
