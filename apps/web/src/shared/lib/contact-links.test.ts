@@ -17,6 +17,11 @@ describe('whatsappUrl', () => {
     expect(url.search).not.toContain('+');
   });
 
+  it('survives a lone surrogate (emoji split by maxLength)', () => {
+    const url = new URL(whatsappUrl('525500000000', 'Hola \uD83D'));
+    expect(url.searchParams.get('text')).toBe('Hola \uFFFD');
+  });
+
   it('omits an empty message', () => {
     expect(whatsappUrl('525500000000', '   ')).toBe('https://wa.me/525500000000');
   });

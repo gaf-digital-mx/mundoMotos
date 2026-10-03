@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 type Props = {
   embedSrc: string;
@@ -15,14 +15,23 @@ type Props = {
  */
 export function MapFacade({ embedSrc, title, buttonLabel, notice }: Props) {
   const [loaded, setLoaded] = useState(false);
+  const frame = useRef<HTMLIFrameElement>(null);
+
+  // The button that had focus is replaced by the map: hand focus to the map (WCAG 2.4.3).
+  useEffect(() => {
+    if (loaded) frame.current?.focus();
+  }, [loaded]);
 
   if (loaded) {
     return (
       <iframe
+        ref={frame}
+        tabIndex={-1}
         src={embedSrc}
         title={title}
         loading="lazy"
-        referrerPolicy="no-referrer-when-downgrade"
+        referrerPolicy="strict-origin-when-cross-origin"
+        sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox"
         className="aspect-video w-full rounded-3xl border-0"
       />
     );

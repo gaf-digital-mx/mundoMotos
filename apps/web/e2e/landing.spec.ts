@@ -33,16 +33,30 @@ test.describe('landing page', () => {
 
   test('carousel duplicate is hidden from assistive tech and keyboard', async ({ page }) => {
     await page.goto('/');
-    const duplicate = page.locator('#refacciones ul[aria-hidden="true"]');
-    await expect(duplicate).toHaveAttribute('inert', '');
+    const duplicate = page.locator('#refacciones [aria-hidden="true"][inert]');
+    await expect(duplicate).toHaveCount(1);
     await expect(page.getByRole('link', { name: /Preguntar disponibilidad/ })).toHaveCount(18);
+  });
+
+  test('carousel can be paused and resumed (WCAG 2.2.2)', async ({ page }) => {
+    await page.goto('/');
+    const toggle = page.getByRole('button', { name: 'Pausar carrusel' });
+    await expect(toggle).toHaveAttribute('aria-pressed', 'false');
+    await toggle.click();
+    const resume = page.getByRole('button', { name: 'Reanudar carrusel' });
+    await expect(resume).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.locator('#refacciones [data-paused]')).toHaveCount(1);
+    await resume.click();
+    await expect(page.locator('#refacciones [data-paused]')).toHaveCount(0);
   });
 
   test('loads the Google Maps embed only after the visitor asks', async ({ page }) => {
     await page.goto('/');
     await expect(page.locator('iframe[src*="google.com/maps"]')).toHaveCount(0);
     await page.getByRole('button', { name: 'Mostrar mapa' }).click();
-    await expect(page.locator('iframe[src*="google.com/maps"]')).toHaveCount(1);
+    const map = page.locator('iframe[src*="google.com/maps"]');
+    await expect(map).toHaveCount(1);
+    await expect(map).toBeFocused();
   });
 
   test('floating directions button points to Google Maps directions', async ({ page }) => {
@@ -64,28 +78,30 @@ test.describe('contact form', () => {
     await expect(page.getByLabel('Tu nombre')).toHaveAttribute('aria-invalid', 'true');
   });
 
-  test('opens WhatsApp with the visitor name and query', async ({ page }) => {
+  test('opens WhatsApp once in a new tab and keeps the visitor on the site', async ({
+    page,
+    context,
+  }) => {
+    // Never hit the real wa.me from tests.
+    await context.route('https://wa.me/**', (route) => route.fulfill({ body: 'whatsapp' }));
     await page.goto('/');
-    await page.evaluate(() => {
-      (window as unknown as { __opened: string[] }).__opened = [];
-      window.open = (url) => {
-        (window as unknown as { __opened: string[] }).__opened.push(String(url));
-        return window;
-      };
-    });
     await page.getByLabel('Tu nombre').fill('Ana');
     await page.getByLabel('¿Qué necesitas?').fill('¿Tienen balatas para FT150?');
-    await page.getByRole('button', { name: /Enviar por WhatsApp/ }).click();
 
-    const opened = await page.evaluate(
-      () => (window as unknown as { __opened: string[] }).__opened,
-    );
-    expect(opened).toHaveLength(1);
-    const url = new URL(opened[0] ?? '');
+    const popups: string[] = [];
+    context.on('page', (popup) => popups.push(popup.url()));
+    const popupPromise = context.waitForEvent('page');
+    await page.getByRole('button', { name: /Enviar por WhatsApp/ }).click();
+    const popup = await popupPromise;
+    await popup.waitForLoadState();
+
+    const url = new URL(popup.url());
     expect(url.hostname).toBe('wa.me');
     expect(url.searchParams.get('text')).toBe(
       'Hola, Mundo Motos. Soy Ana. ¿Tienen balatas para FT150?',
     );
+    expect(new URL(page.url()).hostname).not.toBe('wa.me');
+    expect(popups).toHaveLength(1);
     await expect(page.getByText(/Abrimos WhatsApp/)).toBeVisible();
   });
 });

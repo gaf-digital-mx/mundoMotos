@@ -70,6 +70,8 @@
     color: var(--color-bone-white);
     font-feature-settings: 'ss01' on;
     color-scheme: dark;
+    /* Keeps focused/anchored content clear of the fixed "Cómo llegar" pill (WCAG 2.4.11). */
+    scroll-padding-bottom: 5rem;
   }
 
   body {

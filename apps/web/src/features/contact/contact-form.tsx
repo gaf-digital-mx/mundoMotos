@@ -60,17 +60,27 @@ export function ContactForm({ whatsappNumber, labels, messageTemplate }: Props) 
     }
 
     const url = whatsappUrl(whatsappNumber, buildContactMessage(messageTemplate, input));
-    const opened = window.open(url, '_blank', 'noopener,noreferrer');
-    if (!opened) window.location.href = url; // pop-up blocked: navigate in the same tab
+    // No 'noopener' feature string: with it, window.open always returns null and we couldn't
+    // detect a blocked pop-up. Detach the opener manually instead.
+    const opened = window.open(url, '_blank');
+    if (opened) opened.opener = null;
+    else window.location.assign(url); // pop-up blocked: continue in this tab
     setSent(true);
   };
 
   const fieldClass =
-    'w-full border-0 border-b border-ash-gray bg-transparent px-0 py-12 text-body font-normal text-bone-white placeholder:text-ash-gray focus:border-ignition-gold focus:ring-0 focus:outline-none aria-invalid:border-flame-orange';
+    'w-full border-0 border-b border-ash-gray bg-transparent px-0 py-12 text-body font-normal text-bone-white placeholder:text-ash-gray focus:border-ignition-gold focus:ring-0 aria-invalid:border-flame-orange';
   const labelClass = 'text-nav-label font-semibold tracking-label uppercase';
 
   return (
-    <form noValidate onSubmit={onSubmit} className="flex flex-col gap-30">
+    <form
+      noValidate
+      onSubmit={onSubmit}
+      onInput={() => {
+        setSent(false);
+      }}
+      className="flex flex-col gap-30"
+    >
       <div className="flex flex-col gap-6">
         <label htmlFor={`${id}-name`} className={labelClass}>
           {labels.name}

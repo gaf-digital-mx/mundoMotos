@@ -126,7 +126,6 @@
     "body": "¿Buscas algo que no ves aquí? Pregúntanos por WhatsApp.",
     "ask": "Preguntar disponibilidad",
     "askMessage": "Hola, Mundo Motos. ¿Tienen disponible: {item}?",
-    "pause": "Pasa el cursor o enfoca un producto para pausar el carrusel.",
     "categories": {
       "lighting": "Iluminación",
       "accessories": "Accesorios",
@@ -155,7 +154,9 @@
       "tubes": "Cámaras",
       "rims": "Rines",
       "brakePads": "Balatas"
-    }
+    },
+    "pauseLabel": "Pausar carrusel",
+    "playLabel": "Reanudar carrusel"
   },
   "location": {
     "eyebrow": "Visítanos",
@@ -181,7 +182,7 @@
       "queryRequired": "Cuéntanos qué necesitas (mínimo 5 caracteres).",
       "tooLong": "El texto es demasiado largo."
     },
-    "sent": "Abrimos WhatsApp en otra pestaña con tu mensaje. Si no se abrió, toca el botón otra vez."
+    "sent": "Abrimos WhatsApp con tu mensaje listo. Si no se abrió, toca el botón otra vez."
   },
   "finalCta": {
     "title": "¿Tu moto necesita algo? Escríbenos hoy.",

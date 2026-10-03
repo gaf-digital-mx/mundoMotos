@@ -6,42 +6,38 @@ import { whatsappUrl } from '@/shared/lib/contact-links';
 import { CategoryIcon } from '@/shared/ui/icons';
 import { SectionHeading } from '@/shared/ui/section-heading';
 
-/**
- * Infinite CSS marquee (no JS): the list is rendered twice and translated by -50%. The copy is
- * hidden from assistive tech and inert. It pauses on hover/focus; with reduced motion it becomes
- * a horizontally scrollable list without the duplicate.
- */
+import { Marquee } from './marquee';
+
+/** Featured products in an auto-scrolling strip with a visible pause control (see Marquee). */
 export function FeaturedCarousel() {
   const t = useTranslations();
   const newTab = t('common.opensInNewTab');
 
-  const renderItems = (duplicate: boolean) =>
-    FEATURED_ITEMS.map(({ category, item }) => {
-      const name = t(`featured.items.${item}`);
-      return (
-        <li key={`${category}-${item}`} className="w-[220px] shrink-0">
-          <a
-            href={whatsappUrl(siteConfig.whatsappNumber, t('featured.askMessage', { item: name }))}
-            target="_blank"
-            rel="noopener noreferrer"
-            tabIndex={duplicate ? -1 : undefined}
-            className="group/item flex h-full flex-col gap-18 rounded-3xl p-18 transition-colors hover:bg-bone-white/5"
-          >
-            <span className="flex aspect-square items-center justify-center rounded-3xl bg-bone-white/5 text-flame-orange transition-colors group-hover/item:text-ignition-gold">
-              <CategoryIcon category={category} className="size-[72px]" />
-            </span>
-            <span className="text-caption tracking-label text-ash-gray uppercase">
-              {t(`featured.categories.${category}`)}
-            </span>
-            <span className="text-body font-normal">{name}</span>
-            <span className="text-caption font-semibold tracking-label text-ignition-gold uppercase">
-              {t('featured.ask')}
-              <span className="sr-only"> {newTab}</span>
-            </span>
-          </a>
-        </li>
-      );
-    });
+  const items = FEATURED_ITEMS.map(({ category, item }) => {
+    const name = t(`featured.items.${item}`);
+    return (
+      <li key={`${category}-${item}`} className="w-[220px] shrink-0">
+        <a
+          href={whatsappUrl(siteConfig.whatsappNumber, t('featured.askMessage', { item: name }))}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="group/item flex h-full flex-col gap-18 rounded-3xl p-18 transition-colors hover:bg-bone-white/5"
+        >
+          <span className="flex aspect-square items-center justify-center rounded-3xl bg-bone-white/5 text-flame-orange transition-colors group-hover/item:text-ignition-gold">
+            <CategoryIcon category={category} className="size-[72px]" />
+          </span>
+          <span className="text-caption tracking-label text-ash-gray uppercase">
+            {t(`featured.categories.${category}`)}
+          </span>
+          <span className="text-body font-normal">{name}</span>
+          <span className="text-caption font-semibold tracking-label text-ignition-gold uppercase">
+            {t('featured.ask')}
+            <span className="sr-only"> {newTab}</span>
+          </span>
+        </a>
+      </li>
+    );
+  });
 
   return (
     <section
@@ -56,16 +52,11 @@ export function FeaturedCarousel() {
           title={t('featured.title')}
           body={t('featured.body')}
         />
-        <p className="sr-only">{t('featured.pause')}</p>
       </div>
-      <div className="group mt-60 overflow-hidden motion-reduce:overflow-x-auto">
-        {/* Each list carries its own trailing gap so translateX(-50%) loops seamlessly. */}
-        <div className="flex w-max animate-marquee group-focus-within:[animation-play-state:paused] group-hover:[animation-play-state:paused] motion-reduce:animate-none">
-          <ul className="flex gap-18 pr-18">{renderItems(false)}</ul>
-          <ul className="flex gap-18 pr-18 motion-reduce:hidden" aria-hidden="true" inert>
-            {renderItems(true)}
-          </ul>
-        </div>
+      <div className="mt-36">
+        <Marquee pauseLabel={t('featured.pauseLabel')} playLabel={t('featured.playLabel')}>
+          <ul className="flex gap-18">{items}</ul>
+        </Marquee>
       </div>
     </section>
   );

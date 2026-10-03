@@ -1,7 +1,6 @@
 import { ContactSection } from '@/features/contact/contact-section';
 import { FeaturedCarousel } from '@/features/landing/featured-carousel';
 import { FinalCta } from '@/features/landing/final-cta';
-import { FloatingDirections } from '@/features/landing/floating-directions';
 import { Hero } from '@/features/landing/hero';
 import { Location } from '@/features/landing/location';
 import { Services } from '@/features/landing/services';
@@ -19,7 +18,6 @@ export default function HomePage() {
       <Location />
       <ContactSection />
       <FinalCta />
-      <FloatingDirections />
       <BusinessJsonLd />
     </>
   );
