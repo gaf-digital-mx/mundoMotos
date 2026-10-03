@@ -8,7 +8,9 @@ test.describe('site shell @smoke', () => {
     expect(response?.status()).toBe(200);
     expect(new URL(page.url()).pathname).toBe('/');
     await expect(page.locator('html')).toHaveAttribute('lang', 'es');
-    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Mundo Motos');
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText(
+      'Refacciones y taller para tu moto',
+    );
     expect(response?.headers()['content-language']).toBe('es');
   });
 

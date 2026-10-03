@@ -1,19 +1,26 @@
-import { useTranslations } from 'next-intl';
-
+import { ContactSection } from '@/features/contact/contact-section';
+import { FeaturedCarousel } from '@/features/landing/featured-carousel';
+import { FinalCta } from '@/features/landing/final-cta';
+import { FloatingDirections } from '@/features/landing/floating-directions';
+import { Hero } from '@/features/landing/hero';
+import { Location } from '@/features/landing/location';
+import { Services } from '@/features/landing/services';
+import { ValueProp } from '@/features/landing/value-prop';
 import { BusinessJsonLd } from '@/shared/ui/business-json-ld';
 
-/** Phase 0 placeholder. The real landing arrives in Phase 1. */
+/** One-page landing (Phase 1). Testimonials return once the business has Google reviews. */
 export default function HomePage() {
-  const t = useTranslations('home');
-
   return (
-    <div className="mx-auto flex min-h-dvh max-w-(--container-page) flex-col justify-center gap-24 px-4 md:px-24">
-      <p className="text-nav-label font-semibold tracking-label text-ignition-gold uppercase">
-        {t('eyebrow')}
-      </p>
-      <h1 className="text-display font-normal tracking-display">{t('title')}</h1>
-      <p className="max-w-[520px] text-silver-mist">{t('comingSoon')}</p>
+    <>
+      <Hero />
+      <ValueProp />
+      <Services />
+      <FeaturedCarousel />
+      <Location />
+      <ContactSection />
+      <FinalCta />
+      <FloatingDirections />
       <BusinessJsonLd />
-    </div>
+    </>
   );
 }

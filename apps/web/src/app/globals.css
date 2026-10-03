@@ -50,6 +50,13 @@
   --radius-full: 9999px;
 
   --container-page: 1280px;
+
+  --animate-marquee: marquee 60s linear infinite;
+  @keyframes marquee {
+    to {
+      transform: translateX(-50%);
+    }
+  }
 }
 
 @theme inline {
