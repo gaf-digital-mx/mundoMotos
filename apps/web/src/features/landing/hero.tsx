@@ -1,6 +1,7 @@
 import { useTranslations } from 'next-intl';
 
 import logo from '@/assets/brand/generated/logo-512.webp';
+import { HeroParticles } from '@/features/hero/hero-particles';
 import { business, siteConfig } from '@/shared/config/business';
 import { directionsUrl } from '@/shared/lib/contact-links';
 import { WhatsappButton } from '@/shared/ui/whatsapp-button';
@@ -40,14 +41,10 @@ export function Hero() {
           </a>
         </div>
       </div>
-      {/* Placeholder visual until the interactive particle hero lands (Phase 1, PR 3). */}
-      <img
-        src={logo.src}
-        alt=""
-        width={logo.width}
-        height={logo.height}
-        className="mx-auto hidden w-full max-w-[440px] md:block"
-      />
+      {/* After the copy on mobile: the headline and CTA must stay above the fold. */}
+      <div className="mx-auto w-full max-w-[340px] md:max-w-none">
+        <HeroParticles posterSrc={logo.src} posterWidth={logo.width} posterHeight={logo.height} />
+      </div>
     </section>
   );
 }
