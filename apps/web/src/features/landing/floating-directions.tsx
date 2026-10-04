@@ -57,7 +57,9 @@ export function FloatingDirections() {
 /**
  * The pill's docked place in a section. Its space is always reserved (hidden with visibility,
  * which also removes it from the tab order and accessibility tree), so docking never shifts
- * the layout. Clicks while docked count for that section.
+ * the layout. Clicks while docked count for that section. The wrapper is the slot DirectionsDock
+ * observes: the link inside it is the one that animates, and an animated transform would
+ * otherwise feed back into the observer (dock → travel out of view → undock → …).
  */
 export function DockedDirections({
   dock,
@@ -66,5 +68,9 @@ export function DockedDirections({
   dock: DirectionsDock;
   className?: string;
 }) {
-  return <DirectionsLink source={dock} dock={dock} className={className} />;
+  return (
+    <span data-dock-slot={dock} className={`inline-flex ${className}`}>
+      <DirectionsLink source={dock} dock={dock} className="" />
+    </span>
+  );
 }

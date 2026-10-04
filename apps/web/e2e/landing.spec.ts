@@ -142,6 +142,64 @@ test.describe('"Cómo llegar" pill', () => {
     });
   }
 
+  for (const viewport of [
+    { width: 390, height: 844 },
+    { width: 1440, height: 900 },
+  ]) {
+    test(`scrolling the whole page never leaves it without a pill nor makes it oscillate at ${String(viewport.width)}px`, async ({
+      page,
+    }) => {
+      await page.setViewportSize(viewport);
+      await page.goto('/');
+      await page.evaluate(() => {
+        const w = window as unknown as { __dockChanges: number };
+        w.__dockChanges = 0;
+        new MutationObserver(() => {
+          w.__dockChanges += 1;
+        }).observe(document.documentElement, {
+          attributes: true,
+          attributeFilter: ['data-directions-dock'],
+        });
+      });
+      const pillOnScreen = () =>
+        page.evaluate(() =>
+          ['[data-directions="floating"]', '[data-dock="hero"]', '[data-dock="location"]'].some(
+            (selector) => {
+              const element = document.querySelector(selector);
+              if (!element || getComputedStyle(element).visibility === 'hidden') return false;
+              const rect = element.getBoundingClientRect();
+              return rect.bottom > 0 && rect.top < window.innerHeight;
+            },
+          ),
+        );
+      const scrollable = await page.evaluate(
+        () => document.documentElement.scrollHeight - window.innerHeight,
+      );
+      const steps = Math.ceil(scrollable / 150) + 2;
+      for (const direction of [1, -1]) {
+        for (let step = 0; step < steps; step++) {
+          // scrollBy, not mouse.wheel (unsupported in mobile WebKit): same scroll/IO events.
+          await page.evaluate((delta) => {
+            window.scrollBy(0, delta);
+          }, 150 * direction);
+          await page.waitForTimeout(30);
+          expect(await pillOnScreen()).toBe(true);
+        }
+      }
+      // Settled at the top: docked in the hero, and no more state changes (no feedback loop).
+      await expect(page.locator('[data-dock="hero"]')).toBeVisible();
+      const changes = await page.evaluate(
+        () => (window as unknown as { __dockChanges: number }).__dockChanges,
+      );
+      await page.waitForTimeout(1000);
+      expect(
+        await page.evaluate(() => (window as unknown as { __dockChanges: number }).__dockChanges),
+      ).toBe(changes);
+      // Down and back up crosses hero→float→location→float→hero: a handful of changes, not hundreds.
+      expect(changes).toBeLessThanOrEqual(8);
+    });
+  }
+
   test('focus follows the pill when it docks', async ({ page }) => {
     await page.goto('/');
     await page.locator('#servicios').scrollIntoViewIfNeeded();
