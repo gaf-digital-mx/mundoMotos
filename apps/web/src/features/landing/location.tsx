@@ -53,7 +53,7 @@ export function Location() {
             {business.serviceArea.map((town) => (
               <li
                 key={town}
-                className="rounded-full border-flame px-12 py-6 text-caption text-silver-mist"
+                className="rounded-full border px-12 py-6 text-caption text-silver-mist"
               >
                 {town}
               </li>
