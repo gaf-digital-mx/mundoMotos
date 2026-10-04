@@ -15,16 +15,24 @@ const out = join(dir, 'generated');
 mkdirSync(out, { recursive: true });
 
 const jobs = [
-  { src: 'logo-primario.png', name: 'logo', widths: [96, 192, 512], format: 'webp' },
-  { src: 'logo-primario.png', name: 'icon', widths: [192], format: 'png' },
-  { src: 'logo-primario.png', name: 'apple-icon', widths: [180], format: 'png' },
+  { src: 'logo-vector.png', name: 'logo', widths: [96, 192, 512], format: 'webp' },
+  { src: 'logo-vector.png', name: 'icon', widths: [192], format: 'png' },
+  // iOS renders transparent touch icons on an undefined background: flatten onto the brand black.
+  {
+    src: 'logo-vector.png',
+    name: 'apple-icon',
+    widths: [180],
+    format: 'png',
+    background: '#000000',
+  },
   { src: 'fachada.jpg', name: 'fachada', widths: [640, 1280], format: 'webp' },
 ];
 
-for (const { src, name, widths, format } of jobs) {
+for (const { src, name, widths, format, background } of jobs) {
   for (const width of widths) {
     const file = join(out, `${name}-${width}.${format}`);
-    const image = sharp(join(dir, src)).resize({ width, withoutEnlargement: true });
+    let image = sharp(join(dir, src)).resize({ width, withoutEnlargement: true });
+    if (background) image = image.flatten({ background });
     await (
       format === 'webp'
         ? image.webp({ quality: 82 })

@@ -41,10 +41,8 @@ test.describe('landing page', () => {
   test('carousel can be paused and resumed (WCAG 2.2.2)', async ({ page }) => {
     await page.goto('/');
     const toggle = page.getByRole('button', { name: 'Pausar carrusel' });
-    await expect(toggle).toHaveAttribute('aria-pressed', 'false');
     await toggle.click();
     const resume = page.getByRole('button', { name: 'Reanudar carrusel' });
-    await expect(resume).toHaveAttribute('aria-pressed', 'true');
     await expect(page.locator('#refacciones [data-paused]')).toHaveCount(1);
     await resume.click();
     await expect(page.locator('#refacciones [data-paused]')).toHaveCount(0);

@@ -23,7 +23,6 @@ export function Marquee({ children, pauseLabel, playLabel }: Props) {
       <div className="mx-auto flex max-w-(--container-page) justify-end px-4 md:px-24">
         <button
           type="button"
-          aria-pressed={paused}
           onClick={() => {
             setPaused((value) => !value);
           }}
