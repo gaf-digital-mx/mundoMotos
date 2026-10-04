@@ -5,8 +5,11 @@ test.describe('tablet layout', () => {
     test(`has no horizontal scroll at ${width}px`, async ({ page }) => {
       await page.setViewportSize({ width, height: 900 });
       await page.goto('/');
+      // Compare with the set width, not innerWidth: mobile Chromium widens the layout viewport
+      // to fit overflowing content, which would hide the overflow.
       const overflow = await page.evaluate(
-        () => document.documentElement.scrollWidth - window.innerWidth,
+        (expected) => document.documentElement.scrollWidth - expected,
+        width,
       );
       expect(overflow).toBeLessThanOrEqual(0);
     });
@@ -20,7 +23,8 @@ test.describe('responsive layout', () => {
     test(`has no horizontal scroll at 320px on ${path} (WCAG 1.4.10)`, async ({ page }) => {
       await page.goto(path);
       const overflow = await page.evaluate(
-        () => document.documentElement.scrollWidth - window.innerWidth,
+        (expected) => document.documentElement.scrollWidth - expected,
+        320,
       );
       expect(overflow).toBeLessThanOrEqual(0);
     });

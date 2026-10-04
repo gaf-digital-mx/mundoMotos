@@ -38,7 +38,7 @@ export function SiteHeader() {
           </span>
         </span>
       </Link>
-      <nav aria-label={t('nav.label')} className="hidden md:block">
+      <nav aria-label={t('nav.label')} className="hidden lg:block">
         <ul className="flex gap-30">
           {NAV.map(({ href, key }) => (
             <li key={href}>
