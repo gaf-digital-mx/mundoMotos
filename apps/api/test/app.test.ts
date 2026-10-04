@@ -24,6 +24,22 @@ describe('unknown API routes', () => {
   });
 });
 
+describe('tracked CTA redirects (ADR-0013)', () => {
+  it('records through the Analytics Engine binding and redirects', async () => {
+    const res = await get('/api/go/whatsapp?src=hero&text=Hola', {
+      headers: { 'User-Agent': 'Mozilla/5.0 Chrome/140.0' },
+    });
+    expect(res.status).toBe(302);
+    expect(res.headers.get('Location')).toBe('https://wa.me/525500000000?text=Hola');
+    expect(res.headers.get('X-Robots-Tag')).toContain('noindex');
+  });
+
+  it('accepts beacon reports', async () => {
+    const res = await get('/api/track?target=whatsapp&src=contact-form', { method: 'POST' });
+    expect(res.status).toBe(204);
+  });
+});
+
 describe('locale-aware static site (ADR-0008)', () => {
   it('serves Spanish at / with no locale in the URL', async () => {
     const res = await get('/');

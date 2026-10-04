@@ -1,8 +1,7 @@
 import { useTranslations } from 'next-intl';
 
 import { SERVICE_IDS } from '@/content/services';
-import { siteConfig } from '@/shared/config/business';
-import { whatsappUrl } from '@/shared/lib/contact-links';
+import { TRACKED_REL, whatsappHref } from '@/shared/lib/tracked-links';
 import { SectionHeading } from '@/shared/ui/section-heading';
 
 export function Services() {
@@ -35,12 +34,9 @@ export function Services() {
                 <h3 className="text-heading-2xs font-normal">{name}</h3>
                 <p className="text-silver-mist">{t(`services.items.${id}.body`)}</p>
                 <a
-                  href={whatsappUrl(
-                    siteConfig.whatsappNumber,
-                    t('services.quoteMessage', { service: name }),
-                  )}
+                  href={whatsappHref('services', t('services.quoteMessage', { service: name }))}
                   target="_blank"
-                  rel="noopener noreferrer"
+                  rel={TRACKED_REL}
                   className="self-start text-nav-label font-semibold tracking-label text-ignition-gold uppercase underline-offset-4 hover:underline"
                 >
                   {t('services.quote')}

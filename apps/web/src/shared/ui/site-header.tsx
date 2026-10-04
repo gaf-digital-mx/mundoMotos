@@ -2,7 +2,7 @@ import { useTranslations } from 'next-intl';
 
 import logo from '@/assets/brand/generated/logo-96.webp';
 import { Link } from '@/i18n/navigation';
-import { business, siteConfig } from '@/shared/config/business';
+import { business } from '@/shared/config/business';
 
 import { WhatsappButton } from './whatsapp-button';
 
@@ -53,7 +53,7 @@ export function SiteHeader() {
         </ul>
       </nav>
       <WhatsappButton
-        number={siteConfig.whatsappNumber}
+        source="header"
         message={t('common.whatsappGreeting')}
         label={t('common.whatsappShort')}
         compactOnMobile

@@ -38,6 +38,8 @@
     "intro": "Mundo Motos, con domicilio en {address}, es responsable del tratamiento de los datos personales que llegues a compartirnos, conforme a la Ley Federal de Protección de Datos Personales en Posesión de los Particulares.",
     "collectTitle": "¿Qué datos recaba este sitio?",
     "collectBody": "El sitio por sí mismo no recaba ni guarda datos personales: no tiene registro de usuarios y el formulario de consulta no almacena lo que escribes. Al enviarlo, se abre WhatsApp con tu mensaje y solo nos llega si tú decides enviarlo desde ahí.",
+    "analyticsTitle": "Estadísticas de uso",
+    "analyticsBody": "Para saber qué partes del sitio funcionan mejor, contamos de forma anónima los clics en los botones de WhatsApp, “Cómo llegar”, teléfono y Facebook. De cada clic solo registramos qué botón se usó, en qué sección estaba, el idioma del sitio y el país aproximado de la visita. No usamos cookies, y estas estadísticas no incluyen tu dirección IP ni otros datos que te identifiquen, así que no son datos personales. Lo que escribes en el formulario nunca pasa por nuestro sitio.",
     "whatsappTitle": "Datos que nos envías por WhatsApp",
     "whatsappBody": "Si nos escribes, usaremos tu nombre, número y mensaje únicamente para responder tu consulta, cotizar refacciones o servicios y darte seguimiento (finalidades necesarias). No los usamos para publicidad ni para otras finalidades, y no los vendemos ni los transferimos a terceros. Los mensajes se transmiten a través de WhatsApp, un servicio de Meta que tiene su propio aviso de privacidad.",
     "rightsTitle": "Tus derechos ARCO",

@@ -1,6 +1,7 @@
 import { useTranslations } from 'next-intl';
 
 import { siteConfig } from '@/shared/config/business';
+import { trackPath } from '@/shared/lib/tracked-links';
 import { SectionHeading } from '@/shared/ui/section-heading';
 
 import { ContactForm } from './contact-form';
@@ -22,6 +23,7 @@ export function ContactSection() {
       />
       <ContactForm
         whatsappNumber={siteConfig.whatsappNumber}
+        trackUrl={trackPath('whatsapp', 'contact-form')}
         // Keeps the placeholders so the client island fills them with what the visitor types.
         messageTemplate={t('contact.messageTemplate', { name: '{name}', query: '{query}' })}
         labels={{

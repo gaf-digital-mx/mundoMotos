@@ -17,7 +17,8 @@ export const siteConfigSchema = z
     SITE_INDEXABLE: booleanString,
     BUSINESS_WHATSAPP_NUMBER: phoneNumber,
     BUSINESS_PHONE_NUMBER: phoneNumber.optional(),
-    BUSINESS_FACEBOOK_URL: z.url(),
+    // It becomes a redirect target (/api/go/facebook): https only, so a typo can't send visitors elsewhere.
+    BUSINESS_FACEBOOK_URL: z.url({ protocol: /^https$/ }),
   })
   .transform((env) => ({
     siteUrl: env.SITE_URL,

@@ -2,8 +2,9 @@ import { useTranslations } from 'next-intl';
 
 import { Link } from '@/i18n/navigation';
 import { business, siteConfig } from '@/shared/config/business';
-import { formatPhoneMx, telUrl, whatsappUrl } from '@/shared/lib/contact-links';
+import { formatPhoneMx, telUrl } from '@/shared/lib/contact-links';
 import { formatTime } from '@/shared/lib/hours';
+import { facebookHref, TRACKED_REL, trackPath, whatsappHref } from '@/shared/lib/tracked-links';
 
 const linkClass = 'text-bone-white underline-offset-4 hover:text-ignition-gold hover:underline';
 
@@ -71,23 +72,23 @@ export function SiteFooter() {
             {t('footer.contactTitle')}
           </h2>
           <a
-            href={whatsappUrl(siteConfig.whatsappNumber, t('common.whatsappGreeting'))}
+            href={whatsappHref('footer', t('common.whatsappGreeting'))}
             target="_blank"
-            rel="noopener noreferrer"
+            rel={TRACKED_REL}
             className={linkClass}
           >
             {t('common.whatsappShort')}: {formatPhoneMx(siteConfig.whatsappNumber)}
             <span className="sr-only"> {newTab}</span>
           </a>
-          <a href={telUrl(siteConfig.phoneNumber)} className={linkClass}>
-            {t('footer.callUs')}: {formatPhoneMx(siteConfig.phoneNumber)}
-          </a>
+          {/* Direct tel: link (a redirect to tel: isn't reliable everywhere); ping reports the click. */}
           <a
-            href={siteConfig.facebookUrl}
-            target="_blank"
-            rel="noopener noreferrer"
+            href={telUrl(siteConfig.phoneNumber)}
+            ping={trackPath('phone', 'footer')}
             className={linkClass}
           >
+            {t('footer.callUs')}: {formatPhoneMx(siteConfig.phoneNumber)}
+          </a>
+          <a href={facebookHref('footer')} target="_blank" rel={TRACKED_REL} className={linkClass}>
             {t('footer.facebook')}
             <span className="sr-only"> {newTab}</span>
           </a>

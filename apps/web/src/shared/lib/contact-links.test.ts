@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { directionsUrl, formatPhoneMx, telUrl, whatsappUrl } from './contact-links';
+import { directionsPlace, formatPhoneMx, telUrl, whatsappUrl } from './contact-links';
 
 describe('whatsappUrl', () => {
   it('links to the number without a message', () => {
@@ -41,21 +41,15 @@ describe('telUrl / formatPhoneMx', () => {
   });
 });
 
-describe('directionsUrl', () => {
-  it('points Google Maps directions at the store by name and address', () => {
-    const url = new URL(
-      directionsUrl({
+describe('directionsPlace', () => {
+  it('labels the destination with the store name and address', () => {
+    expect(
+      directionsPlace({
         name: 'Mundo Motos',
         street: 'Av. Siempre Viva 1',
         locality: 'Pueblo',
         postalCode: '00000',
       }),
-    );
-    expect(url.hostname).toBe('www.google.com');
-    expect(url.pathname).toBe('/maps/dir/');
-    expect(url.searchParams.get('api')).toBe('1');
-    expect(url.searchParams.get('destination')).toBe(
-      'Mundo Motos, Av. Siempre Viva 1, 00000 Pueblo',
-    );
+    ).toBe('Mundo Motos, Av. Siempre Viva 1, 00000 Pueblo');
   });
 });

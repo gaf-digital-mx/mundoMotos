@@ -20,6 +20,15 @@ describe('parseSiteConfig', () => {
     });
   });
 
+  it('accepts only an https Facebook URL (it is a redirect target)', () => {
+    expect(() =>
+      parseSiteConfig({ ...validEnv, BUSINESS_FACEBOOK_URL: 'javascript:alert(1)' }),
+    ).toThrow(/BUSINESS_FACEBOOK_URL/);
+    expect(() =>
+      parseSiteConfig({ ...validEnv, BUSINESS_FACEBOOK_URL: 'http://www.facebook.com/' }),
+    ).toThrow(/BUSINESS_FACEBOOK_URL/);
+  });
+
   it('uses a dedicated phone number when provided', () => {
     const config = parseSiteConfig({ ...validEnv, BUSINESS_PHONE_NUMBER: '525511111111' });
     expect(config.phoneNumber).toBe('525511111111');

@@ -3,6 +3,7 @@
   "name": "mundomotos-test",
   "main": "../src/index.ts",
   "compatibility_date": "2026-08-15",
+  "analytics_engine_datasets": [{ "binding": "CLICKS", "dataset": "mundomotos_clicks_test" }],
   "assets": {
     "directory": "./fixtures/site",
     "binding": "ASSETS",

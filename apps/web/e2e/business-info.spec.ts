@@ -22,12 +22,26 @@ test.describe('business information @smoke', () => {
     await expect(footer.getByText('Lunes a viernes')).toBeVisible();
     await expect(footer.getByRole('link', { name: /WhatsApp/ })).toHaveAttribute(
       'href',
-      /^https:\/\/wa\.me\/\d+/,
+      /^\/api\/go\/whatsapp\?src=footer&/,
     );
-    await expect(footer.getByRole('link', { name: /Llámanos/ })).toHaveAttribute(
-      'href',
-      /^tel:\+\d+/,
+    const call = footer.getByRole('link', { name: /Llámanos/ });
+    // tel: stays a direct link; the click is reported with <a ping>.
+    await expect(call).toHaveAttribute('href', /^tel:\+\d+/);
+    await expect(call).toHaveAttribute('ping', '/api/track?target=phone&src=footer');
+  });
+
+  test('reports phone clicks with <a ping> while tel: stays direct (ADR-0013)', async ({
+    page,
+  }) => {
+    await page.goto('/');
+    const ping = page.waitForRequest(
+      (request) => request.method() === 'POST' && request.url().includes('/api/track'),
     );
+    await page
+      .getByRole('contentinfo')
+      .getByRole('link', { name: /Llámanos/ })
+      .click();
+    expect(new URL((await ping).url()).searchParams.get('target')).toBe('phone');
   });
 
   test('links to the privacy notice', async ({ page }) => {

@@ -16,11 +16,17 @@
     "not_found_handling": "404-page",
     "run_worker_first": ["/*", "!/_next/static/*", "!/brand/*", "!/favicon.ico"],
   },
+  // Anonymous click events (ADR-0013). Bindings aren't inherited by environments: staging (and
+  // PR previews, which use staging bindings) write to their own dataset.
+  "analytics_engine_datasets": [{ "binding": "CLICKS", "dataset": "mundomotos_clicks" }],
   // Site identity and business contact vars are NOT declared here: they are injected at deploy
   // time with `--var` from GitHub Environment variables (ADR-0016) and locally from .dev.vars.
   "env": {
     "staging": {
       "name": "mundomotos-staging",
+      "analytics_engine_datasets": [
+        { "binding": "CLICKS", "dataset": "mundomotos_clicks_staging" },
+      ],
     },
   },
 }

@@ -1,8 +1,8 @@
 import { useTranslations } from 'next-intl';
 
 import { HeroStage } from '@/features/hero/hero-stage';
-import { business, siteConfig } from '@/shared/config/business';
-import { directionsUrl } from '@/shared/lib/contact-links';
+import { business } from '@/shared/config/business';
+import { directionsHref, TRACKED_REL } from '@/shared/lib/tracked-links';
 import { WhatsappButton } from '@/shared/ui/whatsapp-button';
 
 import type { CSSProperties } from 'react';
@@ -39,15 +39,15 @@ export function Hero() {
           <p className="max-w-[520px] text-silver-mist">{t('hero.body')}</p>
           <div className="flex flex-wrap items-center gap-24">
             <WhatsappButton
-              number={siteConfig.whatsappNumber}
+              source="hero"
               message={t('hero.whatsappMessage')}
               label={t('hero.cta')}
               newTabHint={t('common.opensInNewTab')}
             />
             <a
-              href={directionsUrl({ name: business.name, ...business.address })}
+              href={directionsHref('hero')}
               target="_blank"
-              rel="noopener noreferrer"
+              rel={TRACKED_REL}
               className="text-nav-label font-semibold tracking-label text-bone-white uppercase underline-offset-4 hover:text-ignition-gold hover:underline"
             >
               {t('hero.directions')}
