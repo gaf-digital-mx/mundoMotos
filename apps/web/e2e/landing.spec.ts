@@ -10,7 +10,7 @@ test.describe('landing page', () => {
       'Lo que más nos piden',
       'Estamos en Tepetlixpa',
       'Escríbenos y te respondemos por WhatsApp',
-      '¿LISTO PARA DARLE VIDA A TU MOTO?',
+      '¿Listo para darle vida a tu moto?',
     ]);
   });
 
