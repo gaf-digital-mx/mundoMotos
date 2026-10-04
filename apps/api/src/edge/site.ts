@@ -1,3 +1,4 @@
+import { buildCsp, loadCspManifest, manifestKey, REPORTING_ENDPOINTS } from './csp';
 import {
   isLocaleAgnostic,
   resolveLocale,
@@ -47,5 +48,14 @@ export const serveSite = async (c: Context<AppEnv>): Promise<Response> => {
   response.headers.append('Vary', 'Cookie');
   // Same URL, different language: browsers must revalidate (ETag) instead of reusing the cache.
   response.headers.set('Cache-Control', 'no-cache');
+
+  // Pages only (assets returned earlier). A 304 carries no Content-Type but still updates the
+  // cached response's headers, so returning visitors pick up policy changes too.
+  if (response.status === 304 || response.headers.get('Content-Type')?.includes('text/html')) {
+    const manifest = await loadCspManifest(c.env.ASSETS, url.origin);
+    const hashes = manifest[manifestKey(internalUrl.pathname, response.status)] ?? [];
+    response.headers.set('Content-Security-Policy-Report-Only', buildCsp(hashes));
+    response.headers.set('Reporting-Endpoints', REPORTING_ENDPOINTS);
+  }
   return response;
 };

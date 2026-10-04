@@ -3,6 +3,7 @@ import { secureHeaders } from 'hono/secure-headers';
 
 import { serveSite } from './edge/site';
 import { clickRoutes } from './modules/clicks';
+import { cspReportRoutes } from './modules/csp-reports';
 import { healthRoutes } from './modules/health';
 import { log } from './shared/http/logger';
 import { context, requestLog, robotsGuard } from './shared/http/middleware';
@@ -20,6 +21,7 @@ export const createApp = () => {
   api.use('*', requestLog);
   api.route('/health', healthRoutes);
   api.route('/', clickRoutes);
+  api.route('/csp-report', cspReportRoutes);
   api.all('*', (c) => problem(c, { status: 404, code: 'not-found', title: 'Resource not found' }));
   app.route('/api', api);
 
