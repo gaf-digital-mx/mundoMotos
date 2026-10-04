@@ -8,8 +8,9 @@ import { createHash } from 'node:crypto';
 import { readdir, readFile, writeFile } from 'node:fs/promises';
 import { join, relative, sep } from 'node:path';
 
+import { Window } from 'happy-dom';
+
 const OUT = new URL('../out/', import.meta.url).pathname;
-const SCRIPT = /<script(\s[^>]*)?>([\s\S]*?)<\/script>/gi;
 const EXECUTABLE_TYPE = /^(|text\/javascript|application\/javascript|module)$/i;
 
 const htmlFiles = async (dir) => {
@@ -24,13 +25,24 @@ const htmlFiles = async (dir) => {
   return nested.flat();
 };
 
+// A real HTML parser, not a regex: script boundaries follow the HTML spec (`</script >`, comments,
+// attribute values containing `>`). Parsing only: no script runs, nothing is fetched.
+const window = new Window({
+  settings: {
+    disableJavaScriptEvaluation: true,
+    disableJavaScriptFileLoading: true,
+    disableCSSFileLoading: true,
+  },
+});
+const parser = new window.DOMParser();
+
 const inlineScriptHashes = (html) => {
   const hashes = new Set();
-  for (const [, attrs = '', body] of html.matchAll(SCRIPT)) {
-    if (/\ssrc\s*=/i.test(attrs) || body.length === 0) continue;
-    const type = /\stype\s*=\s*["']?([^"'\s>]*)/i.exec(attrs)?.[1] ?? '';
+  for (const script of parser.parseFromString(html, 'text/html').querySelectorAll('script')) {
+    const body = script.textContent ?? '';
+    if (script.hasAttribute('src') || body.length === 0) continue;
     // Data blocks (JSON-LD) never execute, so CSP doesn't apply to them.
-    if (!EXECUTABLE_TYPE.test(type)) continue;
+    if (!EXECUTABLE_TYPE.test(script.getAttribute('type') ?? '')) continue;
     // Browsers hash the script text after the HTML parser normalizes newlines and NULs.
     const source = body.replace(/\r\n?/g, '\n').replaceAll('\0', '\uFFFD');
     hashes.add(`sha256-${createHash('sha256').update(source, 'utf8').digest('base64')}`);
@@ -56,3 +68,4 @@ if (!manifest['/404'] || empty.length > 0) {
 }
 await writeFile(join(OUT, '_csp-hashes.json'), `${JSON.stringify(manifest, null, 2)}\n`);
 console.log(`CSP: hashed inline scripts of ${Object.keys(manifest).length} pages`);
+await window.happyDOM.close();
