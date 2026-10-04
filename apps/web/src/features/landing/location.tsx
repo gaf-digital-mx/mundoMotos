@@ -3,8 +3,8 @@ import { useTranslations } from 'next-intl';
 import fachada1280 from '@/assets/brand/generated/fachada-1280.webp';
 import fachada640 from '@/assets/brand/generated/fachada-640.webp';
 import { business } from '@/shared/config/business';
-import { directionsUrl } from '@/shared/lib/contact-links';
 import { formatTime } from '@/shared/lib/hours';
+import { directionsHref, TRACKED_REL } from '@/shared/lib/tracked-links';
 import { SectionHeading } from '@/shared/ui/section-heading';
 
 import { MapFacade } from './map-facade';
@@ -57,9 +57,9 @@ export function Location() {
           </ul>
         </div>
         <a
-          href={directionsUrl({ name: business.name, ...address })}
+          href={directionsHref('location')}
           target="_blank"
-          rel="noopener noreferrer"
+          rel={TRACKED_REL}
           className="self-start text-nav-label font-semibold tracking-label text-ignition-gold uppercase underline-offset-4 hover:underline"
         >
           {t('location.directions')}

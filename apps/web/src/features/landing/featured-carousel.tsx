@@ -1,8 +1,7 @@
 import { useTranslations } from 'next-intl';
 
 import { FEATURED_ITEMS } from '@/content/featured';
-import { siteConfig } from '@/shared/config/business';
-import { whatsappUrl } from '@/shared/lib/contact-links';
+import { TRACKED_REL, whatsappHref } from '@/shared/lib/tracked-links';
 import { CategoryIcon } from '@/shared/ui/icons';
 import { SectionHeading } from '@/shared/ui/section-heading';
 
@@ -18,9 +17,9 @@ export function FeaturedCarousel() {
     return (
       <li key={`${category}-${item}`} className="w-[220px] shrink-0">
         <a
-          href={whatsappUrl(siteConfig.whatsappNumber, t('featured.askMessage', { item: name }))}
+          href={whatsappHref('featured', t('featured.askMessage', { item: name }))}
           target="_blank"
-          rel="noopener noreferrer"
+          rel={TRACKED_REL}
           className="group/item flex h-full flex-col gap-18 rounded-3xl p-18 transition-colors hover:bg-bone-white/5"
         >
           <span className="flex aspect-square items-center justify-center rounded-3xl bg-bone-white/5 text-flame-orange transition-colors group-hover/item:text-ignition-gold">

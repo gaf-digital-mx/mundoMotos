@@ -13,6 +13,8 @@ import {
 
 type Props = {
   whatsappNumber: string;
+  /** Click report without the message (ADR-0013): what visitors type never reaches the site. */
+  trackUrl: string;
   labels: {
     name: string;
     query: string;
@@ -29,7 +31,7 @@ type Props = {
  * Two-field inquiry form. Nothing is sent or stored by the site: on submit it opens WhatsApp with
  * the message prefilled. Strings arrive as props (no client-side i18n runtime).
  */
-export function ContactForm({ whatsappNumber, labels, messageTemplate }: Props) {
+export function ContactForm({ whatsappNumber, trackUrl, labels, messageTemplate }: Props) {
   const id = useId();
   const [errors, setErrors] = useState<ContactErrors>({});
   const [sent, setSent] = useState(false);
@@ -59,6 +61,13 @@ export function ContactForm({ whatsappNumber, labels, messageTemplate }: Props) 
       return;
     }
 
+    // Opens wa.me directly (the message may hold personal data, so it never goes through our
+    // redirect); the click is counted by a content-free beacon.
+    try {
+      navigator.sendBeacon(trackUrl);
+    } catch {
+      // Analytics must never block the lead: old WebViews may lack sendBeacon.
+    }
     const url = whatsappUrl(whatsappNumber, buildContactMessage(messageTemplate, input));
     // No 'noopener' feature string: with it, window.open always returns null and we couldn't
     // detect a blocked pop-up. Detach the opener manually instead.

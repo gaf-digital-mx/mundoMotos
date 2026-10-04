@@ -26,10 +26,6 @@ export const formatPhoneMx = (number: string): string => {
 
 type Destination = { name: string; street: string; locality: string; postalCode: string };
 
-/** Google Maps directions to the store, labelled with the business name instead of raw coordinates. */
-export const directionsUrl = ({ name, street, locality, postalCode }: Destination): string => {
-  const url = new URL('https://www.google.com/maps/dir/');
-  url.searchParams.set('api', '1');
-  url.searchParams.set('destination', `${name}, ${street}, ${postalCode} ${locality}`);
-  return url.toString();
-};
+/** Directions destination: the business name and address instead of raw coordinates. */
+export const directionsPlace = ({ name, street, locality, postalCode }: Destination): string =>
+  `${name}, ${street}, ${postalCode} ${locality}`;

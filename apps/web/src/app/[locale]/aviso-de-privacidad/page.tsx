@@ -6,7 +6,7 @@ import { formatPhoneMx } from '@/shared/lib/contact-links';
 import type { Metadata } from 'next';
 
 /** Bump when the notice text changes (shown to visitors). */
-const LAST_UPDATED = '2026-10-02';
+const LAST_UPDATED = '2026-10-03';
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations('privacy');
@@ -22,7 +22,7 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-const SECTIONS = ['collect', 'whatsapp', 'rights', 'changes'] as const;
+const SECTIONS = ['collect', 'analytics', 'whatsapp', 'rights', 'changes'] as const;
 
 export default async function PrivacyPage() {
   const t = await getTranslations('privacy');
