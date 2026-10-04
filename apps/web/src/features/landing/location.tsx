@@ -7,6 +7,9 @@ import { formatTime } from '@/shared/lib/hours';
 import { SectionHeading } from '@/shared/ui/section-heading';
 
 import { DockedDirections } from './floating-directions';
+import { LazyMap } from './lazy-map';
+
+const MAP_CLASS = 'aspect-video w-full rounded-3xl border-0 bg-bone-white/5';
 
 export function Location() {
   const t = useTranslations();
@@ -50,7 +53,7 @@ export function Location() {
             {business.serviceArea.map((town) => (
               <li
                 key={town}
-                className="rounded-full border px-12 py-6 text-caption text-silver-mist"
+                className="rounded-full border-flame px-12 py-6 text-caption text-silver-mist"
               >
                 {town}
               </li>
@@ -72,16 +75,18 @@ export function Location() {
           decoding="async"
           className="w-full rounded-3xl"
         />
-        {/* Server-rendered and lazy: the browser fetches Google Maps only when the section nears the
-            viewport, so it never weighs on the initial load (the privacy notice discloses it). */}
-        <iframe
-          src={embedSrc}
-          title={t('location.mapTitle')}
-          loading="lazy"
-          referrerPolicy="strict-origin-when-cross-origin"
-          sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox"
-          className="aspect-video w-full rounded-3xl border-0 bg-bone-white/5"
-        />
+        {/* Requested only as the section approaches (LazyMap); the privacy notice discloses it. */}
+        <LazyMap src={embedSrc} title={t('location.mapTitle')} className={MAP_CLASS} />
+        <noscript>
+          <iframe
+            src={embedSrc}
+            title={t('location.mapTitle')}
+            loading="lazy"
+            referrerPolicy="strict-origin-when-cross-origin"
+            sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox"
+            className={MAP_CLASS}
+          />
+        </noscript>
       </div>
     </section>
   );

@@ -122,12 +122,18 @@
   visibility: hidden;
 }
 html[data-directions-dock='hero'] [data-dock='hero'],
-html[data-directions-dock='location'] [data-dock='location'],
-html:not([data-directions-dock]):has([data-dock='hero']) [data-dock='hero'] {
+html[data-directions-dock='location'] [data-dock='location'] {
   visibility: visible;
 }
 html[data-directions-dock='hero'] [data-directions='floating'],
-html[data-directions-dock='location'] [data-directions='floating'],
+html[data-directions-dock='location'] [data-directions='floating'] {
+  visibility: hidden;
+}
+/* Pre-hydration state, in its own rules: a browser without :has() drops only these (and
+   simply shows the floating pill until the island runs). */
+html:not([data-directions-dock]):has([data-dock='hero']) [data-dock='hero'] {
+  visibility: visible;
+}
 html:not([data-directions-dock]):has([data-dock='hero']) [data-directions='floating'] {
   visibility: hidden;
 }
@@ -146,8 +152,9 @@ html:not([data-directions-dock]):has([data-dock='hero']) [data-directions='float
     color: var(--color-bone-white);
     font-feature-settings: 'ss01' on;
     color-scheme: dark;
-    /* Keeps focused/anchored content clear of the fixed "Cómo llegar" pill (WCAG 2.4.11). */
-    scroll-padding-bottom: 5rem;
+    /* Keeps focused/anchored content clear of the fixed "Cómo llegar" pill (WCAG 2.4.11),
+       including the iPhone home-indicator inset the pill sits above. */
+    scroll-padding-bottom: calc(5rem + env(safe-area-inset-bottom));
   }
 
   body {

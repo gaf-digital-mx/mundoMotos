@@ -5,6 +5,8 @@ import { useEffect } from 'react';
 const STATE = 'data-directions-dock';
 
 const TRAVEL_MS = 320;
+/** Bottom band occupied by the floating pill (16px gap + 44px pill + breathing room). */
+const FLOATING_BAND_PX = 80;
 
 /**
  * Docks the floating "Cómo llegar" pill into whichever dock section (hero, location) is on
@@ -18,12 +20,11 @@ export function DirectionsDock() {
   useEffect(() => {
     const docks = [...document.querySelectorAll<HTMLElement>('[data-dock]')];
     const floating = document.querySelector<HTMLElement>('[data-directions="floating"]');
-    if (docks.length === 0 || !floating) return; // pages without dock sections: always floating
+    if (docks.length === 0 || !floating) return; // pages without docks: always floating
 
     const root = document.documentElement;
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
-    const sections = new Map(docks.map((dock) => [dock.closest('section') ?? dock, dock]));
-    const onScreen = new Set<HTMLElement>();
+    const onScreen = new Set<Element>();
     let travel: Animation | undefined;
     let first = true;
 
@@ -31,12 +32,14 @@ export function DirectionsDock() {
       docks.find((dock) => dock.dataset.dock === root.getAttribute(STATE)) ?? floating;
 
     const apply = () => {
-      // DOM order wins if two dock sections are on screen at once.
+      // DOM order wins if two docks are on screen at once.
       const active = docks.find((dock) => onScreen.has(dock))?.dataset.dock ?? 'none';
       if (!first && root.getAttribute(STATE) === active) return;
-      travel?.finish();
       const from = visibleCopy();
+      // Measured before cancelling: mid-travel, the rect includes the running translate, so a
+      // quick reversal starts from where the pill is on screen.
       const start = from.getBoundingClientRect();
+      travel?.cancel();
       const hadFocus = document.activeElement === from;
       root.setAttribute(STATE, active);
       const to = visibleCopy();
@@ -55,20 +58,20 @@ export function DirectionsDock() {
       first = false;
     };
 
-    // The margins dock only once a section is well into view, avoiding flicker at its edges.
+    // Watch the docked slots themselves, not their sections: a tall section can be on screen
+    // while its slot isn't, which would leave no pill visible. A slot counts only when fully
+    // visible and clear of the bottom band where the floating pill sits.
     const observer = new IntersectionObserver(
       (entries) => {
         for (const entry of entries) {
-          const dock = sections.get(entry.target as HTMLElement);
-          if (!dock) continue;
-          if (entry.isIntersecting) onScreen.add(dock);
-          else onScreen.delete(dock);
+          if (entry.isIntersecting) onScreen.add(entry.target);
+          else onScreen.delete(entry.target);
         }
         apply();
       },
-      { rootMargin: '-20% 0px -20% 0px' },
+      { rootMargin: `0px 0px -${String(FLOATING_BAND_PX)}px 0px`, threshold: 1 },
     );
-    for (const section of sections.keys()) observer.observe(section);
+    for (const dock of docks) observer.observe(dock);
     return () => {
       observer.disconnect();
       travel?.cancel();

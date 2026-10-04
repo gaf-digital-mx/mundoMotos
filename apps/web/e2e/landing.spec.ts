@@ -62,13 +62,14 @@ test.describe('landing page', () => {
     await expect(page.locator('#refacciones [data-paused]')).toHaveCount(0);
   });
 
-  test('embeds the Google Maps map lazily, without a click', async ({ page }) => {
+  test('loads the Google Maps map as the section approaches, without a click', async ({ page }) => {
     await page.goto('/');
     const map = page.getByTitle('Mapa de Mundo Motos en Google Maps');
+    // Requested only when the section approaches, never on page load (even on desktop).
+    await expect(map).not.toHaveAttribute('src');
+    await page.locator('#ubicacion address').scrollIntoViewIfNeeded();
     // By place id, so the map opens the business listing instead of bare coordinates.
     await expect(map).toHaveAttribute('src', /^https:\/\/www\.google\.com\/maps\?cid=\d+&/);
-    // Below the fold: the browser fetches it only when the section nears the viewport.
-    await expect(map).toHaveAttribute('loading', 'lazy');
     await expect(page.getByRole('button', { name: 'Mostrar mapa' })).toHaveCount(0);
   });
 
@@ -101,7 +102,9 @@ test.describe('"Cómo llegar" pill', () => {
     await expect(floating).toBeVisible();
     await expect(hero).toBeHidden();
 
-    await page.locator('#ubicacion address').scrollIntoViewIfNeeded();
+    await location.evaluate((element) => {
+      window.scrollBy(0, element.getBoundingClientRect().top - window.innerHeight / 3);
+    });
     await expect(location).toBeVisible();
     await expect(floating).toBeHidden();
 
@@ -110,6 +113,45 @@ test.describe('"Cómo llegar" pill', () => {
     });
     await expect(hero).toBeVisible();
     await expect(floating).toBeHidden();
+  });
+
+  for (const viewport of [
+    { width: 390, height: 844 },
+    { width: 844, height: 390 },
+  ]) {
+    test(`a pill is always on screen around a dock slot at ${String(viewport.width)}x${String(viewport.height)}`, async ({
+      page,
+    }) => {
+      await page.setViewportSize(viewport);
+      await page.goto('/');
+      const slot = page.locator('[data-dock="location"]');
+      // Slot just below the viewport, then just above it: the floating pill must cover both.
+      for (const offset of [viewport.height + 20, -80]) {
+        await slot.evaluate((element, delta) => {
+          window.scrollBy(0, element.getBoundingClientRect().top - delta);
+        }, offset);
+        await expect(page.locator('[data-directions="floating"]')).toBeInViewport();
+        await expect(slot).toBeHidden();
+      }
+      // Fully on screen, clear of the floating band: docked.
+      await slot.evaluate((element) => {
+        window.scrollBy(0, element.getBoundingClientRect().top - window.innerHeight / 3);
+      });
+      await expect(slot).toBeInViewport();
+      await expect(page.locator('[data-directions="floating"]')).toBeHidden();
+    });
+  }
+
+  test('focus follows the pill when it docks', async ({ page }) => {
+    await page.goto('/');
+    await page.locator('#servicios').scrollIntoViewIfNeeded();
+    const floating = page.locator('[data-directions="floating"]');
+    await expect(floating).toBeVisible();
+    await floating.focus();
+    await page.locator('[data-dock="location"]').evaluate((element) => {
+      window.scrollBy(0, element.getBoundingClientRect().top - window.innerHeight / 3);
+    });
+    await expect(page.locator('[data-dock="location"]')).toBeFocused();
   });
 
   test('attributes clicks to where the pill is', async ({ page }) => {

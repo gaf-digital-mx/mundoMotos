@@ -49,7 +49,7 @@ export function FloatingDirections() {
   return (
     <DirectionsLink
       source="floating"
-      className="fixed inset-x-0 bottom-[max(16px,env(safe-area-inset-bottom))] z-40 mx-auto w-fit backdrop-blur-sm [--flame-fill:color-mix(in_oklab,var(--color-void)_90%,transparent)] md:right-[max(16px,env(safe-area-inset-right))] md:left-auto md:mx-0"
+      className="fixed inset-x-0 bottom-[max(16px,env(safe-area-inset-bottom))] z-40 mx-auto w-fit md:right-[max(16px,env(safe-area-inset-right))] md:left-auto md:mx-0"
     />
   );
 }

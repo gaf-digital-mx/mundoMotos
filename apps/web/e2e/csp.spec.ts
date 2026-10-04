@@ -27,6 +27,13 @@ test.describe('Content-Security-Policy', () => {
           timeout: 15_000,
         });
         await page.locator('#ubicacion iframe').scrollIntoViewIfNeeded();
+        // Wait for the lazy frame to actually navigate (through Google's redirect), so a
+        // frame-src violation can't fire after the assertion below.
+        await expect
+          .poll(() => page.frames().some((frame) => frame.url().includes('/maps/embed')), {
+            timeout: 15_000,
+          })
+          .toBe(true);
         await page.getByLabel('Tu nombre').fill('Ana');
         await page.getByLabel('¿Qué necesitas?').fill('Balatas');
         const popup = context.waitForEvent('page');
