@@ -40,6 +40,59 @@ describe('tracked CTA redirects (ADR-0013)', () => {
   });
 });
 
+describe('Content-Security-Policy (Report-Only)', () => {
+  it('sends a hash-based policy for each page from the build manifest', async () => {
+    const res = await get('/');
+    const policy = res.headers.get('Content-Security-Policy-Report-Only') ?? '';
+    expect(policy).toContain("script-src 'self' 'sha256-HomeFixtureHash='");
+    expect(res.headers.get('Reporting-Endpoints')).toBe('csp="/api/csp-report"');
+    expect(res.headers.get('Content-Security-Policy')).toBeNull();
+  });
+
+  it('uses the 404 page hashes for missing pages', async () => {
+    const res = await get('/no-existe');
+    expect(res.status).toBe(404);
+    expect(res.headers.get('Content-Security-Policy-Report-Only')).toContain(
+      "'sha256-NotFoundFixtureHash='",
+    );
+  });
+
+  it('never serves the manifest itself', async () => {
+    expect((await get('/_csp-hashes.json')).status).toBe(404);
+    // Locale-prefixed: 301 to the clean path, which 404s.
+    const prefixed = await get('/es/_csp-hashes.json');
+    expect(prefixed.status).toBe(301);
+    expect(prefixed.headers.get('Location')).toBe('/_csp-hashes.json');
+  });
+
+  it('keeps the policy on 304 revalidations so returning visitors get policy changes', async () => {
+    const first = await get('/');
+    const etag = first.headers.get('ETag');
+    expect(etag).toBeTruthy();
+    await first.text();
+    const revalidated = await get('/', { headers: { 'If-None-Match': etag ?? '' } });
+    expect(revalidated.status).toBe(304);
+    expect(revalidated.headers.get('Content-Security-Policy-Report-Only')).toContain(
+      "'sha256-HomeFixtureHash='",
+    );
+  });
+
+  it('accepts violation reports in both formats', async () => {
+    const legacy = await get('/api/csp-report', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/csp-report' },
+      body: JSON.stringify({ 'csp-report': { 'blocked-uri': 'inline' } }),
+    });
+    const batch = await get('/api/csp-report', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/reports+json' },
+      body: JSON.stringify([{ type: 'csp-violation', body: { blockedURL: 'eval' } }]),
+    });
+    const junk = await get('/api/csp-report', { method: 'POST', body: 'not json' });
+    expect([legacy.status, batch.status, junk.status]).toEqual([204, 204, 204]);
+  });
+});
+
 describe('locale-aware static site (ADR-0008)', () => {
   it('serves Spanish at / with no locale in the URL', async () => {
     const res = await get('/');
