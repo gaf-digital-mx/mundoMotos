@@ -3,20 +3,68 @@ import { useTranslations } from 'next-intl';
 import { directionsHref, TRACKED_REL } from '@/shared/lib/tracked-links';
 import { PinIcon } from '@/shared/ui/icons';
 
-/** Always-reachable "Cómo llegar" pill (outline style: the filled red pill stays unique per view). */
-export function FloatingDirections() {
-  const t = useTranslations();
+import type { ClickSource } from '@mundomotos/contracts';
 
+const PILL =
+  'inline-flex min-h-11 items-center gap-6 rounded-3xl border-flame px-18 py-12 text-nav-label font-semibold tracking-label uppercase hover:[--flame-fill:color-mix(in_oklab,var(--color-ignition-gold)_10%,var(--color-void))]';
+
+/** Sections the floating pill can dock into (DirectionsDock); also the click source when docked. */
+export type DirectionsDock = Extract<ClickSource, 'hero' | 'location'>;
+
+/** The "Cómo llegar" pill. Floating and docked copies must look identical (DirectionsDock morphs one into the other). */
+function DirectionsLink({
+  source,
+  dock,
+  className,
+}: {
+  source: ClickSource;
+  dock?: DirectionsDock;
+  className: string;
+}) {
+  const t = useTranslations();
   return (
     <a
-      href={directionsHref('floating')}
+      href={directionsHref(source)}
       target="_blank"
       rel={TRACKED_REL}
-      className="fixed right-[max(16px,env(safe-area-inset-right))] bottom-[max(16px,env(safe-area-inset-bottom))] z-40 inline-flex min-h-11 items-center gap-6 rounded-3xl border border-ignition-gold bg-void/90 px-18 py-12 text-nav-label font-semibold tracking-label text-ignition-gold uppercase backdrop-blur-sm hover:bg-ignition-gold/10"
+      data-directions={dock ? 'docked' : 'floating'}
+      data-dock={dock}
+      className={`${PILL} ${className}`}
     >
-      <PinIcon className="size-18" />
-      {t('floating.directions')}
+      {/* SVG can't clip a gradient like text: the pin takes the gradient's starting color. */}
+      <PinIcon className="size-18 text-flame-red" />
+      <span className="text-flame">{t('floating.directions')}</span>
       <span className="sr-only"> {t('common.opensInNewTab')}</span>
     </a>
   );
+}
+
+/**
+ * Always-reachable pill, fixed bottom-center on phones (reachable by either thumb) and
+ * bottom-right from `md` (outline style: the filled red pill stays unique per view). While a
+ * dock section is on screen it docks there instead (DirectionsDock; visibility rules in
+ * globals.css).
+ */
+export function FloatingDirections() {
+  return (
+    <DirectionsLink
+      source="floating"
+      className="fixed inset-x-0 bottom-[max(16px,env(safe-area-inset-bottom))] z-40 mx-auto w-fit backdrop-blur-sm [--flame-fill:color-mix(in_oklab,var(--color-void)_90%,transparent)] md:right-[max(16px,env(safe-area-inset-right))] md:left-auto md:mx-0"
+    />
+  );
+}
+
+/**
+ * The pill's docked place in a section. Its space is always reserved (hidden with visibility,
+ * which also removes it from the tab order and accessibility tree), so docking never shifts
+ * the layout. Clicks while docked count for that section.
+ */
+export function DockedDirections({
+  dock,
+  className = '',
+}: {
+  dock: DirectionsDock;
+  className?: string;
+}) {
+  return <DirectionsLink source={dock} dock={dock} className={className} />;
 }

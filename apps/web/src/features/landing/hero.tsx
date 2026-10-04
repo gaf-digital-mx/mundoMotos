@@ -1,8 +1,8 @@
 import { useTranslations } from 'next-intl';
 
 import { HeroStage } from '@/features/hero/hero-stage';
+import { DockedDirections } from '@/features/landing/floating-directions';
 import { business } from '@/shared/config/business';
-import { directionsHref, TRACKED_REL } from '@/shared/lib/tracked-links';
 import { WhatsappButton } from '@/shared/ui/whatsapp-button';
 
 import type { CSSProperties } from 'react';
@@ -28,9 +28,7 @@ export function Hero() {
               style={{ '--type-steps': business.name.length } as CSSProperties}
               className="self-start pb-[0.08em] text-[clamp(40px,12vw,113px)] leading-none font-semibold tracking-display whitespace-nowrap transition-opacity duration-300 data-[state=hidden]:opacity-0 data-[state=typing]:animate-type md:text-[clamp(56px,7vw,113px)]"
             >
-              <span className="bg-linear-to-r from-flame-red via-flame-orange to-ignition-gold bg-clip-text text-transparent">
-                {business.name}
-              </span>
+              <span className="text-flame">{business.name}</span>
             </span>{' '}
             <span className="text-heading-2xs font-normal md:text-subheading">
               {t('hero.tagline')}
@@ -44,15 +42,8 @@ export function Hero() {
               label={t('hero.cta')}
               newTabHint={t('common.opensInNewTab')}
             />
-            <a
-              href={directionsHref('hero')}
-              target="_blank"
-              rel={TRACKED_REL}
-              className="text-nav-label font-semibold tracking-label text-bone-white uppercase underline-offset-4 hover:text-ignition-gold hover:underline"
-            >
-              {t('hero.directions')}
-              <span className="sr-only"> {t('common.opensInNewTab')}</span>
-            </a>
+            {/* The floating "Cómo llegar" pill docks here while the hero is on screen. */}
+            <DockedDirections dock="hero" />
           </div>
         </div>
       </HeroStage>

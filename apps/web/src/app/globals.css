@@ -76,6 +76,70 @@
     var(--font-inter), ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
 }
 
+/* Brand flame gradient (the wordmark's): one definition for gradient text and borders. */
+@utility text-flame {
+  background-image: linear-gradient(
+    to right in oklab,
+    var(--color-flame-red),
+    var(--color-flame-orange),
+    var(--color-ignition-gold)
+  );
+  background-clip: text;
+  color: transparent;
+  /* Forced colors drop background images: transparent text would vanish. */
+  @media (forced-colors: active) {
+    background-image: none;
+    color: CanvasText;
+  }
+}
+
+/* Gradient border: the fill (--flame-fill, void by default) paints the padding box and the
+   gradient shows only through the transparent border. Works with any border radius. */
+@utility border-flame {
+  border: 1px solid transparent;
+  background:
+    linear-gradient(var(--flame-fill, var(--color-void)), var(--flame-fill, var(--color-void)))
+      padding-box,
+    linear-gradient(
+        to right in oklab,
+        var(--color-flame-red),
+        var(--color-flame-orange),
+        var(--color-ignition-gold)
+      )
+      border-box;
+  @media (forced-colors: active) {
+    border-color: CanvasText;
+  }
+}
+
+/*
+ * "Cómo llegar" docking (DirectionsDock). Exactly one copy is visible; hidden copies keep their
+ * space and leave the tab order and accessibility tree.
+ * Before the island runs, a page with a hero dock shows the pill there (the hero is on screen at
+ * load: no flash). Without scripting the floating pill always shows.
+ */
+[data-directions='docked'] {
+  visibility: hidden;
+}
+html[data-directions-dock='hero'] [data-dock='hero'],
+html[data-directions-dock='location'] [data-dock='location'],
+html:not([data-directions-dock]):has([data-dock='hero']) [data-dock='hero'] {
+  visibility: visible;
+}
+html[data-directions-dock='hero'] [data-directions='floating'],
+html[data-directions-dock='location'] [data-directions='floating'],
+html:not([data-directions-dock]):has([data-dock='hero']) [data-directions='floating'] {
+  visibility: hidden;
+}
+@media (scripting: none) {
+  [data-directions='floating'] {
+    visibility: visible !important;
+  }
+  [data-directions='docked'] {
+    visibility: hidden !important;
+  }
+}
+
 @layer base {
   html {
     background-color: var(--color-void);

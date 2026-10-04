@@ -5,6 +5,7 @@ import { getTranslations } from 'next-intl/server';
 
 import { inter } from '@/app/fonts';
 import fachada from '@/assets/brand/generated/fachada-1280.webp';
+import { DirectionsDock } from '@/features/landing/directions-dock';
 import { FloatingDirections } from '@/features/landing/floating-directions';
 import { routing } from '@/i18n/routing';
 import { business, siteConfig } from '@/shared/config/business';
@@ -64,8 +65,9 @@ export default async function LocaleLayout({ children }: LayoutProps<'/[locale]'
           {children}
         </main>
         <SiteFooter />
-        {/* Last in the DOM so keyboard order matches its visual position (bottom-right). */}
+        {/* Last in the DOM so keyboard order matches its visual position (bottom of the page). */}
         <FloatingDirections />
+        <DirectionsDock />
       </body>
     </html>
   );
