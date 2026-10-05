@@ -33,7 +33,7 @@
     "@mundomotos/eslint-config": "workspace:*",
     "@types/node": "^24.19.0",
     "@vitest/coverage-v8": "4.1.11",
-    "dependency-cruiser": "18.4.0",
+    "dependency-cruiser": "18.5.0",
     "eslint": "9.39.5",
     "globals": "17.12.0",
     "lefthook": "2.1.14",
