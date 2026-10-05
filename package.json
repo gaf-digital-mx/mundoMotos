@@ -28,7 +28,7 @@
     "@commitlint/cli": "21.2.3",
     "@commitlint/config-conventional": "21.2.3",
     "@mundomotos/eslint-config": "workspace:*",
-    "@types/node": "^24.19.0",
+    "@types/node": "^24.19.1",
     "@vitest/coverage-v8": "4.1.11",
     "dependency-cruiser": "18.4.0",
     "eslint": "9.39.5",
