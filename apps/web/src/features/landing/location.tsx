@@ -4,15 +4,19 @@ import fachada1280 from '@/assets/brand/generated/fachada-1280.webp';
 import fachada640 from '@/assets/brand/generated/fachada-640.webp';
 import { business } from '@/shared/config/business';
 import { formatTime } from '@/shared/lib/hours';
-import { directionsHref, TRACKED_REL } from '@/shared/lib/tracked-links';
 import { SectionHeading } from '@/shared/ui/section-heading';
 
-import { MapFacade } from './map-facade';
+import { DockedDirections } from './floating-directions';
+import { LazyMap } from './lazy-map';
+
+const MAP_CLASS = 'aspect-video w-full rounded-3xl border-0 bg-bone-white/5';
 
 export function Location() {
   const t = useTranslations();
-  const { address, geo } = business;
-  const embedSrc = `https://www.google.com/maps?q=${geo.latitude},${geo.longitude}&z=17&hl=es&output=embed`;
+  const { address } = business;
+  // By place id, so the map and its links open the business listing. www.google.com (not
+  // maps.google.com): the embed redirects within frame-src, no extra CSP host.
+  const embedSrc = `https://www.google.com/maps?cid=${business.mapsCid}&hl=es&output=embed`;
 
   return (
     <section
@@ -49,22 +53,15 @@ export function Location() {
             {business.serviceArea.map((town) => (
               <li
                 key={town}
-                className="rounded-full border border-ash-gray/40 px-12 py-6 text-caption text-silver-mist"
+                className="rounded-full border px-12 py-6 text-caption text-silver-mist"
               >
                 {town}
               </li>
             ))}
           </ul>
         </div>
-        <a
-          href={directionsHref('location')}
-          target="_blank"
-          rel={TRACKED_REL}
-          className="self-start text-nav-label font-semibold tracking-label text-ignition-gold uppercase underline-offset-4 hover:underline"
-        >
-          {t('location.directions')}
-          <span className="sr-only"> {t('common.opensInNewTab')}</span>
-        </a>
+        {/* The floating "Cómo llegar" pill docks here while this section is on screen. */}
+        <DockedDirections dock="location" className="self-start" />
       </div>
       <div className="flex flex-col gap-18">
         <img
@@ -78,12 +75,18 @@ export function Location() {
           decoding="async"
           className="w-full rounded-3xl"
         />
-        <MapFacade
-          embedSrc={embedSrc}
-          title={t('location.mapTitle')}
-          buttonLabel={t('location.showMap')}
-          notice={t('location.mapNotice')}
-        />
+        {/* Requested only as the section approaches (LazyMap); the privacy notice discloses it. */}
+        <LazyMap src={embedSrc} title={t('location.mapTitle')} className={MAP_CLASS} />
+        <noscript>
+          <iframe
+            src={embedSrc}
+            title={t('location.mapTitle')}
+            loading="lazy"
+            referrerPolicy="strict-origin-when-cross-origin"
+            sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox"
+            className={MAP_CLASS}
+          />
+        </noscript>
       </div>
     </section>
   );

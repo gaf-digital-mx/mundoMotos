@@ -22,12 +22,18 @@ test.describe('Content-Security-Policy', () => {
       );
 
       if (path === '/') {
-        // Exercise every interactive island: hero sequence, map embed, form beacon.
+        // Exercise the hero sequence, the lazy map embed and the form beacon.
         await expect(page.locator('[data-wordmark]')).toHaveAttribute('data-state', 'typing', {
           timeout: 15_000,
         });
-        await page.getByRole('button', { name: 'Mostrar mapa' }).click();
-        await expect(page.locator('iframe[src*="google.com/maps"]')).toHaveCount(1);
+        await page.locator('#ubicacion iframe').scrollIntoViewIfNeeded();
+        // Wait for the lazy frame to actually navigate (through Google's redirect), so a
+        // frame-src violation can't fire after the assertion below.
+        await expect
+          .poll(() => page.frames().some((frame) => frame.url().includes('/maps/embed')), {
+            timeout: 15_000,
+          })
+          .toBe(true);
         await page.getByLabel('Tu nombre').fill('Ana');
         await page.getByLabel('¿Qué necesitas?').fill('Balatas');
         const popup = context.waitForEvent('page');

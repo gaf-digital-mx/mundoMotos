@@ -13,7 +13,7 @@ export function FinalCta() {
       <div className="flex flex-col items-start gap-24">
         <h2
           id="cta-title"
-          className="max-w-[900px] text-heading-sm font-normal tracking-display md:text-heading-lg"
+          className="max-w-[900px] text-heading-sm font-normal tracking-display uppercase md:text-heading-lg"
         >
           {t('finalCta.title')}
         </h2>

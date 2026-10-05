@@ -36,6 +36,8 @@ const businessSchema = z.object({
   }),
   /** Public Google Maps profile of the business. */
   mapsUrl: z.url(),
+  /** Google Maps place id (CID): the embed shows and links to the business listing, not a bare point. */
+  mapsCid: z.string().regex(/^\d{1,20}$/),
   /** Days are schema.org day names; times are 24h local time (America/Mexico_City). */
   openingHours: z
     .array(
@@ -65,6 +67,7 @@ export const business: Business = businessSchema.parse({
   },
   geo: { latitude: 19.0253912, longitude: -98.8175927 },
   mapsUrl: 'https://maps.app.goo.gl/Vx3T3uqbo64gMqsB6',
+  mapsCid: '9641817742291399204',
   openingHours: [
     {
       id: 'weekdays',

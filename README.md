@@ -55,19 +55,25 @@ cp apps/web/.env.example apps/web/.env.local && cp apps/api/.dev.vars.example ap
 pnpm build && pnpm --filter @mundomotos/api dev   # http://localhost:8787
 ```
 
-`pnpm --filter @mundomotos/web dev` runs the Next.js dev server with hot reload (no Worker rewrite).
+`pnpm dev` runs the Next.js dev server with hot reload, without the Worker: pages are served from
+the locale tree (`/es`, `/es/aviso-de-privacidad`), and there is no locale rewrite, no `/api/*` and
+no CSP header. `pnpm preview` serves a fresh build through the real Worker instead.
+The `:lan` variants of both listen on every interface and print the URL to open from a phone on the
+same Wi-Fi.
 
 ## Scripts
 
-| Command                            | What it does                                               |
-| ---------------------------------- | ---------------------------------------------------------- |
-| `pnpm build`                       | Static export (`apps/web/out`) + Worker bundle dry run     |
-| `pnpm lint` / `pnpm lint:deps`     | ESLint / architecture rules                                |
-| `pnpm typecheck`                   | TypeScript across the monorepo                             |
-| `pnpm test` / `pnpm test:coverage` | Unit and component tests (coverage thresholds enforced)    |
-| `pnpm test:integration`            | API tests inside the Workers runtime                       |
-| `pnpm test:e2e`                    | Playwright + axe against the real Worker serving the build |
-| `pnpm check:budgets`               | Worker size and landing-page JS budgets                    |
+| Command                             | What it does                                               |
+| ----------------------------------- | ---------------------------------------------------------- |
+| `pnpm dev` / `pnpm dev:lan`         | Next.js dev server with hot reload (no Worker)             |
+| `pnpm preview` / `pnpm preview:lan` | Build, then serve it through the Worker (the real thing)   |
+| `pnpm build`                        | Static export (`apps/web/out`) + Worker bundle dry run     |
+| `pnpm lint` / `pnpm lint:deps`      | ESLint / architecture rules                                |
+| `pnpm typecheck`                    | TypeScript across the monorepo                             |
+| `pnpm test` / `pnpm test:coverage`  | Unit and component tests (coverage thresholds enforced)    |
+| `pnpm test:integration`             | API tests inside the Workers runtime                       |
+| `pnpm test:e2e`                     | Playwright + axe against the real Worker serving the build |
+| `pnpm check:budgets`                | Worker size and landing-page JS budgets                    |
 
 ## Project structure
 
