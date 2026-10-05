@@ -10,7 +10,10 @@
     "node": ">=24"
   },
   "scripts": {
-    "dev": "turbo run dev",
+    "dev": "pnpm --filter @mundomotos/web dev",
+    "dev:lan": "node scripts/lan-url.mjs 3000 && pnpm --filter @mundomotos/web dev:lan",
+    "preview": "pnpm build && pnpm --filter @mundomotos/api dev",
+    "preview:lan": "pnpm build && node scripts/lan-url.mjs 8787 && pnpm --filter @mundomotos/api dev:lan",
     "build": "turbo run build",
     "lint": "turbo run lint",
     "lint:deps": "depcruise apps packages --config .dependency-cruiser.cjs",
