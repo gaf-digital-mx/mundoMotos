@@ -9,6 +9,11 @@ test.describe('Content-Security-Policy', () => {
   for (const path of ['/', '/aviso-de-privacidad', '/no-existe']) {
     test(`${path} runs without CSP violations`, async ({ page, context }) => {
       await context.route('https://wa.me/**', (route) => route.fulfill({ body: 'whatsapp' }));
+      // Stub Google's response, never the URL: the frame still navigates to www.google.com, so
+      // frame-src is still enforced, without depending on a third party being reachable.
+      await context.route('https://www.google.com/maps**', (route) =>
+        route.fulfill({ contentType: 'text/html', body: '<!doctype html><title>map</title>' }),
+      );
       await page.addInitScript(() => {
         const violations: string[] = [];
         (window as unknown as { __csp: string[] }).__csp = violations;
@@ -30,9 +35,7 @@ test.describe('Content-Security-Policy', () => {
         // Wait for the lazy frame to actually navigate (through Google's redirect), so a
         // frame-src violation can't fire after the assertion below.
         await expect
-          .poll(() => page.frames().some((frame) => frame.url().includes('/maps/embed')), {
-            timeout: 15_000,
-          })
+          .poll(() => page.frames().some((frame) => frame.url().includes('google.com/maps')))
           .toBe(true);
         await page.getByLabel('Tu nombre').fill('Ana');
         await page.getByLabel('¿Qué necesitas?').fill('Balatas');

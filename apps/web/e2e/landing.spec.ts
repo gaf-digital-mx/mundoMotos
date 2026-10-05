@@ -182,8 +182,9 @@ test.describe('"Cómo llegar" pill', () => {
           await page.evaluate((delta) => {
             window.scrollBy(0, delta);
           }, 150 * direction);
-          await page.waitForTimeout(30);
-          expect(await pillOnScreen()).toBe(true);
+          // Poll: the swap happens on the next IntersectionObserver callback, so a brief
+          // transition is expected (and invisible to a person) on a slow machine.
+          await expect.poll(pillOnScreen, { timeout: 2000 }).toBe(true);
         }
       }
       // Settled at the top: docked in the hero, and no more state changes (no feedback loop).
