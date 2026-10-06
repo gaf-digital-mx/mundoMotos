@@ -11,7 +11,7 @@ import { WhatsappIcon } from '@/shared/ui/whatsapp-icon';
 const linkClass = 'text-bone-white underline-offset-4 hover:text-ignition-gold hover:underline';
 /** Icon-only links: 44px target, and the label lives in an sr-only span. */
 const iconLinkClass =
-  'inline-flex min-h-11 min-w-11 items-center justify-center rounded-full text-silver-mist transition-colors hover:text-ignition-gold';
+  'inline-flex min-h-11 min-w-11 items-center justify-center rounded-full text-silver-mist transition-[color] hover:text-ignition-gold';
 
 export function SiteFooter() {
   const t = useTranslations();
@@ -38,6 +38,11 @@ export function SiteFooter() {
             <br />
             {address.postalCode} {address.locality}, {address.region}
           </address>
+          {/* Visible, not only in the icons' labels: people copy it, dial from a landline, and
+              local search expects the address and the phone together. */}
+          <p className="text-silver-mist">
+            {t('footer.callUs')}: {formatPhoneMx(siteConfig.phoneNumber)}
+          </p>
           <a
             href={business.mapsUrl}
             target="_blank"

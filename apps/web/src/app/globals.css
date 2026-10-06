@@ -136,7 +136,8 @@ html[data-directions-dock='final-cta'] [data-directions='floating'] {
   visibility: hidden;
 }
 /* Pre-hydration state, in its own rules: a browser without :has() drops only these (and
-   simply shows the floating pill until the island runs). */
+   simply shows the floating pill until the island runs). The hero only: it is the dock that is
+   on screen at load, and a second entry here would show two pills at once. */
 html:not([data-directions-dock]):has([data-dock='hero']) [data-dock='hero'] {
   visibility: visible;
 }

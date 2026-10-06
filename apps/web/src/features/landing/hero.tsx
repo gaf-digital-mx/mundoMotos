@@ -36,14 +36,15 @@ export function Hero() {
           </h1>
           <p className="max-w-[520px] text-silver-mist">{t('hero.body')}</p>
           <div className="flex flex-wrap items-center gap-24">
-            {/* Phones only: a `tel:` link does nothing on a desktop, where the header's
-                WhatsApp button is on screen anyway. */}
+            {/* Touch widths only: a `tel:` link does nothing on a desktop — including a narrow
+                or zoomed desktop window, hence `pointer-fine` — where the header's WhatsApp
+                button is on screen anyway. */}
             <PhoneButton
               number={siteConfig.phoneNumber}
               source="hero"
               label={t('hero.cta')}
               callHint={t('common.callHint')}
-              className="md:hidden"
+              className="md:hidden pointer-fine:hidden"
             />
             {/* The floating "Cómo llegar" pill docks here while the hero is on screen. */}
             <DockedDirections dock="hero" />

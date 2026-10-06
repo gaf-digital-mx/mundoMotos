@@ -7,7 +7,7 @@ import type { ClickSource } from '@mundomotos/contracts';
 type Props = {
   number: string;
   label: string;
-  /** Screen-reader prefix for the number, so the name says this dials ("Llamar al 55 …"). */
+  /** Joins the label to the number for screen readers: "Llamar" + "al" + the number. */
   callHint: string;
   /** Section reported with the click (ADR-0013). */
   source: ClickSource;
@@ -29,7 +29,7 @@ export function PhoneButton({ number, label, callHint, source, className = '' }:
     >
       <PhoneIcon className="size-18" />
       {label}
-      {/* After the visible label (2.5.3), and it says what happens: "Contáctanos Llamar al 55 …". */}
+      {/* Completes the visible label, which stays a prefix of the name (2.5.3): "Llamar al 55 …". */}
       <span className="sr-only">
         {' '}
         {callHint} {formatPhoneMx(number)}

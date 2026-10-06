@@ -24,20 +24,21 @@ export function FinalCta() {
         <p className="max-w-[620px] text-silver-mist">{t('finalCta.body')}</p>
         <div className="flex flex-wrap items-center gap-18">
           {/* The header is not sticky, so this section needs a CTA that works on a desktop too:
-              phones dial, everyone else opens WhatsApp. */}
+              touch widths dial, everyone else — including a zoomed, narrow desktop window —
+              opens WhatsApp. Exactly one of the two is ever visible. */}
           <PhoneButton
             number={siteConfig.phoneNumber}
             source="final-cta"
             label={t('finalCta.cta')}
             callHint={t('common.callHint')}
-            className="md:hidden"
+            className="md:hidden pointer-fine:hidden"
           />
           <WhatsappButton
             source="final-cta"
             message={t('common.whatsappGreeting')}
             label={t('finalCta.whatsapp')}
             newTabHint={t('common.opensInNewTab')}
-            className="max-md:hidden"
+            className="max-md:hidden pointer-fine:inline-flex"
           />
           {/* The floating "Cómo llegar" pill docks here while this section is on screen. */}
           <DockedDirections dock="final-cta" />

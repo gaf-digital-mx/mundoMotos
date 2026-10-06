@@ -15,7 +15,7 @@ type Props = {
   className?: string;
 };
 
-/** Primary call to action (the single filled red pill per view, per the design system). */
+/** WhatsApp call to action: the filled green pill (see the design system). */
 export function WhatsappButton({
   source,
   message,

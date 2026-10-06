@@ -196,14 +196,15 @@ test.describe('"Cómo llegar" pill', () => {
           attributeFilter: ['data-directions-dock'],
         });
       });
-      // Every copy of the pill, floating or docked, whichever sections have docks.
+      // Exactly one copy of the pill — floating or docked — is ever visible on screen.
       const pillOnScreen = () =>
-        page.evaluate(() =>
-          [...document.querySelectorAll('[data-directions]')].some((element) => {
-            if (getComputedStyle(element).visibility === 'hidden') return false;
-            const rect = element.getBoundingClientRect();
-            return rect.bottom > 0 && rect.top < window.innerHeight;
-          }),
+        page.evaluate(
+          () =>
+            [...document.querySelectorAll('[data-directions]')].filter((element) => {
+              if (getComputedStyle(element).visibility === 'hidden') return false;
+              const rect = element.getBoundingClientRect();
+              return rect.bottom > 0 && rect.top < window.innerHeight;
+            }).length === 1,
         );
       const scrollable = await page.evaluate(
         () => document.documentElement.scrollHeight - window.innerHeight,
