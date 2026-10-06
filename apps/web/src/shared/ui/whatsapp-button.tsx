@@ -29,7 +29,7 @@ export function WhatsappButton({
       href={whatsappHref(source, message)}
       target="_blank"
       rel={TRACKED_REL}
-      className={`inline-flex min-h-11 items-center gap-12 rounded-3xl bg-racing-red px-18 py-12 text-nav-label font-semibold tracking-label text-bone-white uppercase transition-colors hover:bg-racing-red-hover ${className}`}
+      className={`inline-flex min-h-11 items-center gap-12 rounded-3xl bg-whatsapp-fill px-18 py-12 text-nav-label font-semibold tracking-label text-bone-white uppercase transition-colors hover:bg-whatsapp-fill-hover ${className}`}
     >
       <WhatsappIcon className="size-18" />
       <span className={compactOnMobile ? 'sr-only sm:not-sr-only' : undefined}>{label}</span>

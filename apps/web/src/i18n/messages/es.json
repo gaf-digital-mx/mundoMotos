@@ -62,8 +62,7 @@
   "hero": {
     "tagline": "Refacciones y taller de motos en Tepetlixpa",
     "body": "No importa la marca o el modelo, en Mundo Motos tenemos la solución. ¡Visítanos hoy!",
-    "cta": "Cotiza por WhatsApp",
-    "whatsappMessage": "Hola, Mundo Motos. Quiero cotizar una refacción o un servicio.",
+    "cta": "Contáctanos",
     "pauseAnimation": "Pausar animación",
     "playAnimation": "Reanudar animación"
   },
@@ -186,7 +185,7 @@
   "finalCta": {
     "title": "¿Listo para darle vida a tu moto?",
     "body": "Cotiza refacciones o servicios por WhatsApp, o pasa directo al taller.",
-    "cta": "Escríbenos por WhatsApp"
+    "cta": "Contáctanos"
   },
   "floating": {
     "directions": "Cómo llegar"

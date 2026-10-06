@@ -3,6 +3,7 @@
 import { useId, useState, type SubmitEvent } from 'react';
 
 import { whatsappUrl } from '@/shared/lib/contact-links';
+import { WhatsappIcon } from '@/shared/ui/whatsapp-icon';
 
 import {
   buildContactMessage,
@@ -136,8 +137,9 @@ export function ContactForm({ whatsappNumber, trackUrl, labels, messageTemplate 
 
       <button
         type="submit"
-        className="inline-flex min-h-11 items-center justify-center self-start rounded-3xl border border-ignition-gold px-24 py-12 text-nav-label font-semibold tracking-label text-ignition-gold uppercase hover:bg-ignition-gold/10"
+        className="inline-flex min-h-11 items-center justify-center gap-12 self-start rounded-3xl bg-whatsapp-fill px-24 py-12 text-nav-label font-semibold tracking-label text-bone-white uppercase transition-colors hover:bg-whatsapp-fill-hover"
       >
+        <WhatsappIcon className="size-18" />
         {labels.submit}
         <span className="sr-only"> {labels.newTabHint}</span>
       </button>

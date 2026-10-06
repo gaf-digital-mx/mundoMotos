@@ -12,6 +12,14 @@ const base = {
   focusable: false,
 };
 
+export function PhoneIcon({ className }: { className?: string }) {
+  return (
+    <svg {...base} className={className}>
+      <path d="M6.5 3h3l1.5 4-2 1.5a12 12 0 0 0 5.5 5.5L16 12l4 1.5v3a2 2 0 0 1-2.2 2A16.5 16.5 0 0 1 4 6.2 2 2 0 0 1 6 4V3Z" />
+    </svg>
+  );
+}
+
 const PATHS: Record<FeaturedCategory, string> = {
   lighting:
     'M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3Z',

@@ -19,6 +19,10 @@
   --color-amber: #fda211;
   --color-ignition-gold: #fbc315;
   --color-whatsapp: #25d366;
+  /* Filled WhatsApp buttons: the brand green is only 1.9:1 against white text, so the fill is
+     darkened until white passes AA (4.89:1, and 6.5:1 on hover). */
+  --color-whatsapp-fill: #117f71;
+  --color-whatsapp-fill-hover: #0e6a5f;
 
   --text-caption: 12px;
   --text-nav-label: 14px;

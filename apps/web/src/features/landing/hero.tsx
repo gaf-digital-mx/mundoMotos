@@ -2,8 +2,8 @@ import { useTranslations } from 'next-intl';
 
 import { HeroStage } from '@/features/hero/hero-stage';
 import { DockedDirections } from '@/features/landing/floating-directions';
-import { business } from '@/shared/config/business';
-import { WhatsappButton } from '@/shared/ui/whatsapp-button';
+import { business, siteConfig } from '@/shared/config/business';
+import { PhoneButton } from '@/shared/ui/phone-button';
 
 import type { CSSProperties } from 'react';
 
@@ -36,11 +36,13 @@ export function Hero() {
           </h1>
           <p className="max-w-[520px] text-silver-mist">{t('hero.body')}</p>
           <div className="flex flex-wrap items-center gap-24">
-            <WhatsappButton
+            {/* Phones only: a `tel:` link does nothing on a desktop, where the header's
+                WhatsApp button is on screen anyway. */}
+            <PhoneButton
+              number={siteConfig.phoneNumber}
               source="hero"
-              message={t('hero.whatsappMessage')}
               label={t('hero.cta')}
-              newTabHint={t('common.opensInNewTab')}
+              className="md:hidden"
             />
             {/* The floating "Cómo llegar" pill docks here while the hero is on screen. */}
             <DockedDirections dock="hero" />

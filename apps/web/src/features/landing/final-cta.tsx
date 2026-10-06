@@ -1,6 +1,7 @@
 import { useTranslations } from 'next-intl';
 
-import { WhatsappButton } from '@/shared/ui/whatsapp-button';
+import { siteConfig } from '@/shared/config/business';
+import { PhoneButton } from '@/shared/ui/phone-button';
 
 export function FinalCta() {
   const t = useTranslations();
@@ -18,12 +19,7 @@ export function FinalCta() {
           {t('finalCta.title')}
         </h2>
         <p className="max-w-[520px] text-silver-mist">{t('finalCta.body')}</p>
-        <WhatsappButton
-          source="final-cta"
-          message={t('common.whatsappGreeting')}
-          label={t('finalCta.cta')}
-          newTabHint={t('common.opensInNewTab')}
-        />
+        <PhoneButton number={siteConfig.phoneNumber} source="final-cta" label={t('finalCta.cta')} />
       </div>
     </section>
   );

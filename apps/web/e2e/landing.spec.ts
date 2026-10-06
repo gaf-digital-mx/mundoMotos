@@ -62,6 +62,26 @@ test.describe('landing page', () => {
     await expect(page.locator('#refacciones [data-paused]')).toHaveCount(0);
   });
 
+  test('calls the shop from the hero on phones only, and from the final CTA always', async ({
+    page,
+  }) => {
+    await page.goto('/');
+    const hero = page.locator('section[aria-labelledby="hero-title"] a[href^="tel:"]');
+    const finalCta = page.locator('section[aria-labelledby="cta-title"] a[href^="tel:"]');
+    for (const link of [hero, finalCta]) {
+      await expect(link).toHaveAttribute('href', /^tel:\+\d+$/);
+      // tel: never goes through the redirect; the click is reported with <a ping>.
+      await expect(link).toHaveAttribute('ping', /^\/api\/track\?target=phone&src=/);
+    }
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await expect(hero).toBeVisible();
+    // A tel: link does nothing on a desktop, where the header's WhatsApp button is on screen.
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await expect(hero).toBeHidden();
+    await expect(page.locator('header a[href^="/api/go/whatsapp"]')).toBeVisible();
+  });
+
   test('loads the Google Maps map as the section approaches, without a click', async ({ page }) => {
     await page.goto('/');
     const map = page.getByTitle('Mapa de Mundo Motos en Google Maps');
