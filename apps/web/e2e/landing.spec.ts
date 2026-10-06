@@ -62,13 +62,12 @@ test.describe('landing page', () => {
     await expect(page.locator('#refacciones [data-paused]')).toHaveCount(0);
   });
 
-  test('calls the shop from the hero on phones only, and from the final CTA always', async ({
-    page,
-  }) => {
+  test('offers a call on phones and WhatsApp elsewhere', async ({ page }) => {
     await page.goto('/');
     const hero = page.locator('section[aria-labelledby="hero-title"] a[href^="tel:"]');
-    const finalCta = page.locator('section[aria-labelledby="cta-title"] a[href^="tel:"]');
-    for (const link of [hero, finalCta]) {
+    const call = page.locator('section[aria-labelledby="cta-title"] a[href^="tel:"]');
+    const write = page.locator('section[aria-labelledby="cta-title"] a[href^="/api/go/whatsapp"]');
+    for (const link of [hero, call]) {
       await expect(link).toHaveAttribute('href', /^tel:\+\d+$/);
       // tel: never goes through the redirect; the click is reported with <a ping>.
       await expect(link).toHaveAttribute('ping', /^\/api\/track\?target=phone&src=/);
@@ -76,10 +75,15 @@ test.describe('landing page', () => {
 
     await page.setViewportSize({ width: 390, height: 844 });
     await expect(hero).toBeVisible();
-    // A tel: link does nothing on a desktop, where the header's WhatsApp button is on screen.
+    await expect(call).toBeVisible();
+    await expect(write).toBeHidden();
+
+    // A tel: link does nothing on a desktop: the hero leans on the header button, and the
+    // closing CTA (far below it, the header isn't sticky) offers WhatsApp instead.
     await page.setViewportSize({ width: 1440, height: 900 });
     await expect(hero).toBeHidden();
-    await expect(finalCta).toBeVisible();
+    await expect(call).toBeHidden();
+    await expect(write).toBeVisible();
     await expect(page.locator('header a[href^="/api/go/whatsapp"]')).toBeVisible();
   });
 
@@ -192,16 +196,14 @@ test.describe('"Cómo llegar" pill', () => {
           attributeFilter: ['data-directions-dock'],
         });
       });
+      // Every copy of the pill, floating or docked, whichever sections have docks.
       const pillOnScreen = () =>
         page.evaluate(() =>
-          ['[data-directions="floating"]', '[data-dock="hero"]', '[data-dock="location"]'].some(
-            (selector) => {
-              const element = document.querySelector(selector);
-              if (!element || getComputedStyle(element).visibility === 'hidden') return false;
-              const rect = element.getBoundingClientRect();
-              return rect.bottom > 0 && rect.top < window.innerHeight;
-            },
-          ),
+          [...document.querySelectorAll('[data-directions]')].some((element) => {
+            if (getComputedStyle(element).visibility === 'hidden') return false;
+            const rect = element.getBoundingClientRect();
+            return rect.bottom > 0 && rect.top < window.innerHeight;
+          }),
         );
       const scrollable = await page.evaluate(
         () => document.documentElement.scrollHeight - window.innerHeight,
@@ -227,8 +229,9 @@ test.describe('"Cómo llegar" pill', () => {
       expect(
         await page.evaluate(() => (window as unknown as { __dockChanges: number }).__dockChanges),
       ).toBe(changes);
-      // Down and back up crosses hero→float→location→float→hero: a handful of changes, not hundreds.
-      expect(changes).toBeLessThanOrEqual(8);
+      // Down and back up crosses each dock twice (hero, location, closing CTA), floating in
+      // between: a handful of changes, not hundreds.
+      expect(changes).toBeLessThanOrEqual(14);
     });
   }
 
