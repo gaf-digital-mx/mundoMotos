@@ -141,8 +141,12 @@
   animation-delay: calc(var(--reveal-i, 0) * 90ms);
   pointer-events: auto;
 }
-[data-intro]:not([data-intro='done']) [data-wordmark] {
-  align-self: center;
+/* Phones only: the intro plays centred, then the wordmark glides left. From `md` the hero keeps
+   its two columns, the figure forms in its own column and the wordmark never moves. */
+@media (width < 48rem) {
+  [data-intro]:not([data-intro='done']) [data-wordmark] {
+    align-self: center;
+  }
 }
 [data-wordmark] {
   translate: var(--wordmark-x, 0) 0;

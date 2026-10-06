@@ -83,6 +83,8 @@ export function HeroStage({ children, pauseLabel, playLabel }: Props) {
     if (!stage || !logoBox || !canvas || !ctx || !wordmark) return;
 
     const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    // Matches the `md` breakpoint the layout and globals.css use for the intro.
+    const phoneLayout = window.matchMedia('(width < 48rem)');
     const cores = (navigator.hardwareConcurrency as number | undefined) ?? 4;
     const phone = window.innerWidth < 768;
     // All 1600 points wherever it's affordable: fewer of them visibly softens the figure.
@@ -162,10 +164,12 @@ export function HeroStage({ children, pauseLabel, playLabel }: Props) {
     };
 
     /**
-     * Where the figure sits while it forms: centred under the wordmark, which CSS has already
-     * centred. Clamped to the stage, so a short landscape viewport never pushes it off-screen.
+     * Where the figure sits while it forms: on a phone, centred under the wordmark that CSS has
+     * centred (clamped to the stage, so a short landscape viewport never pushes it off-screen).
+     * From `md` the hero keeps its two columns, so it forms where it already belongs.
      */
     const introVector = (area: Box & { x: number; y: number }): IntroVector => {
+      if (!phoneLayout.matches) return { x: 0, y: 0 };
       const stageRect = stage.getBoundingClientRect();
       const mark = wordmark.getBoundingClientRect();
       const top = Math.min(
