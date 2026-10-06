@@ -1,7 +1,9 @@
 name: Preview
 
 # Uploads a non-promoted version of the staging Worker per PR and comments its preview URL.
-# Forks get no secrets, so previews only run for branches of this repository.
+# Forks get no secrets, so previews only run for branches of this repository. Dependabot runs
+# with its own restricted token and no access to these secrets either, and a dependency bump
+# has nothing to preview, so those PRs skip it instead of failing on an empty API token.
 on:
   pull_request:
     types: [opened, synchronize, reopened]
@@ -16,7 +18,9 @@ concurrency:
 
 jobs:
   preview:
-    if: github.event.pull_request.head.repo.full_name == github.repository
+    if: >-
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.actor != 'dependabot[bot]'
     runs-on: ubuntu-latest
     environment: staging
     env:
