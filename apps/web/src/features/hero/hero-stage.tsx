@@ -64,7 +64,7 @@ type Props = {
   playLabel: string;
 };
 
-type IntroVector = { x: number; y: number; markX: number; markY: number };
+type IntroVector = { x: number; y: number };
 
 export function HeroStage({ children, pauseLabel, playLabel }: Props) {
   const [paused, setPaused] = useState(false);
@@ -126,7 +126,7 @@ export function HeroStage({ children, pauseLabel, playLabel }: Props) {
     let homeY = new Float32Array(0);
     let phase: 'sequence' | 'done' = 'done';
     /** Vector from where the figure forms (centred under the wordmark) to its place in the layout. */
-    let introOffset: IntroVector = { x: 0, y: 0, markX: 0, markY: 0 };
+    let introOffset: IntroVector = { x: 0, y: 0 };
     let sequenceStart = 0;
     const pointer = { x: 0, y: 0, lastMove: Number.NEGATIVE_INFINITY };
     let running = false;
@@ -162,34 +162,36 @@ export function HeroStage({ children, pauseLabel, playLabel }: Props) {
     };
 
     /**
-     * Where the figure sits while it forms: centred under the wordmark, which itself leads the
-     * intro centred at the top. Clamped to the stage, so a short landscape viewport never pushes
-     * the figure off-screen.
+     * Where the figure sits while it forms: centred under the wordmark, which CSS has already
+     * centred. Clamped to the stage, so a short landscape viewport never pushes it off-screen.
      */
-    const introVector = (area: Box & { x: number; y: number }) => {
+    const introVector = (area: Box & { x: number; y: number }): IntroVector => {
       const stageRect = stage.getBoundingClientRect();
       const mark = wordmark.getBoundingClientRect();
-      const markTop = mark.top - stageRect.top;
-      const markLeft = mark.left - stageRect.left;
       const top = Math.min(
-        markTop + mark.height + INTRO_GAP_PX,
+        mark.bottom - stageRect.top + INTRO_GAP_PX,
         Math.max(INTRO_GAP_PX, canvasBox.height - area.height),
       );
       return {
-        x: (canvasBox.width - area.width) / 2 - area.x,
+        x: mark.left - stageRect.left + mark.width / 2 - area.width / 2 - area.x,
         y: top - area.y,
-        // The wordmark travels the opposite way: from centred-at-top to where the layout puts it.
-        markX: (canvasBox.width - mark.width) / 2 - markLeft,
-        markY: INTRO_GAP_PX - markTop,
       };
     };
 
-    /** Drives the wordmark's travel and the sweep of everything else (CSS does the animating). */
-    const setIntro = (running: boolean) => {
-      stage.dataset.intro = running ? 'running' : 'done';
-      stage.style.setProperty('--wordmark-x', running ? `${String(introOffset.markX)}px` : '0px');
-      stage.style.setProperty('--wordmark-y', running ? `${String(introOffset.markY)}px` : '0px');
-      if (!running) stage.style.setProperty('--reveal-delay', '0ms');
+    /**
+     * Hands the hero over to its layout: the wordmark glides from where CSS centred it to its
+     * place (measured first, so the browser animates a real distance), and the sweep starts.
+     */
+    const reveal = () => {
+      if (stage.dataset.intro === 'done') return;
+      const from = wordmark.getBoundingClientRect().left;
+      stage.dataset.intro = 'done';
+      const shift = from - wordmark.getBoundingClientRect().left;
+      wordmark.style.transition = 'none';
+      wordmark.style.translate = `${String(shift)}px`;
+      wordmark.getBoundingClientRect(); // flush, so the next change animates instead of collapsing
+      wordmark.style.transition = '';
+      wordmark.style.translate = '0px';
     };
 
     const draw = () => {
@@ -242,7 +244,7 @@ export function HeroStage({ children, pauseLabel, playLabel }: Props) {
         snapToHome(field, homeX, homeY, () => true);
         draw();
       }
-      setIntro(false);
+      reveal();
       phase = 'done';
       idleTime = 0;
       wake(); // continue into the idle drift (no-op if the loop is already running)
@@ -280,7 +282,7 @@ export function HeroStage({ children, pauseLabel, playLabel }: Props) {
           field.angle[i] = (field.angle[i] ?? 0) + (field.spin[i] ?? 0) * dt;
         }
         // The sweep starts the moment the figure is whole; the travel finishes alongside it.
-        if (t >= SEQUENCE_END && stage.dataset.intro === 'running') setIntro(false);
+        if (t >= SEQUENCE_END) reveal();
         if (t >= SEQUENCE_END + TIMING.settle) finish();
       } else {
         if (idle) {
@@ -386,7 +388,7 @@ export function HeroStage({ children, pauseLabel, playLabel }: Props) {
       }
 
       buildChoreo(f);
-      setIntro(true);
+      stage.dataset.intro = 'running';
       // Safety net: whatever happens (exceptions, throttled tabs), the hero reveals itself.
       watchdog = window.setTimeout(finish, SEQUENCE_END + TIMING.settle + 1500);
       phase = 'sequence';
@@ -419,13 +421,14 @@ export function HeroStage({ children, pauseLabel, playLabel }: Props) {
       resizeObserver.disconnect();
       visibilityObserver.disconnect();
       stage.removeEventListener('pointermove', onPointerMove);
-      setIntro(false);
+      reveal();
     };
   }, []);
 
   return (
     <div
       ref={stageRef}
+      data-intro="idle"
       className="relative grid items-center gap-36 md:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]"
     >
       {children}

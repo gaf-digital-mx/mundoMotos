@@ -58,10 +58,19 @@
 
   --animate-marquee: marquee 60s linear infinite;
   /* Hero intro: the copy and CTAs sweep in, blurred, from the top down, once the particle
-     figure is complete. The island shortens the delay through --reveal-start; the long default
-     is a safety net, so the hero never stays hidden if the island never runs. */
-  --animate-reveal: reveal 500ms cubic-bezier(0.2, 0, 0, 1) var(--reveal-delay, 4s) both;
+     figure is complete. Two names for one effect on purpose: changing only the delay of a
+     running animation makes the browser treat it as already finished (it snaps); swapping the
+     name restarts it. `reveal-later` is the safety net if the island never flips the attribute. */
+  --animate-reveal: reveal 500ms cubic-bezier(0.2, 0, 0, 1) both;
+  --animate-reveal-later: reveal-later 500ms cubic-bezier(0.2, 0, 0, 1) 4s both;
   @keyframes reveal {
+    from {
+      opacity: 0;
+      filter: blur(10px);
+      translate: 0 -16px;
+    }
+  }
+  @keyframes reveal-later {
     from {
       opacity: 0;
       filter: blur(10px);
@@ -117,29 +126,36 @@
 }
 
 /*
- * Hero intro. `[data-reveal]` elements sweep in once the figure is formed: the island sets
- * --reveal-delay on the stage (staggered by --reveal-i), and the 4s default in the animation
- * means they still appear if it never runs. The wordmark leads the intro centred above the
- * figure, then travels to its place in the layout — a translate, so nothing reflows.
+ * Hero intro. The wordmark is centred from the very first paint — by CSS, so it never flashes
+ * at its layout position first — and the rest of the hero waits, hidden. When the island flips
+ * the stage to `done`, the wordmark glides to its place (the island sets --wordmark-x with a
+ * FLIP measurement) while everything else sweeps in, staggered by --reveal-i.
  */
 [data-reveal] {
-  animation: var(--animate-reveal);
-  animation-delay: calc(var(--reveal-delay, 4s) + var(--reveal-i, 0) * 90ms);
-}
-[data-intro='running'] [data-reveal] {
-  /* Out of reach while invisible. */
+  animation: var(--animate-reveal-later);
+  animation-delay: calc(4s + var(--reveal-i, 0) * 90ms);
   pointer-events: none;
 }
+[data-intro='done'] [data-reveal] {
+  animation: var(--animate-reveal);
+  animation-delay: calc(var(--reveal-i, 0) * 90ms);
+  pointer-events: auto;
+}
+[data-intro]:not([data-intro='done']) [data-wordmark] {
+  align-self: center;
+}
 [data-wordmark] {
-  translate: var(--wordmark-x, 0) var(--wordmark-y, 0);
+  translate: var(--wordmark-x, 0) 0;
   transition: translate 500ms cubic-bezier(0.2, 0, 0, 1);
 }
 /* Nothing to wait for: no script to run the intro, or motion the visitor doesn't want. */
 @media (scripting: none), (prefers-reduced-motion: reduce) {
   [data-reveal] {
     animation: none;
+    pointer-events: auto;
   }
   [data-wordmark] {
+    align-self: flex-start;
     translate: none;
     transition: none;
   }
