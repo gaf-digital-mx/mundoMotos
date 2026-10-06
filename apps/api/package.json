@@ -26,6 +26,6 @@
     "@cloudflare/vitest-pool-workers": "0.22.0",
     "@mundomotos/eslint-config": "workspace:*",
     "@mundomotos/tsconfig": "workspace:*",
-    "wrangler": "4.141.0"
+    "wrangler": "4.147.0"
   }
 }
