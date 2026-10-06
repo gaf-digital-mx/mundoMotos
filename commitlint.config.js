@@ -19,6 +19,8 @@ export default {
         'db',
         'ci',
         'deps',
+        // Dependabot scopes development-dependency updates as `deps-dev`.
+        'deps-dev',
         'repo',
       ],
     ],

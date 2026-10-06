@@ -95,5 +95,6 @@ packages/eslint-config, packages/tsconfig   shared presets
 - Trunk-based, with short-lived branches named `<type>/<slug>`. Every change goes through a PR into `main`, merged with **squash only**.
 - The PR title becomes the commit and must follow Conventional Commits:
   `type(scope): summary`. Types: `feat fix perf refactor test docs build ci chore revert`. Scopes:
-  `web api contracts ui i18n seo catalog challenges coupons identity db ci deps repo`.
+  `web api contracts ui i18n seo catalog challenges coupons identity db ci deps deps-dev repo`
+  (Dependabot scopes development-dependency updates as `deps-dev`).
 - Merging to `main` deploys staging. release-please opens release PRs, and merging one deploys production.
