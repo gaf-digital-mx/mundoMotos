@@ -19,7 +19,12 @@ export function FinalCta() {
           {t('finalCta.title')}
         </h2>
         <p className="max-w-[520px] text-silver-mist">{t('finalCta.body')}</p>
-        <PhoneButton number={siteConfig.phoneNumber} source="final-cta" label={t('finalCta.cta')} />
+        <PhoneButton
+          number={siteConfig.phoneNumber}
+          source="final-cta"
+          label={t('finalCta.cta')}
+          callHint={t('common.callHint')}
+        />
       </div>
     </section>
   );

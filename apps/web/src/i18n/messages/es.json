@@ -7,8 +7,8 @@
   },
   "common": {
     "skipToContent": "Saltar al contenido",
-    "whatsappCta": "Escríbenos por WhatsApp",
     "whatsappShort": "WhatsApp",
+    "callHint": "Llamar al",
     "whatsappGreeting": "Hola, Mundo Motos. Quiero hacer una consulta.",
     "opensInNewTab": "(se abre en una pestaña nueva)"
   },

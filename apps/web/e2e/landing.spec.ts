@@ -79,7 +79,18 @@ test.describe('landing page', () => {
     // A tel: link does nothing on a desktop, where the header's WhatsApp button is on screen.
     await page.setViewportSize({ width: 1440, height: 900 });
     await expect(hero).toBeHidden();
+    await expect(finalCta).toBeVisible();
     await expect(page.locator('header a[href^="/api/go/whatsapp"]')).toBeVisible();
+  });
+
+  test('reports the call as coming from its section', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/');
+    const ping = page.waitForRequest(
+      (request) => request.method() === 'POST' && request.url().includes('/api/track'),
+    );
+    await page.locator('section[aria-labelledby="hero-title"] a[href^="tel:"]').click();
+    expect(new URL((await ping).url()).searchParams.get('src')).toBe('hero');
   });
 
   test('loads the Google Maps map as the section approaches, without a click', async ({ page }) => {

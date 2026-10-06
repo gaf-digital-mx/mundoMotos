@@ -42,6 +42,7 @@ export function Hero() {
               number={siteConfig.phoneNumber}
               source="hero"
               label={t('hero.cta')}
+              callHint={t('common.callHint')}
               className="md:hidden"
             />
             {/* The floating "Cómo llegar" pill docks here while the hero is on screen. */}

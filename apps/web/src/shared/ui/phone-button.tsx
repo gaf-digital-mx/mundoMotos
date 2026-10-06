@@ -7,6 +7,8 @@ import type { ClickSource } from '@mundomotos/contracts';
 type Props = {
   number: string;
   label: string;
+  /** Screen-reader prefix for the number, so the name says this dials ("Llamar al 55 …"). */
+  callHint: string;
   /** Section reported with the click (ADR-0013). */
   source: ClickSource;
   className?: string;
@@ -18,7 +20,7 @@ type Props = {
  * The click is reported with `<a ping>` instead, so phone numbers stay a lower bound (Firefox
  * disables pings).
  */
-export function PhoneButton({ number, label, source, className = '' }: Props) {
+export function PhoneButton({ number, label, callHint, source, className = '' }: Props) {
   return (
     <a
       href={telUrl(number)}
@@ -27,8 +29,11 @@ export function PhoneButton({ number, label, source, className = '' }: Props) {
     >
       <PhoneIcon className="size-18" />
       {label}
-      {/* The number is part of the accessible name: the visible label alone doesn't say who you call. */}
-      <span className="sr-only"> {formatPhoneMx(number)}</span>
+      {/* After the visible label (2.5.3), and it says what happens: "Contáctanos Llamar al 55 …". */}
+      <span className="sr-only">
+        {' '}
+        {callHint} {formatPhoneMx(number)}
+      </span>
     </a>
   );
 }
