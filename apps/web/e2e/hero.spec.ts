@@ -11,29 +11,42 @@ test.describe('interactive hero', () => {
       await page.setViewportSize(viewport);
       await page.goto('/');
       await page.waitForLoadState('load');
-      // Collect every candidate for a settle window (canvas fades in after idle), then take the last.
-      const lcpTag = await page.evaluate(
+      // Every candidate over a settle window: the first tells us how fast the hero paints, the
+      // last that nothing but hero text ever becomes the largest element.
+      const lcp = await page.evaluate(
         () =>
-          new Promise<string>((resolve) => {
-            let last = 'none';
-            new PerformanceObserver((list) => {
-              const entries = list.getEntries() as (PerformanceEntry & {
-                element?: Element | null;
-              })[];
-              const element = entries.at(-1)?.element;
-              // Text painted without JS (wordmark, tagline or intro), never the canvas or an image.
-              last = element?.closest(
-                'section[aria-labelledby="hero-title"] h1, section[aria-labelledby="hero-title"] p',
-              )
-                ? 'TEXT'
-                : (element?.tagName ?? last);
-            }).observe({ type: 'largest-contentful-paint', buffered: true });
-            setTimeout(() => {
-              resolve(last);
-            }, 3000);
-          }),
+          new Promise<{ first: { kind: string; at: number }; last: { kind: string; at: number } }>(
+            (resolve) => {
+              const seen: { kind: string; at: number }[] = [];
+              new PerformanceObserver((list) => {
+                for (const entry of list.getEntries() as (PerformanceEntry & {
+                  element?: Element | null;
+                })[]) {
+                  const element = entry.element;
+                  const hero = element?.closest(
+                    'section[aria-labelledby="hero-title"] h1, section[aria-labelledby="hero-title"] p',
+                  );
+                  seen.push({
+                    kind: hero ? 'HERO' : (element?.tagName ?? 'none'),
+                    at: Math.round(entry.startTime),
+                  });
+                }
+              }).observe({ type: 'largest-contentful-paint', buffered: true });
+              setTimeout(() => {
+                const none = { kind: 'none', at: 0 };
+                resolve({ first: seen[0] ?? none, last: seen.at(-1) ?? none });
+              }, 3000);
+            },
+          ),
       );
-      expect(lcpTag).toBe('TEXT');
+      // Something textual paints at once (the brand or the hero wordmark, both server-rendered):
+      // never the canvas, and never waiting for the island.
+      expect(['CANVAS', 'IMG', 'none'], JSON.stringify(lcp)).not.toContain(lcp.first.kind);
+      expect(lcp.first.at, JSON.stringify(lcp)).toBeLessThan(1500);
+      // The swept-in copy takes over as the largest element (the tagline outweighs the wordmark —
+      // an accepted cost of the intro), but it must still be hero text. Its timing follows the
+      // machine, so it isn't asserted here.
+      expect(lcp.last.kind, JSON.stringify(lcp)).toBe('HERO');
     });
   }
 
@@ -43,12 +56,49 @@ test.describe('interactive hero', () => {
     await expect(canvas).toHaveAttribute('aria-hidden', 'true');
   });
 
-  test('holds the wordmark, disintegrates it and types it again', async ({ page }) => {
+  test('opens with the wordmark alone, then reveals the rest once the figure is formed', async ({
+    page,
+  }) => {
     await page.goto('/');
     const wordmark = page.locator('[data-wordmark]');
-    await expect(wordmark).toHaveAttribute('data-state', 'hidden');
-    await expect(wordmark).toHaveAttribute('data-state', 'typing', { timeout: 15_000 });
+    const tagline = page.locator('#hero-title [data-reveal]');
+    const cta = page.locator('section[aria-labelledby="hero-title"] [data-reveal]').nth(2);
+
+    // The wordmark never disappears; everything else waits for the particles.
+    await expect(wordmark).toBeVisible();
+    await expect(tagline).toHaveCSS('opacity', '0');
+    await expect(cta).toHaveCSS('opacity', '0');
+
+    await expect(tagline).toHaveCSS('opacity', '1', { timeout: 5000 });
+    await expect(cta).toHaveCSS('opacity', '1', { timeout: 5000 });
+    await expect(wordmark).toBeVisible();
     await expect(page.getByRole('heading', { level: 1 })).toContainText('Mundo Motos');
+  });
+
+  test('types the wordmark in place: it never moves, even if the font lands late', async ({
+    page,
+    context,
+  }) => {
+    // The worst case for a shift: the webfont (8px wider than the fallback) arrives mid-intro.
+    await context.route('**/*.woff2', async (route) => {
+      await new Promise((resolve) => setTimeout(resolve, 1200));
+      await route.continue();
+    });
+    await page.goto('/', { waitUntil: 'commit' });
+    const wordmark = page.locator('[data-wordmark]');
+    const left = () => wordmark.evaluate((el) => Math.round(el.getBoundingClientRect().left));
+
+    const start = await left();
+    // Typed out left to right (a clip), so a late font only extends the right edge.
+    expect(
+      await wordmark.evaluate((el) =>
+        el.getAnimations().map((animation) => (animation as CSSAnimation).animationName),
+      ),
+    ).toContain('type');
+    await expect(page.locator('[data-intro]')).toHaveAttribute('data-intro', 'done', {
+      timeout: 6000,
+    });
+    expect(await left()).toBe(start);
   });
 
   test('the continuous flame motion can be paused and resumed (WCAG 2.2.2)', async ({ page }) => {
@@ -56,10 +106,34 @@ test.describe('interactive hero', () => {
     const pause = page.getByRole('button', { name: 'Pausar animación' });
     await pause.click();
     const resume = page.getByRole('button', { name: 'Reanudar animación' });
-    // Pausing mid-sequence finishes it: the wordmark comes back immediately.
-    await expect(page.locator('[data-wordmark]')).toHaveAttribute('data-state', /typing|shown/);
+    // Pausing mid-sequence finishes it: the hero is fully revealed at once.
+    await expect(page.locator('#hero-title [data-reveal]')).toHaveCSS('opacity', '1');
     await resume.click();
     await expect(page.getByRole('button', { name: 'Pausar animación' })).toBeVisible();
+  });
+
+  test('a keyboard reaching a hero CTA mid-intro reveals it instead of focusing nothing', async ({
+    page,
+  }) => {
+    await page.goto('/', { waitUntil: 'commit' });
+    const group = page.locator('section[aria-labelledby="hero-title"] [data-reveal]').nth(2);
+    await group.locator('a').first().focus();
+    // Focus must never land on an invisible, inert control (2.4.7, 2.4.11).
+    await expect(group).toHaveCSS('opacity', '1');
+    await expect(group.locator('a').first()).not.toHaveCSS('pointer-events', 'none');
+  });
+
+  test.describe('without scripting', () => {
+    test.use({ javaScriptEnabled: false });
+
+    test('shows the whole hero at once: there is no intro to wait for', async ({ page }) => {
+      await page.goto('/');
+      await expect(page.locator('#hero-title [data-reveal]')).toHaveCSS('opacity', '1');
+      await expect(
+        page.locator('section[aria-labelledby="hero-title"] [data-reveal]').nth(2),
+      ).toHaveCSS('opacity', '1');
+      await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+    });
   });
 
   test.describe('with reduced motion', () => {
@@ -71,8 +145,13 @@ test.describe('interactive hero', () => {
       await page.goto('/');
       const canvas = page.locator('section[aria-labelledby="hero-title"] canvas');
       await expect(canvas).toHaveAttribute('data-ready', 'true');
-      await page.waitForTimeout(800); // longer than the hold: the sequence must not start
-      await expect(page.locator('[data-wordmark]')).toHaveAttribute('data-state', 'shown');
+      // Everything is on screen at once, with nothing animating at all.
+      const reveal = page.locator('#hero-title [data-reveal]');
+      await expect(reveal).toHaveCSS('opacity', '1');
+      expect(await reveal.evaluate((el) => el.getAnimations().length)).toBe(0);
+      expect(
+        await page.locator('[data-wordmark]').evaluate((el) => el.getAnimations().length),
+      ).toBe(0);
       await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
       const painted = await page
         .locator('section[aria-labelledby="hero-title"] canvas')

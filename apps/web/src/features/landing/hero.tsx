@@ -20,22 +20,35 @@ export function Hero() {
         <div className="relative z-10 flex flex-col gap-24">
           {/* The wordmark is the LCP element: real text, painted before any script runs. */}
           <h1 id="hero-title" className="flex flex-col gap-12">
-            {/* Outer span: clip-path typing + opacity; inner span: gradient text. Kept apart because
-                WebKit repaints bg-clip-text unreliably when it's also clipped and animated. */}
+            {/* Never hidden and never moved: it types itself out in place while the particles
+                fall, so a webfont arriving mid-animation can't shift it. */}
             <span
               data-wordmark
-              data-state="shown"
               style={{ '--type-steps': business.name.length } as CSSProperties}
-              className="self-start pb-[0.08em] text-[clamp(40px,12vw,113px)] leading-none font-semibold tracking-display whitespace-nowrap transition-opacity duration-300 data-[state=hidden]:opacity-0 data-[state=typing]:animate-type md:text-[clamp(56px,7vw,113px)]"
+              className="self-start pb-[0.08em] text-[clamp(40px,12vw,113px)] leading-none font-semibold tracking-display whitespace-nowrap md:text-[clamp(56px,7vw,113px)]"
             >
               <span className="text-flame">{business.name}</span>
             </span>{' '}
-            <span className="text-heading-2xs font-normal md:text-subheading">
+            <span
+              data-reveal
+              style={{ '--reveal-i': 1 } as CSSProperties}
+              className="text-heading-2xs font-normal md:text-subheading"
+            >
               {t('hero.tagline')}
             </span>
           </h1>
-          <p className="max-w-[520px] text-silver-mist">{t('hero.body')}</p>
-          <div className="flex flex-wrap items-center gap-24">
+          <p
+            data-reveal
+            style={{ '--reveal-i': 2 } as CSSProperties}
+            className="max-w-[520px] text-silver-mist"
+          >
+            {t('hero.body')}
+          </p>
+          <div
+            data-reveal
+            style={{ '--reveal-i': 3 } as CSSProperties}
+            className="flex flex-wrap items-center gap-24"
+          >
             {/* Touch widths only: a `tel:` link does nothing on a desktop — including a narrow
                 or zoomed desktop window, hence `pointer-fine` — where the header's WhatsApp
                 button is on screen anyway. */}

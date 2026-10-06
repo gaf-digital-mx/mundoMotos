@@ -30,7 +30,7 @@ export function SiteHeader() {
           className="size-[48px]"
         />
         <span className="flex flex-col leading-none whitespace-nowrap">
-          <span className="text-[20px] font-semibold tracking-tight text-ignition-gold md:text-heading-2xs">
+          <span className="text-flame text-[20px] font-semibold tracking-tight md:text-heading-2xs">
             {business.name}
           </span>
           <span className="hidden text-caption tracking-label text-silver-mist uppercase sm:block">
