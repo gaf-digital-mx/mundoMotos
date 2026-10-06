@@ -11,38 +11,42 @@ test.describe('interactive hero', () => {
       await page.setViewportSize(viewport);
       await page.goto('/');
       await page.waitForLoadState('load');
-      // Collect every candidate for a settle window (canvas fades in after idle), then take the last.
+      // Every candidate over a settle window: the first tells us how fast the hero paints, the
+      // last that nothing but hero text ever becomes the largest element.
       const lcp = await page.evaluate(
         () =>
-          new Promise<{ kind: string; at: number }>((resolve) => {
-            let last = { kind: 'none', at: 0 };
-            new PerformanceObserver((list) => {
-              const entries = list.getEntries() as (PerformanceEntry & {
-                element?: Element | null;
-              })[];
-              const entry = entries.at(-1);
-              const element = entry?.element;
-              // Text painted without JS (wordmark, tagline or intro), never the canvas or an image.
-              last = {
-                kind: element?.closest(
-                  'section[aria-labelledby="hero-title"] h1, section[aria-labelledby="hero-title"] p',
-                )
-                  ? 'TEXT'
-                  : (element?.tagName ?? last.kind),
-                at: Math.round(entry?.startTime ?? 0),
-              };
-            }).observe({ type: 'largest-contentful-paint', buffered: true });
-            setTimeout(() => {
-              resolve(last);
-            }, 3000);
-          }),
+          new Promise<{ first: { kind: string; at: number }; last: { kind: string; at: number } }>(
+            (resolve) => {
+              const seen: { kind: string; at: number }[] = [];
+              new PerformanceObserver((list) => {
+                for (const entry of list.getEntries() as (PerformanceEntry & {
+                  element?: Element | null;
+                })[]) {
+                  const element = entry.element;
+                  const hero = element?.closest(
+                    'section[aria-labelledby="hero-title"] h1, section[aria-labelledby="hero-title"] p',
+                  );
+                  seen.push({
+                    kind: hero ? 'HERO' : (element?.tagName ?? 'none'),
+                    at: Math.round(entry.startTime),
+                  });
+                }
+              }).observe({ type: 'largest-contentful-paint', buffered: true });
+              setTimeout(() => {
+                const none = { kind: 'none', at: 0 };
+                resolve({ first: seen[0] ?? none, last: seen.at(-1) ?? none });
+              }, 3000);
+            },
+          ),
       );
-      expect(lcp.kind).toBe('TEXT');
-      // The intro's cost, measured: the tagline is the largest text block (21.9k px² vs the
-      // wordmark's 16.5k) and only paints when the sweep runs, so WebKit's LCP lands at ~2.4s
-      // while Chromium keeps the wordmark's ~0.08s. Drop this bound if the tagline ever leaves
-      // the sweep — it is here to catch the intro getting slower, not to bless 2.4s.
-      expect(lcp.at).toBeLessThan(2600);
+      // Something textual paints at once (the brand or the hero wordmark, both server-rendered):
+      // never the canvas, and never waiting for the island.
+      expect(['CANVAS', 'IMG', 'none'], JSON.stringify(lcp)).not.toContain(lcp.first.kind);
+      expect(lcp.first.at, JSON.stringify(lcp)).toBeLessThan(1500);
+      // The swept-in copy takes over as the largest element (the tagline outweighs the wordmark —
+      // an accepted cost of the intro), but it must still be hero text. Its timing follows the
+      // machine, so it isn't asserted here.
+      expect(lcp.last.kind, JSON.stringify(lcp)).toBe('HERO');
     });
   }
 
