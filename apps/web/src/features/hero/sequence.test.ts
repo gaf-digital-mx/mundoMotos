@@ -6,6 +6,7 @@ import {
   IDLE_AMPLITUDE,
   idleOffset,
   introShift,
+  introSpot,
   SEQUENCE_END,
   smoothstep,
   TIMING,
@@ -85,6 +86,27 @@ describe('choreoAt', () => {
     expect(revealed).toBeGreaterThanOrEqual(1800);
     expect(revealed).toBeLessThanOrEqual(2200);
     expect(revealed).toBeLessThan(5000);
+  });
+});
+
+describe('introSpot', () => {
+  const area = { x: 20, y: 400, width: 300, height: 300 };
+
+  it('centres the figure on the stage, just below the wordmark', () => {
+    const spot = introSpot({ width: 390, height: 900 }, area, 120, 24);
+    expect(spot.x).toBe((390 - 300) / 2 - 20);
+    expect(spot.y).toBe(120 + 24 - 400);
+  });
+
+  it('never pushes it off a short viewport', () => {
+    const spot = introSpot({ width: 390, height: 360 }, area, 300, 24);
+    // Would have been 324; the stage only has room down to 60.
+    expect(spot.y).toBe(60 - 400);
+  });
+
+  it('keeps the gap when the figure is taller than the stage', () => {
+    const spot = introSpot({ width: 390, height: 200 }, area, 500, 24);
+    expect(spot.y).toBe(24 - 400);
   });
 });
 

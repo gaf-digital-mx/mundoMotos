@@ -59,6 +59,20 @@ export const choreoAt = (c: Choreo, t: number) => {
 };
 
 /**
+ * Where the figure forms during the intro, as an offset from its place in the layout: centred
+ * on the stage, just below the wordmark, and never pushed off a short viewport.
+ */
+export const introSpot = (
+  stage: { width: number; height: number },
+  area: { x: number; y: number; width: number; height: number },
+  markBottom: number,
+  gap: number,
+) => ({
+  x: (stage.width - area.width) / 2 - area.x,
+  y: Math.min(markBottom + gap, Math.max(gap, stage.height - area.height)) - area.y,
+});
+
+/**
  * How much of the intro offset still applies at `t`: the whole of it while the figure forms,
  * then eased to nothing as the layout takes over. Multiply the stage's intro vector by this.
  */

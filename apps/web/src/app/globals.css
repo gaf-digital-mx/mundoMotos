@@ -60,7 +60,8 @@
   /* The wordmark types itself out while the particles fall: one step per character
      (--type-steps comes from the name's length). Left-aligned and in its final place, so a
      webfont arriving mid-animation only extends its right edge. */
-  --animate-type: type 1.1s steps(var(--type-steps, 11), end) both;
+  /* jump-start, so the first glyph is on screen in the first frame rather than 100ms in. */
+  --animate-type: type 1.1s steps(var(--type-steps, 11), jump-start) both;
   @keyframes type {
     from {
       clip-path: inset(0 100% 0 0);
@@ -140,19 +141,31 @@
 }
 
 /*
- * Hero intro. The wordmark is centred from the very first paint — by CSS, so it never flashes
- * at its layout position first — and the rest of the hero waits, hidden. When the island flips
- * the stage to `done`, the wordmark glides to its place (the island sets --wordmark-x with a
- * FLIP measurement) while everything else sweeps in, staggered by --reveal-i.
+ * Hero intro. The wordmark types itself out in place (see --animate-type) while the particles
+ * fall; everything else waits, hidden, until the island flips the stage to `done` and they
+ * sweep in staggered by --reveal-i. `:where()` keeps these at one-class specificity so the
+ * reduced-motion and no-scripting blocks below can still switch them off.
  */
 [data-reveal] {
   animation: var(--animate-reveal-later);
   animation-delay: calc(4s + var(--reveal-i, 0) * 90ms);
   pointer-events: none;
 }
-[data-intro='done'] [data-reveal] {
+[data-intro='done'] :where([data-reveal]) {
   animation: var(--animate-reveal);
   animation-delay: calc(var(--reveal-i, 0) * 90ms);
+  pointer-events: auto;
+}
+/* The fallback already swept them in (a hero that was off screen at load): leave them alone
+   rather than replaying the sweep over copy the visitor is already reading. */
+[data-intro='shown'] :where([data-reveal]) {
+  animation: none;
+  pointer-events: auto;
+}
+/* Keyboard reaching a control before its turn ends the wait: focus is never invisible (2.4.7,
+   2.4.11) and the control is never inert while focused. */
+[data-reveal]:focus-within {
+  animation-name: none;
   pointer-events: auto;
 }
 [data-wordmark] {

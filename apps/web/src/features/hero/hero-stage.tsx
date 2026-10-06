@@ -19,6 +19,7 @@ import {
   IDLE_FRAME_MS,
   idleOffset,
   introShift,
+  introSpot,
   MOTO_PATH,
   randomOrbit,
   SEQUENCE_END,
@@ -171,16 +172,18 @@ export function HeroStage({ children, pauseLabel, playLabel }: Props) {
       if (!phoneLayout.matches) return { x: 0, y: 0 };
       const stageRect = stage.getBoundingClientRect();
       const mark = wordmark.getBoundingClientRect();
-      const top = Math.min(
-        mark.bottom - stageRect.top + INTRO_GAP_PX,
-        Math.max(INTRO_GAP_PX, canvasBox.height - area.height),
-      );
-      return { x: (canvasBox.width - area.width) / 2 - area.x, y: top - area.y };
+      return introSpot(canvasBox, area, mark.bottom - stageRect.top, INTRO_GAP_PX);
     };
 
     /** Hands the hero over to its layout: the sweep starts and the figure glides into place. */
     const reveal = () => {
-      stage.dataset.intro = 'done';
+      if (stage.dataset.intro !== 'idle' && stage.dataset.intro !== 'running') return;
+      // If the 4s fallback already swept the hero in, keep it: replaying would blink out copy
+      // the visitor is reading (and blur whatever they had focused).
+      const swept = [...stage.querySelectorAll('[data-reveal]')].some((element) =>
+        element.getAnimations().some((animation) => animation.playState === 'finished'),
+      );
+      stage.dataset.intro = swept ? 'shown' : 'done';
     };
 
     const draw = () => {
@@ -243,7 +246,10 @@ export function HeroStage({ children, pauseLabel, playLabel }: Props) {
     const idling = () => phase === 'done' && !pausedRef.current && visible && !motionQuery.matches;
 
     const loop = (time: number) => {
-      if (!field) return;
+      if (!field) {
+        running = false; // without this, a pause before `begin()` would strand every later wake()
+        return;
+      }
       const idle = idling();
       const active = phase === 'done' && time - pointer.lastMove < POINTER_IDLE_MS;
       // ~30 fps while only idling (2 ms tolerance so 60 Hz displays don't drop to 20 fps).
