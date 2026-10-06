@@ -62,20 +62,26 @@ test.describe('interactive hero', () => {
     await expect(page.getByRole('heading', { level: 1 })).toContainText('Mundo Motos');
   });
 
-  test('the wordmark leads the intro above the figure and ends in the layout', async ({ page }) => {
-    await page.goto('/');
+  test('types the wordmark in place: it never moves, even if the font lands late', async ({
+    page,
+    context,
+  }) => {
+    // The worst case for a shift: the webfont (8px wider than the fallback) arrives mid-intro.
+    await context.route('**/*.woff2', async (route) => {
+      await new Promise((resolve) => setTimeout(resolve, 1200));
+      await route.continue();
+    });
+    await page.goto('/', { waitUntil: 'commit' });
     const wordmark = page.locator('[data-wordmark]');
-    const stage = page.locator('[data-intro]');
-    await expect(stage).toHaveAttribute('data-intro', 'running');
-    const lifted = await wordmark.evaluate((el) => getComputedStyle(el).translate);
-    expect(lifted).not.toBe('none');
+    const left = () => wordmark.evaluate((el) => Math.round(el.getBoundingClientRect().left));
 
-    await expect(stage).toHaveAttribute('data-intro', 'done', { timeout: 5000 });
-    await expect
-      .poll(async () => wordmark.evaluate((el) => getComputedStyle(el).translate), {
-        timeout: 2000,
-      })
-      .toMatch(/^(none|0px 0px|0px)$/);
+    const start = await left();
+    // Typed out left to right, so a late font only extends the right edge.
+    expect(await wordmark.evaluate((el) => getComputedStyle(el).clipPath)).toContain('inset');
+    await expect(page.locator('[data-intro]')).toHaveAttribute('data-intro', 'done', {
+      timeout: 6000,
+    });
+    expect(await left()).toBe(start);
   });
 
   test('the continuous flame motion can be paused and resumed (WCAG 2.2.2)', async ({ page }) => {

@@ -57,6 +57,20 @@
   --container-page: 1280px;
 
   --animate-marquee: marquee 60s linear infinite;
+  /* The wordmark types itself out while the particles fall: one step per character
+     (--type-steps comes from the name's length). Left-aligned and in its final place, so a
+     webfont arriving mid-animation only extends its right edge. */
+  --animate-type: type 1.1s steps(var(--type-steps, 11), end) both;
+  @keyframes type {
+    from {
+      clip-path: inset(0 100% 0 0);
+    }
+    to {
+      /* Negative right inset so the last glyph's ink (tight tracking) is never shaved. */
+      clip-path: inset(0 -0.1em 0 0);
+    }
+  }
+
   /* Hero intro: the copy and CTAs sweep in, blurred, from the top down, once the particle
      figure is complete. Two names for one effect on purpose: changing only the delay of a
      running animation makes the browser treat it as already finished (it snaps); swapping the
@@ -141,16 +155,8 @@
   animation-delay: calc(var(--reveal-i, 0) * 90ms);
   pointer-events: auto;
 }
-/* Phones only: the intro plays centred, then the wordmark glides left. From `md` the hero keeps
-   its two columns, the figure forms in its own column and the wordmark never moves. */
-@media (width < 48rem) {
-  [data-intro]:not([data-intro='done']) [data-wordmark] {
-    align-self: center;
-  }
-}
 [data-wordmark] {
-  translate: var(--wordmark-x, 0) 0;
-  transition: translate 500ms cubic-bezier(0.2, 0, 0, 1);
+  animation: var(--animate-type);
 }
 /* Nothing to wait for: no script to run the intro, or motion the visitor doesn't want. */
 @media (scripting: none), (prefers-reduced-motion: reduce) {
@@ -159,9 +165,7 @@
     pointer-events: auto;
   }
   [data-wordmark] {
-    align-self: flex-start;
-    translate: none;
-    transition: none;
+    animation: none;
   }
 }
 

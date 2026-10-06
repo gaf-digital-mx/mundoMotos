@@ -135,7 +135,6 @@ export function HeroStage({ children, pauseLabel, playLabel }: Props) {
     let frame = 0;
     let lastTime = 0;
     let watchdog = 0;
-    let disposed = false;
 
     const logoArea = () => {
       const stageRect = stage.getBoundingClientRect();
@@ -164,9 +163,9 @@ export function HeroStage({ children, pauseLabel, playLabel }: Props) {
     };
 
     /**
-     * Where the figure sits while it forms: on a phone, centred under the wordmark that CSS has
-     * centred (clamped to the stage, so a short landscape viewport never pushes it off-screen).
-     * From `md` the hero keeps its two columns, so it forms where it already belongs.
+     * Where the figure sits while it forms: on a phone, centred on the stage just under the
+     * wordmark (clamped, so a short landscape viewport never pushes it off-screen). From `md`
+     * the hero keeps its two columns, so it forms where it already belongs.
      */
     const introVector = (area: Box & { x: number; y: number }): IntroVector => {
       if (!phoneLayout.matches) return { x: 0, y: 0 };
@@ -176,26 +175,12 @@ export function HeroStage({ children, pauseLabel, playLabel }: Props) {
         mark.bottom - stageRect.top + INTRO_GAP_PX,
         Math.max(INTRO_GAP_PX, canvasBox.height - area.height),
       );
-      return {
-        x: mark.left - stageRect.left + mark.width / 2 - area.width / 2 - area.x,
-        y: top - area.y,
-      };
+      return { x: (canvasBox.width - area.width) / 2 - area.x, y: top - area.y };
     };
 
-    /**
-     * Hands the hero over to its layout: the wordmark glides from where CSS centred it to its
-     * place (measured first, so the browser animates a real distance), and the sweep starts.
-     */
+    /** Hands the hero over to its layout: the sweep starts and the figure glides into place. */
     const reveal = () => {
-      if (stage.dataset.intro === 'done') return;
-      const from = wordmark.getBoundingClientRect().left;
       stage.dataset.intro = 'done';
-      const shift = from - wordmark.getBoundingClientRect().left;
-      wordmark.style.transition = 'none';
-      wordmark.style.translate = `${String(shift)}px`;
-      wordmark.getBoundingClientRect(); // flush, so the next change animates instead of collapsing
-      wordmark.style.transition = '';
-      wordmark.style.translate = '0px';
     };
 
     const draw = () => {
@@ -361,9 +346,9 @@ export function HeroStage({ children, pauseLabel, playLabel }: Props) {
 
     const resizeObserver = new ResizeObserver(onResize);
 
-    const begin = async () => {
-      await document.fonts.ready;
-      if (disposed) return; // unmounted while fonts were loading
+    // No longer waits for `document.fonts.ready`: nothing here is sampled from the rendered
+    // text any more, and waiting delayed the whole intro behind a slow webfont.
+    const begin = () => {
       const area = layout();
       const f = createField(targets, area);
       field = f;
@@ -404,7 +389,7 @@ export function HeroStage({ children, pauseLabel, playLabel }: Props) {
     const startObserver = new IntersectionObserver((entries) => {
       if (!entries.at(-1)?.isIntersecting) return;
       startObserver.disconnect();
-      void begin();
+      begin();
     });
     const watch = () => {
       startObserver.observe(stage);
@@ -415,7 +400,6 @@ export function HeroStage({ children, pauseLabel, playLabel }: Props) {
       : window.setTimeout(watch, 300);
 
     return () => {
-      disposed = true;
       if (hasIdle) window.cancelIdleCallback(idle);
       else window.clearTimeout(idle);
       window.clearTimeout(watchdog);

@@ -20,10 +20,11 @@ export function Hero() {
         <div className="relative z-10 flex flex-col gap-24">
           {/* The wordmark is the LCP element: real text, painted before any script runs. */}
           <h1 id="hero-title" className="flex flex-col gap-12">
-            {/* Never hidden: it leads the intro centred above the figure and then travels to
-                this spot (the translate is animated, so the layout never moves). */}
+            {/* Never hidden and never moved: it types itself out in place while the particles
+                fall, so a webfont arriving mid-animation can't shift it. */}
             <span
               data-wordmark
+              style={{ '--type-steps': business.name.length } as CSSProperties}
               className="self-start pb-[0.08em] text-[clamp(40px,12vw,113px)] leading-none font-semibold tracking-display whitespace-nowrap md:text-[clamp(56px,7vw,113px)]"
             >
               <span className="text-flame">{business.name}</span>
