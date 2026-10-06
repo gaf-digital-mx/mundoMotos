@@ -12,6 +12,36 @@ const base = {
   focusable: false,
 };
 
+/** Filled, like the WhatsApp glyph it sits beside on the sibling CTA (the shared outline `base` would read lighter). */
+export function PhoneIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      aria-hidden
+      focusable={false}
+      className={className}
+    >
+      <path d="M6.6 2.5a1.8 1.8 0 0 1 1.7 1.2l1 2.6a1.8 1.8 0 0 1-.5 2L7.6 9.4a12.5 12.5 0 0 0 5.4 5.4l1.1-1.2a1.8 1.8 0 0 1 2-.5l2.6 1a1.8 1.8 0 0 1 1.2 1.7v2.3a2.2 2.2 0 0 1-2.4 2.2A17.8 17.8 0 0 1 2.3 4.9 2.2 2.2 0 0 1 4.5 2.5h2.1Z" />
+    </svg>
+  );
+}
+
+/** Filled, to sit beside the WhatsApp and phone glyphs in the footer. */
+export function FacebookIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      aria-hidden
+      focusable={false}
+      className={className}
+    >
+      <path d="M24 12.07C24 5.44 18.63.07 12 .07S0 5.44 0 12.07c0 5.99 4.39 10.95 10.13 11.85v-8.38H7.08v-3.47h3.05V9.43c0-3.01 1.79-4.67 4.53-4.67 1.31 0 2.69.24 2.69.24v2.95h-1.51c-1.49 0-1.96.93-1.96 1.87v2.25h3.33l-.53 3.47h-2.8v8.38C19.61 23.02 24 18.06 24 12.07Z" />
+    </svg>
+  );
+}
+
 const PATHS: Record<FeaturedCategory, string> = {
   lighting:
     'M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3Z',

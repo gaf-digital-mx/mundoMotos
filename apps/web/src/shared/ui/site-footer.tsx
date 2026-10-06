@@ -5,8 +5,13 @@ import { business, siteConfig } from '@/shared/config/business';
 import { formatPhoneMx, telUrl } from '@/shared/lib/contact-links';
 import { formatTime } from '@/shared/lib/hours';
 import { facebookHref, TRACKED_REL, trackPath, whatsappHref } from '@/shared/lib/tracked-links';
+import { FacebookIcon, PhoneIcon } from '@/shared/ui/icons';
+import { WhatsappIcon } from '@/shared/ui/whatsapp-icon';
 
 const linkClass = 'text-bone-white underline-offset-4 hover:text-ignition-gold hover:underline';
+/** Icon-only links: 44px target, and the label lives in an sr-only span. */
+const iconLinkClass =
+  'inline-flex min-h-11 min-w-11 items-center justify-center rounded-full text-silver-mist transition-[color] hover:text-ignition-gold';
 
 export function SiteFooter() {
   const t = useTranslations();
@@ -21,76 +26,91 @@ export function SiteFooter() {
           <p className="max-w-[360px] text-silver-mist">{t('footer.about')}</p>
         </div>
 
-        <div className="flex flex-col gap-18">
-          <section aria-labelledby="footer-visit">
-            <h2
-              id="footer-visit"
-              className="mb-6 text-nav-label font-semibold tracking-label text-ignition-gold uppercase"
-            >
-              {t('footer.visitTitle')}
-            </h2>
-            <address className="text-silver-mist not-italic">
-              {address.street}
-              <br />
-              {address.postalCode} {address.locality}, {address.region}
-            </address>
-            <a
-              href={business.mapsUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={linkClass}
-            >
-              {t('footer.viewOnMaps')}
-              <span className="sr-only"> {newTab}</span>
-            </a>
-          </section>
-          <section aria-labelledby="footer-hours">
-            <h2
-              id="footer-hours"
-              className="mb-6 text-nav-label font-semibold tracking-label text-ignition-gold uppercase"
-            >
-              {t('footer.hoursTitle')}
-            </h2>
-            <dl className="grid grid-cols-[auto_1fr] gap-x-12 text-silver-mist">
-              {business.openingHours.map(({ id, opens, closes }) => (
-                <div key={id} className="contents">
-                  <dt>{t(`footer.hours.${id}`)}</dt>
-                  <dd>
-                    {formatTime(opens)} – {formatTime(closes)}
-                  </dd>
-                </div>
-              ))}
-            </dl>
-          </section>
-        </div>
-
-        <section aria-labelledby="footer-contact" className="flex flex-col gap-6">
+        <section aria-labelledby="footer-visit" className="flex flex-col gap-6">
           <h2
-            id="footer-contact"
+            id="footer-visit"
             className="mb-6 text-nav-label font-semibold tracking-label text-ignition-gold uppercase"
           >
+            {t('footer.visitTitle')}
+          </h2>
+          <address className="text-silver-mist not-italic">
+            {address.street}
+            <br />
+            {address.postalCode} {address.locality}, {address.region}
+          </address>
+          {/* Visible, not only in the icons' labels: people copy it, dial from a landline, and
+              local search expects the address and the phone together. */}
+          <p className="text-silver-mist">
+            {t('footer.callUs')}: {formatPhoneMx(siteConfig.phoneNumber)}
+          </p>
+          <a
+            href={business.mapsUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={linkClass}
+          >
+            {t('footer.viewOnMaps')}
+            <span className="sr-only"> {newTab}</span>
+          </a>
+        </section>
+
+        <section aria-labelledby="footer-hours">
+          <h2
+            id="footer-hours"
+            className="mb-6 text-nav-label font-semibold tracking-label text-ignition-gold uppercase"
+          >
+            {t('footer.hoursTitle')}
+          </h2>
+          <dl className="grid grid-cols-[auto_1fr] gap-x-12 text-silver-mist">
+            {business.openingHours.map(({ id, opens, closes }) => (
+              <div key={id} className="contents">
+                <dt>{t(`footer.hours.${id}`)}</dt>
+                <dd>
+                  {formatTime(opens)} – {formatTime(closes)}
+                </dd>
+              </div>
+            ))}
+          </dl>
+        </section>
+
+        {/* Icon-only row under the three columns, on every width. Each label is read out, so the
+            glyphs don't have to carry the meaning on their own. */}
+        <section aria-labelledby="footer-contact" className="flex gap-18 md:col-span-3">
+          <h2 id="footer-contact" className="sr-only">
             {t('footer.contactTitle')}
           </h2>
           <a
             href={whatsappHref('footer', t('common.whatsappGreeting'))}
             target="_blank"
             rel={TRACKED_REL}
-            className={linkClass}
+            className={iconLinkClass}
           >
-            {t('common.whatsappShort')}: {formatPhoneMx(siteConfig.whatsappNumber)}
-            <span className="sr-only"> {newTab}</span>
+            <WhatsappIcon className="size-24" />
+            <span className="sr-only">
+              {t('common.whatsappShort')}: {formatPhoneMx(siteConfig.whatsappNumber)} {newTab}
+            </span>
           </a>
           {/* Direct tel: link (a redirect to tel: isn't reliable everywhere); ping reports the click. */}
           <a
             href={telUrl(siteConfig.phoneNumber)}
             ping={trackPath('phone', 'footer')}
-            className={linkClass}
+            className={iconLinkClass}
           >
-            {t('footer.callUs')}: {formatPhoneMx(siteConfig.phoneNumber)}
+            <PhoneIcon className="size-24" />
+            <span className="sr-only">
+              {t('footer.callUs')}: {formatPhoneMx(siteConfig.phoneNumber)}
+            </span>
           </a>
-          <a href={facebookHref('footer')} target="_blank" rel={TRACKED_REL} className={linkClass}>
-            {t('footer.facebook')}
-            <span className="sr-only"> {newTab}</span>
+          <a
+            href={facebookHref('footer')}
+            target="_blank"
+            rel={TRACKED_REL}
+            className={iconLinkClass}
+          >
+            <FacebookIcon className="size-24" />
+            <span className="sr-only">
+              {t('footer.facebook')} {newTab}
+            </span>
           </a>
         </section>
       </div>

@@ -9,7 +9,7 @@ const PILL =
   'inline-flex min-h-11 items-center gap-6 rounded-3xl border-flame px-18 py-12 text-nav-label font-semibold tracking-label uppercase hover:[--flame-fill:color-mix(in_oklab,var(--color-ignition-gold)_10%,var(--color-void))]';
 
 /** Sections the floating pill can dock into (DirectionsDock); also the click source when docked. */
-export type DirectionsDock = Extract<ClickSource, 'hero' | 'location'>;
+export type DirectionsDock = Extract<ClickSource, 'hero' | 'location' | 'final-cta'>;
 
 /** The "Cómo llegar" pill. Floating and docked copies must look identical (DirectionsDock morphs one into the other). */
 function DirectionsLink({

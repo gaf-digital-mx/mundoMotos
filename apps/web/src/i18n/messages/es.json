@@ -7,8 +7,8 @@
   },
   "common": {
     "skipToContent": "Saltar al contenido",
-    "whatsappCta": "Escríbenos por WhatsApp",
     "whatsappShort": "WhatsApp",
+    "callHint": "al",
     "whatsappGreeting": "Hola, Mundo Motos. Quiero hacer una consulta.",
     "opensInNewTab": "(se abre en una pestaña nueva)"
   },
@@ -22,7 +22,7 @@
     "hoursTitle": "Horario",
     "hours": {
       "weekdays": "Lunes a viernes",
-      "weekend": "Sábado y domingo"
+      "weekend": "Sábado, domingo"
     },
     "contactTitle": "Contacto",
     "callUs": "Llámanos",
@@ -62,8 +62,7 @@
   "hero": {
     "tagline": "Refacciones y taller de motos en Tepetlixpa",
     "body": "No importa la marca o el modelo, en Mundo Motos tenemos la solución. ¡Visítanos hoy!",
-    "cta": "Cotiza por WhatsApp",
-    "whatsappMessage": "Hola, Mundo Motos. Quiero cotizar una refacción o un servicio.",
+    "cta": "Llamar",
     "pauseAnimation": "Pausar animación",
     "playAnimation": "Reanudar animación"
   },
@@ -169,10 +168,10 @@
   },
   "contact": {
     "eyebrow": "¿Tienes una pregunta?",
-    "title": "Escríbenos y te respondemos por WhatsApp",
-    "body": "Cuéntanos qué necesitas. Al enviar se abre WhatsApp con tu mensaje listo; este sitio no guarda tu información.",
+    "title": "Cuéntanos qué necesitas.",
+    "body": "Este sitio no guarda tu información.",
     "nameLabel": "Tu nombre",
-    "queryLabel": "¿Qué necesitas?",
+    "queryLabel": "Describe tu duda",
     "queryPlaceholder": "Ej. ¿Tienen balatas para Italika FT150?",
     "submit": "Enviar por WhatsApp",
     "messageTemplate": "Hola, Mundo Motos. Soy {name}. {query}",
@@ -185,8 +184,9 @@
   },
   "finalCta": {
     "title": "¿Listo para darle vida a tu moto?",
-    "body": "Cotiza refacciones o servicios por WhatsApp, o pasa directo al taller.",
-    "cta": "Escríbenos por WhatsApp"
+    "body": "Cotiza servicios, pregunta por refacciones o pasa directo al taller.",
+    "cta": "Llamar",
+    "whatsapp": "Escríbenos"
   },
   "floating": {
     "directions": "Cómo llegar"

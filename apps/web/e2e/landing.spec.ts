@@ -9,7 +9,7 @@ test.describe('landing page', () => {
       'Servicios para que tu moto ruede como nueva',
       'Lo que más nos piden',
       'Estamos en Tepetlixpa',
-      'Escríbenos y te respondemos por WhatsApp',
+      'Cuéntanos qué necesitas.',
       '¿Listo para darle vida a tu moto?',
     ]);
   });
@@ -60,6 +60,41 @@ test.describe('landing page', () => {
     await expect(page.locator('#refacciones [data-paused]')).toHaveCount(1);
     await resume.click();
     await expect(page.locator('#refacciones [data-paused]')).toHaveCount(0);
+  });
+
+  test('offers a call on phones and WhatsApp elsewhere', async ({ page }) => {
+    await page.goto('/');
+    const hero = page.locator('section[aria-labelledby="hero-title"] a[href^="tel:"]');
+    const call = page.locator('section[aria-labelledby="cta-title"] a[href^="tel:"]');
+    const write = page.locator('section[aria-labelledby="cta-title"] a[href^="/api/go/whatsapp"]');
+    for (const link of [hero, call]) {
+      await expect(link).toHaveAttribute('href', /^tel:\+\d+$/);
+      // tel: never goes through the redirect; the click is reported with <a ping>.
+      await expect(link).toHaveAttribute('ping', /^\/api\/track\?target=phone&src=/);
+    }
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await expect(hero).toBeVisible();
+    await expect(call).toBeVisible();
+    await expect(write).toBeHidden();
+
+    // A tel: link does nothing on a desktop: the hero leans on the header button, and the
+    // closing CTA (far below it, the header isn't sticky) offers WhatsApp instead.
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await expect(hero).toBeHidden();
+    await expect(call).toBeHidden();
+    await expect(write).toBeVisible();
+    await expect(page.locator('header a[href^="/api/go/whatsapp"]')).toBeVisible();
+  });
+
+  test('reports the call as coming from its section', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/');
+    const ping = page.waitForRequest(
+      (request) => request.method() === 'POST' && request.url().includes('/api/track'),
+    );
+    await page.locator('section[aria-labelledby="hero-title"] a[href^="tel:"]').click();
+    expect(new URL((await ping).url()).searchParams.get('src')).toBe('hero');
   });
 
   test('loads the Google Maps map as the section approaches, without a click', async ({ page }) => {
@@ -161,16 +196,15 @@ test.describe('"Cómo llegar" pill', () => {
           attributeFilter: ['data-directions-dock'],
         });
       });
+      // Exactly one copy of the pill — floating or docked — is ever visible on screen.
       const pillOnScreen = () =>
-        page.evaluate(() =>
-          ['[data-directions="floating"]', '[data-dock="hero"]', '[data-dock="location"]'].some(
-            (selector) => {
-              const element = document.querySelector(selector);
-              if (!element || getComputedStyle(element).visibility === 'hidden') return false;
+        page.evaluate(
+          () =>
+            [...document.querySelectorAll('[data-directions]')].filter((element) => {
+              if (getComputedStyle(element).visibility === 'hidden') return false;
               const rect = element.getBoundingClientRect();
               return rect.bottom > 0 && rect.top < window.innerHeight;
-            },
-          ),
+            }).length === 1,
         );
       const scrollable = await page.evaluate(
         () => document.documentElement.scrollHeight - window.innerHeight,
@@ -196,8 +230,9 @@ test.describe('"Cómo llegar" pill', () => {
       expect(
         await page.evaluate(() => (window as unknown as { __dockChanges: number }).__dockChanges),
       ).toBe(changes);
-      // Down and back up crosses hero→float→location→float→hero: a handful of changes, not hundreds.
-      expect(changes).toBeLessThanOrEqual(8);
+      // Down and back up crosses each dock twice (hero, location, closing CTA), floating in
+      // between: a handful of changes, not hundreds.
+      expect(changes).toBeLessThanOrEqual(14);
     });
   }
 
@@ -258,7 +293,7 @@ test.describe('contact form', () => {
     await context.route('https://wa.me/**', (route) => route.fulfill({ body: 'whatsapp' }));
     await page.goto('/');
     await page.getByLabel('Tu nombre').fill('Ana');
-    await page.getByLabel('¿Qué necesitas?').fill('¿Tienen balatas para FT150?');
+    await page.getByLabel('Describe tu duda').fill('¿Tienen balatas para FT150?');
 
     const beacon = page.waitForRequest(
       (request) => request.method() === 'POST' && request.url().includes('/api/track'),

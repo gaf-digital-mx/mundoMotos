@@ -33,7 +33,7 @@ test.describe('site shell @smoke', () => {
   });
 });
 
-test.describe('accessibility', () => {
+test.describe('accessibility @smoke', () => {
   for (const path of ['/', '/aviso-de-privacidad', '/esta-ruta-no-existe']) {
     test(`has no serious or critical axe violations on ${path}`, async ({ page }) => {
       await page.goto(path);

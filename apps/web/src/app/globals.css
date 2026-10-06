@@ -19,6 +19,10 @@
   --color-amber: #fda211;
   --color-ignition-gold: #fbc315;
   --color-whatsapp: #25d366;
+  /* Filled WhatsApp buttons: the brand green is only 1.9:1 against white text, so the fill is
+     darkened until white passes AA (4.89:1, and 6.5:1 on hover). */
+  --color-whatsapp-fill: #117f71;
+  --color-whatsapp-fill-hover: #0e6a5f;
 
   --text-caption: 12px;
   --text-nav-label: 14px;
@@ -122,15 +126,18 @@
   visibility: hidden;
 }
 html[data-directions-dock='hero'] [data-dock='hero'],
-html[data-directions-dock='location'] [data-dock='location'] {
+html[data-directions-dock='location'] [data-dock='location'],
+html[data-directions-dock='final-cta'] [data-dock='final-cta'] {
   visibility: visible;
 }
 html[data-directions-dock='hero'] [data-directions='floating'],
-html[data-directions-dock='location'] [data-directions='floating'] {
+html[data-directions-dock='location'] [data-directions='floating'],
+html[data-directions-dock='final-cta'] [data-directions='floating'] {
   visibility: hidden;
 }
 /* Pre-hydration state, in its own rules: a browser without :has() drops only these (and
-   simply shows the floating pill until the island runs). */
+   simply shows the floating pill until the island runs). The hero only: it is the dock that is
+   on screen at load, and a second entry here would show two pills at once. */
 html:not([data-directions-dock]):has([data-dock='hero']) [data-dock='hero'] {
   visibility: visible;
 }
