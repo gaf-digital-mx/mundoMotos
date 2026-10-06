@@ -9,7 +9,7 @@ test.describe('landing page', () => {
       'Servicios para que tu moto ruede como nueva',
       'Lo que más nos piden',
       'Estamos en Tepetlixpa',
-      'Escríbenos y te respondemos por WhatsApp',
+      'Cuéntanos qué necesitas.',
       '¿Listo para darle vida a tu moto?',
     ]);
   });
@@ -292,7 +292,7 @@ test.describe('contact form', () => {
     await context.route('https://wa.me/**', (route) => route.fulfill({ body: 'whatsapp' }));
     await page.goto('/');
     await page.getByLabel('Tu nombre').fill('Ana');
-    await page.getByLabel('¿Qué necesitas?').fill('¿Tienen balatas para FT150?');
+    await page.getByLabel('Describe tu duda').fill('¿Tienen balatas para FT150?');
 
     const beacon = page.waitForRequest(
       (request) => request.method() === 'POST' && request.url().includes('/api/track'),

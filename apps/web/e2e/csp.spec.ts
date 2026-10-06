@@ -38,7 +38,7 @@ test.describe('Content-Security-Policy', () => {
           .poll(() => page.frames().some((frame) => frame.url().includes('google.com/maps')))
           .toBe(true);
         await page.getByLabel('Tu nombre').fill('Ana');
-        await page.getByLabel('¿Qué necesitas?').fill('Balatas');
+        await page.getByLabel('Describe tu duda').fill('Balatas');
         const popup = context.waitForEvent('page');
         await page.getByRole('button', { name: /Enviar por WhatsApp/ }).click();
         await (await popup).close();

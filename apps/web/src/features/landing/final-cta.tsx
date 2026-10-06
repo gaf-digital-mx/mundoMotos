@@ -21,7 +21,7 @@ export function FinalCta() {
         >
           {t('finalCta.title')}
         </h2>
-        <p className="max-w-[520px] text-silver-mist">{t('finalCta.body')}</p>
+        <p className="max-w-[620px] text-silver-mist">{t('finalCta.body')}</p>
         <div className="flex flex-wrap items-center gap-18">
           {/* The header is not sticky, so this section needs a CTA that works on a desktop too:
               phones dial, everyone else opens WhatsApp. */}
