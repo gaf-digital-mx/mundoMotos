@@ -28,7 +28,7 @@ test.describe('Content-Security-Policy', () => {
 
       if (path === '/') {
         // Exercise the hero sequence, the lazy map embed and the form beacon.
-        await expect(page.locator('[data-wordmark]')).toHaveAttribute('data-state', 'typing', {
+        await expect(page.locator('[data-intro]')).toHaveAttribute('data-intro', 'done', {
           timeout: 15_000,
         });
         await page.locator('#ubicacion iframe').scrollIntoViewIfNeeded();

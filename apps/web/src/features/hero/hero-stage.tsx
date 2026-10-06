@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 
 import {
   createField,
@@ -18,10 +18,11 @@ import {
   choreoAt,
   IDLE_FRAME_MS,
   idleOffset,
+  introShift,
   MOTO_PATH,
-  pairStartPoints,
   randomOrbit,
   SEQUENCE_END,
+  TIMING,
   type Choreo,
 } from './sequence';
 
@@ -37,7 +38,10 @@ const COLOR_TOKENS = [
 ];
 const FRAME_MS = 1000 / 60;
 const POINTER_IDLE_MS = 200;
-const HOLD_MS = 300; // wordmark visible before it disintegrates
+/** Gap between the wordmark and the figure while they lead the intro, and the figure's top margin. */
+const INTRO_GAP_PX = 24;
+/** Particles enter from this far above the stage, as a fraction of its height. */
+const INTRO_RISE = 0.35;
 /** Sizes at the desktop logo width; they scale with the logo box (crisper figure on phones). */
 const REFERENCE_WIDTH = 520;
 const TRIANGLE_RADIUS = 3;
@@ -45,12 +49,13 @@ const ICON_SIZE = 11;
 const SPRITE_DPR = 2; // sprites always rasterized at 2× so small icons stay sharp
 
 /**
- * Hero sequence: the server-rendered wordmark (painted before any script) disintegrates; the
- * particles float softly near the logo; the motorcycle glides into shape over 1 s while the
- * flame particles keep floating; the flame ring spins into place; the wordmark is typed again.
- * Motion during the sequence is fully time-parameterized (see sequence.ts) so it never jumps;
- * physics only takes over afterwards for pointer interaction. The h1 stays in the DOM the
- * whole time. Reduced motion: no sequence, static logo, text always visible.
+ * Hero sequence: the stage opens with the wordmark alone, centred above the middle; particles
+ * fall from above it, spread across the width, and settle into the logo. Once the figure is
+ * complete, both glide into their places in the layout while the rest of the hero sweeps in
+ * (the `reveal` animation in globals.css, which this island simply schedules).
+ * Motion is fully time-parameterized (see sequence.ts) so it never jumps; physics only takes
+ * over afterwards for pointer interaction. Everything is in the DOM the whole time.
+ * Reduced motion: no sequence, static logo, everything visible at once.
  */
 type Props = {
   children: ReactNode;
@@ -58,6 +63,8 @@ type Props = {
   pauseLabel: string;
   playLabel: string;
 };
+
+type IntroVector = { x: number; y: number; markX: number; markY: number };
 
 export function HeroStage({ children, pauseLabel, playLabel }: Props) {
   const [paused, setPaused] = useState(false);
@@ -78,7 +85,8 @@ export function HeroStage({ children, pauseLabel, playLabel }: Props) {
     const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
     const cores = (navigator.hardwareConcurrency as number | undefined) ?? 4;
     const phone = window.innerWidth < 768;
-    const count = cores <= 4 ? 800 : phone ? 1000 : 1600;
+    // All 1600 points wherever it's affordable: fewer of them visibly softens the figure.
+    const count = cores <= 4 ? 1200 : 1600;
     const targets = decodeTargets(PARTICLES_B64, count);
     const styles = getComputedStyle(document.documentElement);
     const palette = COLOR_TOKENS.map((token) => styles.getPropertyValue(token).trim() || 'gray');
@@ -116,14 +124,14 @@ export function HeroStage({ children, pauseLabel, playLabel }: Props) {
     let visible = true;
     let homeX = new Float32Array(0);
     let homeY = new Float32Array(0);
-    let center = { x: 0, y: 0 };
-    let phase: 'hold' | 'sequence' | 'done' = 'done';
+    let phase: 'sequence' | 'done' = 'done';
+    /** Vector from where the figure forms (centred under the wordmark) to its place in the layout. */
+    let introOffset: IntroVector = { x: 0, y: 0, markX: 0, markY: 0 };
     let sequenceStart = 0;
     const pointer = { x: 0, y: 0, lastMove: Number.NEGATIVE_INFINITY };
     let running = false;
     let frame = 0;
     let lastTime = 0;
-    let holdTimer = 0;
     let watchdog = 0;
     let disposed = false;
 
@@ -149,8 +157,39 @@ export function HeroStage({ children, pauseLabel, playLabel }: Props) {
       const nextIconSize = Math.round(Math.min(ICON_SIZE, Math.max(6, ICON_SIZE * scale)));
       if (nextIconSize !== iconSize) sprites.clear();
       iconSize = nextIconSize;
-      center = { x: area.x + area.width / 2, y: area.y + area.height / 2 };
+      introOffset = introVector(area);
       return area;
+    };
+
+    /**
+     * Where the figure sits while it forms: centred under the wordmark, which itself leads the
+     * intro centred at the top. Clamped to the stage, so a short landscape viewport never pushes
+     * the figure off-screen.
+     */
+    const introVector = (area: Box & { x: number; y: number }) => {
+      const stageRect = stage.getBoundingClientRect();
+      const mark = wordmark.getBoundingClientRect();
+      const markTop = mark.top - stageRect.top;
+      const markLeft = mark.left - stageRect.left;
+      const top = Math.min(
+        markTop + mark.height + INTRO_GAP_PX,
+        Math.max(INTRO_GAP_PX, canvasBox.height - area.height),
+      );
+      return {
+        x: (canvasBox.width - area.width) / 2 - area.x,
+        y: top - area.y,
+        // The wordmark travels the opposite way: from centred-at-top to where the layout puts it.
+        markX: (canvasBox.width - mark.width) / 2 - markLeft,
+        markY: INTRO_GAP_PX - markTop,
+      };
+    };
+
+    /** Drives the wordmark's travel and the sweep of everything else (CSS does the animating). */
+    const setIntro = (running: boolean) => {
+      stage.dataset.intro = running ? 'running' : 'done';
+      stage.style.setProperty('--wordmark-x', running ? `${String(introOffset.markX)}px` : '0px');
+      stage.style.setProperty('--wordmark-y', running ? `${String(introOffset.markY)}px` : '0px');
+      if (!running) stage.style.setProperty('--reveal-delay', '0ms');
     };
 
     const draw = () => {
@@ -183,82 +222,27 @@ export function HeroStage({ children, pauseLabel, playLabel }: Props) {
       }
     };
 
-    /** Samples the rendered wordmark into start points (canvas coordinates). */
-    const sampleWordmark = (n: number) => {
-      const stageRect = stage.getBoundingClientRect();
-      const rect = wordmark.getBoundingClientRect();
-      const style = getComputedStyle(wordmark);
-      const off = document.createElement('canvas');
-      off.width = Math.max(1, Math.ceil(rect.width));
-      off.height = Math.max(1, Math.ceil(rect.height));
-      const octx = off.getContext('2d', { willReadFrequently: true });
-      const xs: number[] = [];
-      const ys: number[] = [];
-      if (octx) {
-        octx.font = `${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
-        if ('letterSpacing' in octx) octx.letterSpacing = style.letterSpacing;
-        octx.textBaseline = 'middle';
-        octx.fillText(wordmark.textContent, 0, off.height / 2);
-        const { data } = octx.getImageData(0, 0, off.width, off.height);
-        for (let y = 0; y < off.height; y += 2) {
-          for (let x = 0; x < off.width; x += 2) {
-            if ((data[(y * off.width + x) * 4 + 3] ?? 0) > 128) {
-              xs.push(x);
-              ys.push(y);
-            }
-          }
-        }
-      }
-      const x = new Float32Array(n);
-      const y = new Float32Array(n);
-      for (let i = 0; i < n; i++) {
-        const j = xs.length ? Math.floor(Math.random() * xs.length) : 0;
-        x[i] = rect.left - stageRect.left + (xs[j] ?? off.width / 2);
-        y[i] = rect.top - stageRect.top + (ys[j] ?? off.height / 2);
-      }
-      return { x, y };
-    };
-
-    /** Floating orbits live in a bounded zone around the logo (not the whole hero). */
-    const buildChoreo = (f: Field, area: Box) => {
-      const start = sampleWordmark(f.count);
-      const pairs = pairStartPoints(f.color, start.x);
-      const zoneRx = area.width * 0.62;
-      const zoneRy = area.height * 0.55;
-      choreo = Array.from({ length: f.count }, (_, i) => {
-        const point = pairs[i] ?? 0;
-        const angle = Math.random() * Math.PI * 2;
-        const distance = Math.sqrt(Math.random());
-        const ax = Math.min(
-          canvasBox.width - 8,
-          Math.max(8, center.x + Math.cos(angle) * zoneRx * distance),
-        );
-        const ay = Math.min(
-          canvasBox.height - 8,
-          Math.max(8, center.y + Math.sin(angle) * zoneRy * distance),
-        );
-        return {
-          sx: start.x[point] ?? 0,
-          sy: start.y[point] ?? 0,
-          hx: homeX[i] ?? 0,
-          hy: homeY[i] ?? 0,
-          ax,
-          ay,
-          ...randomOrbit(),
-          delay: Math.random() * 250,
-          flame: (targets.flame[i] ?? 0) === 1,
-        };
-      });
+    /** Start points: anywhere across the stage, well above its top edge. */
+    const buildChoreo = (f: Field) => {
+      const rise = canvasBox.height * INTRO_RISE;
+      choreo = Array.from({ length: f.count }, (_, i) => ({
+        sx: Math.random() * canvasBox.width,
+        sy: -rise * (0.2 + Math.random() * 0.8),
+        hx: homeX[i] ?? 0,
+        hy: homeY[i] ?? 0,
+        ...randomOrbit(),
+        delay: Math.random() * TIMING.maxDelay,
+        flame: (targets.flame[i] ?? 0) === 1,
+      }));
     };
 
     const finish = () => {
-      window.clearTimeout(holdTimer);
       window.clearTimeout(watchdog);
       if (field) {
         snapToHome(field, homeX, homeY, () => true);
         draw();
       }
-      if (wordmark.dataset.state === 'hidden') wordmark.dataset.state = 'typing';
+      setIntro(false);
       phase = 'done';
       idleTime = 0;
       wake(); // continue into the idle drift (no-op if the loop is already running)
@@ -283,15 +267,21 @@ export function HeroStage({ children, pauseLabel, playLabel }: Props) {
 
       if (phase === 'sequence') {
         const t = time - sequenceStart;
+        // The whole figure forms at the intro position, then slides to the layout's.
+        const shift = introShift(t);
+        const ox = introOffset.x * shift;
+        const oy = introOffset.y * shift;
         for (let i = 0; i < field.count; i++) {
           const c = choreo[i];
           if (!c) continue;
-          const point = choreoAt(c, t, center.x, center.y);
-          field.px[i] = point.x;
-          field.py[i] = point.y;
+          const point = choreoAt(c, t);
+          field.px[i] = point.x + ox;
+          field.py[i] = point.y + oy;
           field.angle[i] = (field.angle[i] ?? 0) + (field.spin[i] ?? 0) * dt;
         }
-        if (t >= SEQUENCE_END) finish();
+        // The sweep starts the moment the figure is whole; the travel finishes alongside it.
+        if (t >= SEQUENCE_END && stage.dataset.intro === 'running') setIntro(false);
+        if (t >= SEQUENCE_END + TIMING.settle) finish();
       } else {
         if (idle) {
           idleTime += Math.min(elapsed, 100);
@@ -314,8 +304,7 @@ export function HeroStage({ children, pauseLabel, playLabel }: Props) {
     };
 
     const wake = () => {
-      // During the hold the wordmark is the only thing on screen: nothing to draw yet.
-      if (running || motionQuery.matches || phase === 'hold') return;
+      if (running || motionQuery.matches) return;
       running = true;
       lastTime = performance.now();
       frame = requestAnimationFrame(loop);
@@ -388,30 +377,21 @@ export function HeroStage({ children, pauseLabel, playLabel }: Props) {
       resizeObserver.observe(stage);
       canvas.dataset.ready = 'true';
 
-      if (motionQuery.matches) {
+      if (motionQuery.matches || pausedRef.current) {
+        // Nothing to watch: show the finished hero at once.
         settle(f);
         draw();
+        finish();
         return;
       }
 
-      phase = 'hold';
-      holdTimer = window.setTimeout(() => {
-        if (disposed || motionQuery.matches) return;
-        if (pausedRef.current) {
-          // Paused before the sequence started: skip it and show the finished logo.
-          phase = 'done';
-          settle(f);
-          draw();
-          return;
-        }
-        buildChoreo(f, area);
-        wordmark.dataset.state = 'hidden';
-        // Safety net: whatever happens (exceptions, throttled tabs), the text comes back.
-        watchdog = window.setTimeout(finish, SEQUENCE_END + 1500);
-        phase = 'sequence';
-        sequenceStart = performance.now();
-        wake();
-      }, HOLD_MS);
+      buildChoreo(f);
+      setIntro(true);
+      // Safety net: whatever happens (exceptions, throttled tabs), the hero reveals itself.
+      watchdog = window.setTimeout(finish, SEQUENCE_END + TIMING.settle + 1500);
+      phase = 'sequence';
+      sequenceStart = performance.now();
+      wake();
     };
 
     // Start once the browser is idle AND the stage is on screen, so the sequence is actually seen.
@@ -432,7 +412,6 @@ export function HeroStage({ children, pauseLabel, playLabel }: Props) {
       disposed = true;
       if (hasIdle) window.cancelIdleCallback(idle);
       else window.clearTimeout(idle);
-      window.clearTimeout(holdTimer);
       window.clearTimeout(watchdog);
       cancelAnimationFrame(frame);
       motionQuery.removeEventListener('change', onMotionChange);
@@ -440,7 +419,7 @@ export function HeroStage({ children, pauseLabel, playLabel }: Props) {
       resizeObserver.disconnect();
       visibilityObserver.disconnect();
       stage.removeEventListener('pointermove', onPointerMove);
-      wordmark.dataset.state = 'shown';
+      setIntro(false);
     };
   }, []);
 
@@ -459,6 +438,8 @@ export function HeroStage({ children, pauseLabel, playLabel }: Props) {
         />
         <button
           type="button"
+          data-reveal
+          style={{ '--reveal-i': 4 } as CSSProperties}
           onClick={() => {
             const next = !pausedRef.current;
             pausedRef.current = next;

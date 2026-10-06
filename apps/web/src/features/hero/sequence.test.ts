@@ -3,12 +3,9 @@ import { describe, expect, it } from 'vitest';
 import {
   assignShapes,
   choreoAt,
-  easeInOutCubic,
-  easeOutCubic,
   IDLE_AMPLITUDE,
   idleOffset,
-  pairStartPoints,
-  rotateAround,
+  introShift,
   SEQUENCE_END,
   smoothstep,
   TIMING,
@@ -21,12 +18,10 @@ const seeded = () => {
 };
 
 const particle = (overrides: Partial<Choreo> = {}): Choreo => ({
-  sx: 40, // on the wordmark (left)
-  sy: 60,
-  hx: 900, // home in the logo (right)
+  sx: 40, // above the stage, off to the left
+  sy: -220,
+  hx: 900, // home in the logo
   hy: 300,
-  ax: 780,
-  ay: 260,
   rx: 24,
   ry: 18,
   w1: 0.0013,
@@ -41,29 +36,23 @@ const particle = (overrides: Partial<Choreo> = {}): Choreo => ({
 /** Samples the whole sequence at 60 fps. */
 const path = (c: Choreo) =>
   Array.from({ length: Math.ceil(SEQUENCE_END / 16.67) + 2 }, (_, frame) =>
-    choreoAt(c, frame * 16.67, 880, 300),
+    choreoAt(c, frame * 16.67),
   );
 
 describe('easing', () => {
   it('eases and clamps', () => {
-    expect([easeOutCubic(0), easeOutCubic(1), easeOutCubic(2)]).toEqual([0, 1, 1]);
-    expect(easeInOutCubic(0.5)).toBeCloseTo(0.5);
     expect(smoothstep(0.5)).toBeCloseTo(0.5);
     expect([smoothstep(-1), smoothstep(2)]).toEqual([0, 1]);
-  });
-
-  it('rotates a point around a center', () => {
-    const point = rotateAround(10, 0, 0, 0, Math.PI / 2);
-    expect(point.x).toBeCloseTo(0);
-    expect(point.y).toBeCloseTo(10);
   });
 });
 
 describe('choreoAt', () => {
-  it.each([false, true])('starts on the wordmark and ends exactly home (flame: %s)', (flame) => {
+  it.each([false, true])('starts above the stage and ends exactly home (flame: %s)', (flame) => {
     const c = particle({ flame });
-    expect(choreoAt(c, 0, 880, 300)).toEqual({ x: c.sx, y: c.sy });
-    const end = choreoAt(c, SEQUENCE_END, 880, 300);
+    expect(choreoAt(c, 0)).toEqual({ x: c.sx, y: c.sy });
+    // Still waiting its turn while the stagger runs.
+    expect(choreoAt(c, c.delay)).toEqual({ x: c.sx, y: c.sy });
+    const end = choreoAt(c, SEQUENCE_END);
     expect(end.x).toBeCloseTo(c.hx, 5);
     expect(end.y).toBeCloseTo(c.hy, 5);
   });
@@ -75,7 +64,7 @@ describe('choreoAt', () => {
       const speeds = points
         .slice(1)
         .map((p, i) => Math.hypot(p.x - (points[i]?.x ?? 0), p.y - (points[i]?.y ?? 0)));
-      // No single frame moves far (a 860 px trip over ~0.8 s peaks around 25 px/frame).
+      // No single frame moves far (a ~1000 px fall over 1.4 s peaks around 18 px/frame).
       expect(Math.max(...speeds)).toBeLessThan(30);
       // Speed changes gradually: no abrupt acceleration between consecutive frames.
       const accelerations = speeds.slice(1).map((v, i) => Math.abs(v - (speeds[i] ?? 0)));
@@ -83,17 +72,36 @@ describe('choreoAt', () => {
     },
   );
 
-  it('keeps the motorcycle home while the flame is still spinning in', () => {
-    const t = TIMING.float + TIMING.moto + TIMING.maxDelay + 50;
-    const bike = particle();
-    const ring = particle({ flame: true });
-    expect(choreoAt(bike, t, 880, 300).x).toBeCloseTo(bike.hx, 5);
-    expect(choreoAt(ring, t, 880, 300).x).not.toBeCloseTo(ring.hx, 0);
+  it('staggers: a later particle is still on its way when an earlier one has landed', () => {
+    const early = particle({ delay: 0 });
+    const late = particle({ delay: TIMING.maxDelay });
+    const t = TIMING.fall;
+    expect(choreoAt(early, t).y).toBeCloseTo(early.hy, 5);
+    expect(choreoAt(late, t).y).not.toBeCloseTo(late.hy, 0);
   });
 
-  it('fits the auto-play budget: hold + sequence + typing stays under 5 s (WCAG 2.2.2)', () => {
-    expect(SEQUENCE_END).toBeLessThan(5000);
-    expect(300 + SEQUENCE_END + 1100).toBeLessThan(5000);
+  it('reveals the hero within the agreed window, and well under the 5 s auto-play budget', () => {
+    const revealed = SEQUENCE_END + TIMING.settle;
+    expect(revealed).toBeGreaterThanOrEqual(1800);
+    expect(revealed).toBeLessThanOrEqual(2200);
+    expect(revealed).toBeLessThan(5000);
+  });
+});
+
+describe('introShift', () => {
+  it('holds the figure at the intro spot until it is whole, then hands it to the layout', () => {
+    expect(introShift(0)).toBe(1);
+    expect(introShift(SEQUENCE_END)).toBe(1);
+    expect(introShift(SEQUENCE_END + TIMING.settle)).toBe(0);
+  });
+
+  it('moves smoothly, with no jump at either end', () => {
+    const step = 16.67;
+    const samples = Array.from({ length: 200 }, (_, i) =>
+      introShift(SEQUENCE_END - 200 + i * step),
+    );
+    const deltas = samples.slice(1).map((v, i) => Math.abs(v - (samples[i] ?? 0)));
+    expect(Math.max(...deltas)).toBeLessThan(0.1);
   });
 });
 
@@ -121,16 +129,6 @@ describe('idleOffset', () => {
       expect(Math.hypot(next.x - previous.x, next.y - previous.y)).toBeLessThan(1);
       previous = next;
     }
-  });
-});
-
-describe('pairStartPoints', () => {
-  it('sends red particles from the left of the wordmark and gold ones from the right', () => {
-    const logoColors = Uint8Array.from([4, 0, 4, 0]);
-    const wordmarkX = Float32Array.from([300, 10, 200, 20]);
-    const pairs = pairStartPoints(logoColors, wordmarkX);
-    const startX = (index: number) => wordmarkX[pairs[index] ?? 0] ?? 0;
-    expect(Math.max(startX(1), startX(3))).toBeLessThan(Math.min(startX(0), startX(2)));
   });
 });
 

@@ -43,12 +43,39 @@ test.describe('interactive hero', () => {
     await expect(canvas).toHaveAttribute('aria-hidden', 'true');
   });
 
-  test('holds the wordmark, disintegrates it and types it again', async ({ page }) => {
+  test('opens with the wordmark alone, then reveals the rest once the figure is formed', async ({
+    page,
+  }) => {
     await page.goto('/');
     const wordmark = page.locator('[data-wordmark]');
-    await expect(wordmark).toHaveAttribute('data-state', 'hidden');
-    await expect(wordmark).toHaveAttribute('data-state', 'typing', { timeout: 15_000 });
+    const tagline = page.locator('#hero-title [data-reveal]');
+    const cta = page.locator('section[aria-labelledby="hero-title"] [data-reveal]').last();
+
+    // The wordmark never disappears; everything else waits for the particles.
+    await expect(wordmark).toBeVisible();
+    await expect(tagline).toHaveCSS('opacity', '0');
+    await expect(cta).toHaveCSS('opacity', '0');
+
+    await expect(tagline).toHaveCSS('opacity', '1', { timeout: 5000 });
+    await expect(cta).toHaveCSS('opacity', '1', { timeout: 5000 });
+    await expect(wordmark).toBeVisible();
     await expect(page.getByRole('heading', { level: 1 })).toContainText('Mundo Motos');
+  });
+
+  test('the wordmark leads the intro above the figure and ends in the layout', async ({ page }) => {
+    await page.goto('/');
+    const wordmark = page.locator('[data-wordmark]');
+    const stage = page.locator('[data-intro]');
+    await expect(stage).toHaveAttribute('data-intro', 'running');
+    const lifted = await wordmark.evaluate((el) => getComputedStyle(el).translate);
+    expect(lifted).not.toBe('none');
+
+    await expect(stage).toHaveAttribute('data-intro', 'done', { timeout: 5000 });
+    await expect
+      .poll(async () => wordmark.evaluate((el) => getComputedStyle(el).translate), {
+        timeout: 2000,
+      })
+      .toMatch(/^(none|0px 0px|0px)$/);
   });
 
   test('the continuous flame motion can be paused and resumed (WCAG 2.2.2)', async ({ page }) => {
@@ -56,8 +83,8 @@ test.describe('interactive hero', () => {
     const pause = page.getByRole('button', { name: 'Pausar animación' });
     await pause.click();
     const resume = page.getByRole('button', { name: 'Reanudar animación' });
-    // Pausing mid-sequence finishes it: the wordmark comes back immediately.
-    await expect(page.locator('[data-wordmark]')).toHaveAttribute('data-state', /typing|shown/);
+    // Pausing mid-sequence finishes it: the hero is fully revealed at once.
+    await expect(page.locator('#hero-title [data-reveal]')).toHaveCSS('opacity', '1');
     await resume.click();
     await expect(page.getByRole('button', { name: 'Pausar animación' })).toBeVisible();
   });
@@ -71,8 +98,8 @@ test.describe('interactive hero', () => {
       await page.goto('/');
       const canvas = page.locator('section[aria-labelledby="hero-title"] canvas');
       await expect(canvas).toHaveAttribute('data-ready', 'true');
-      await page.waitForTimeout(800); // longer than the hold: the sequence must not start
-      await expect(page.locator('[data-wordmark]')).toHaveAttribute('data-state', 'shown');
+      // Everything is on screen at once: no intro to wait through.
+      await expect(page.locator('#hero-title [data-reveal]')).toHaveCSS('opacity', '1');
       await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
       const painted = await page
         .locator('section[aria-labelledby="hero-title"] canvas')
