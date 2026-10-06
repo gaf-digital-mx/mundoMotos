@@ -10,6 +10,8 @@ updates:
       prefix: build
       include: scope
     groups:
+      # Specific groups win (a dependency joins the first group it matches); everything else
+      # lands in one weekly minor/patch PR, while majors still arrive on their own to review.
       react-next:
         patterns: ['next', '@next/*', 'react', 'react-dom', '@types/react*', 'next-intl']
       cloudflare:
@@ -28,6 +30,9 @@ updates:
             'prettier',
             'prettier-*',
           ]
+      minor-and-patch:
+        patterns: ['*']
+        update-types: ['minor', 'patch']
     ignore:
       # Node type definitions track the runtime (.nvmrc = 24), not the latest Node release.
       - dependency-name: '@types/node'
