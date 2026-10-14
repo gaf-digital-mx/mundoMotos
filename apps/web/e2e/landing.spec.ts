@@ -5,7 +5,6 @@ test.describe('landing page', () => {
     await page.goto('/');
     const headings = page.getByRole('heading', { level: 2 });
     await expect(headings).toContainText([
-      'Buen precio, buen servicio',
       'Servicios para que tu moto ruede como nueva',
       'Lo que más nos piden',
       'Estamos en Tepetlixpa',

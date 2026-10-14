@@ -66,24 +66,6 @@
     "pauseAnimation": "Pausar animación",
     "playAnimation": "Reanudar animación"
   },
-  "valueProp": {
-    "eyebrow": "Por qué Mundo Motos",
-    "title": "Buen precio, buen servicio. Sin vueltas.",
-    "items": {
-      "parts": {
-        "title": "Refacciones multimarca",
-        "body": "Llantas, balatas, iluminación, accesorios y equipo de protección para la mayoría de las motos."
-      },
-      "workshop": {
-        "title": "Taller mecánico",
-        "body": "Afinaciones, frenos, punterías y más, en manos de mecánicos que conocen tu moto."
-      },
-      "direct": {
-        "title": "Atención directa",
-        "body": "Pregunta por WhatsApp si tenemos tu pieza y pasa por ella. Sin citas: te atendemos por orden de llegada."
-      }
-    }
-  },
   "services": {
     "eyebrow": "Taller",
     "title": "Servicios para que tu moto ruede como nueva",
