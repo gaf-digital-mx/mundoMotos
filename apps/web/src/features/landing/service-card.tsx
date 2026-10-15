@@ -14,8 +14,7 @@ type Props = {
   newTabHint: string;
 };
 
-/** Frosted panel over the photo, stepped up on the right so the card reads like a folder. */
-const PANEL = 'bg-void/65 backdrop-blur-md';
+const PANEL = 'bg-void/1 backdrop-blur-md';
 
 /**
  * One workshop service: the photo fills the card and a frosted panel carries the copy. The photo
@@ -37,7 +36,7 @@ export function ServiceCard({
       data-service-name={name}
       data-service-body={body}
       data-service-quote={quoteHref}
-      className="relative isolate flex aspect-[5/6] flex-col justify-end overflow-hidden rounded-3xl border border-bone-white/10 md:aspect-[3/2]"
+      className="relative isolate grid grid-rows-[3fr_2fr] overflow-hidden rounded-3xl border border-bone-white/10"
     >
       <img
         src={large.src}
@@ -50,12 +49,10 @@ export function ServiceCard({
         decoding="async"
         className="absolute inset-0 -z-10 size-full object-cover"
       />
-      {/* The step: the panel starts higher on the right, leaving a tab over the photo. */}
-      <div className="flex" aria-hidden="true">
-        <div className="w-2/5" />
-        <div className={`h-18 flex-1 rounded-tl-3xl ${PANEL}`} />
-      </div>
-      <div className={`flex flex-col gap-6 rounded-tl-3xl p-18 ${PANEL}`}>
+      {/* The rows carry the 60/40 split: the panel's content sets the card's height, and the
+          3fr row above it is always half again as tall, so the photo keeps the top 60%. */}
+      <div aria-hidden="true" />
+      <div className={`flex flex-col justify-center gap-6 rounded-t-3xl p-18 ${PANEL}`}>
         <h3 className="text-nav-label font-semibold md:text-heading-2xs md:font-normal">{name}</h3>
         {/* Clamped: two columns on a phone leave no room for the whole thing. The dialog has it. */}
         <p className="line-clamp-2 text-caption text-silver-mist md:line-clamp-3 md:text-body">

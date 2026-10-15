@@ -40,7 +40,7 @@ export function Services() {
           ),
         })}
       />
-      <ul className="mt-60 grid grid-cols-2 gap-18 md:grid-cols-3 md:gap-36">
+      <ul className="mt-60 grid gap-18 md:grid-cols-3 md:gap-36">
         {SERVICES.map(({ id, small, large }) => {
           const name = t(`services.items.${id}.name`);
           return (
