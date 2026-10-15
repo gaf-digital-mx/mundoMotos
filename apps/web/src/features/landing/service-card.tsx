@@ -20,7 +20,7 @@ type Props = {
  * Measured over all six photos, 70% black is the point where every pixel behind the copy clears
  * 4.5:1 against silver-mist (worst 4.57:1); at 55% a twentieth of the text area still fails.
  */
-const PANEL = 'bg-void/70 backdrop-blur-md';
+const PANEL = 'bg-void/50 backdrop-blur-md';
 
 /**
  * One workshop service: the photo fills the card and a frosted panel carries the copy. The photo
