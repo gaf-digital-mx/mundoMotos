@@ -27,6 +27,14 @@ export function PhoneIcon({ className }: { className?: string }) {
   );
 }
 
+export function ArrowRightIcon({ className }: { className?: string }) {
+  return (
+    <svg {...base} className={className}>
+      <path d="M4 12h15M13 6l6 6-6 6" />
+    </svg>
+  );
+}
+
 /** Filled, to sit beside the WhatsApp and phone glyphs in the footer. */
 export function FacebookIcon({ className }: { className?: string }) {
   return (
