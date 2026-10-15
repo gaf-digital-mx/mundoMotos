@@ -44,7 +44,9 @@ export function Services() {
         {SERVICES.map(({ id, small, large }) => {
           const name = t(`services.items.${id}.name`);
           return (
-            <li key={id} className="contents">
+            // A grid item rather than `display: contents`, so the list keeps its semantics in
+            // every screen reader and the cards still stretch to an equal row height.
+            <li key={id} className="grid">
               <ServiceCard
                 name={name}
                 body={t(`services.items.${id}.body`)}

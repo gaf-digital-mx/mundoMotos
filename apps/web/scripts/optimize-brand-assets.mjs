@@ -27,9 +27,10 @@ const jobs = [
     background: '#000000',
   },
   { src: 'fachada.jpg', name: 'fachada', widths: [640, 1280], format: 'webp' },
-  // Service cards. The originals are ~512px wide, so that is the ceiling: 320 covers a phone's
-  // two-column grid at 2x, 512 covers the three-column desktop grid (1x, slightly soft at 2x —
-  // acceptable for decorative photography, and the only option without larger sources).
+  // Service cards. The originals are ~512px wide, so that is the ceiling: 320 covers the narrow
+  // end of the single-column phone layout, 512 the three-column desktop grid (1x, and the widest
+  // a phone can use — soft on a dense screen, acceptable for decorative photography and the only
+  // option until the client sends larger originals).
   ...['tune-up', 'brakes', 'tires', 'lighting', 'adjustments', 'valves'].map((name) => ({
     dir: services,
     src: `${name}.png`,
