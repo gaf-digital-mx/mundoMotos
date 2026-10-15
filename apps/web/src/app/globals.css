@@ -140,6 +140,65 @@
   }
 }
 
+/*
+ * Folder tab. The panel's top edge runs higher across its left half and steps down to the right,
+ * joined by a concave fillet drawn in an url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28' viewBox='0 0 28 28'%3E%3Cpath d='M0 0 A14 14 0 0 1 14 14 A14 14 0 0 0 28 28 L0 28 Z' fill='%23000'/%3E%3C/svg%3E") mask layer (px radii, so the curve keeps its shape at
+ * any card width). A mask rather than stacked boxes, so the panel stays ONE element and its
+ * backdrop blur has no seam. `folder-edge` is a sibling carrying the same cut one pixel higher:
+ * that sliver is the lit edge — a `drop-shadow` on the panel itself would trace its own alpha,
+ * which is almost nothing when the fill is this transparent.
+ */
+@utility folder-cut {
+  --tab-radius: 14px;
+  --tab-height: 28px;
+  --tab-width: 50%;
+  -webkit-mask-image:
+    linear-gradient(#000, #000),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28' viewBox='0 0 28 28'%3E%3Cpath d='M0 0 A14 14 0 0 1 14 14 A14 14 0 0 0 28 28 L0 28 Z' fill='%23000'/%3E%3C/svg%3E"),
+    linear-gradient(#000, #000);
+  mask-image:
+    linear-gradient(#000, #000),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28' viewBox='0 0 28 28'%3E%3Cpath d='M0 0 A14 14 0 0 1 14 14 A14 14 0 0 0 28 28 L0 28 Z' fill='%23000'/%3E%3C/svg%3E"),
+    linear-gradient(#000, #000);
+  -webkit-mask-size:
+    calc(var(--tab-width) - var(--tab-radius)) 100%,
+    calc(var(--tab-radius) * 2) var(--tab-height),
+    calc(100% - var(--tab-width) + var(--tab-radius)) calc(100% - var(--tab-height));
+  mask-size:
+    calc(var(--tab-width) - var(--tab-radius)) 100%,
+    calc(var(--tab-radius) * 2) var(--tab-height),
+    calc(100% - var(--tab-width) + var(--tab-radius)) calc(100% - var(--tab-height));
+  -webkit-mask-position:
+    left top,
+    calc(var(--tab-width) - var(--tab-radius)) top,
+    right bottom;
+  mask-position:
+    left top,
+    calc(var(--tab-width) - var(--tab-radius)) top,
+    right bottom;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+}
+
+/* The lit edge, painted by the panel itself in the same three pieces as the cut: a hairline
+   along the tab, the stroked curve at the step, and a hairline along the lower edge. A backing
+   layer would show straight through a fill this transparent, which is why it isn't one. */
+@utility folder-edge {
+  background-image:
+    linear-gradient(rgb(255 255 255 / 0.45), rgb(255 255 255 / 0.45)),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28' viewBox='0 0 28 28'%3E%3Cpath d='M0 0.5 A13.5 13.5 0 0 1 14 14 A14 14 0 0 0 27.5 27.5' fill='none' stroke='rgba(255,255,255,0.45)' stroke-width='1'/%3E%3C/svg%3E"),
+    linear-gradient(rgb(255 255 255 / 0.45), rgb(255 255 255 / 0.45));
+  background-size:
+    calc(var(--tab-width) - var(--tab-radius)) 1px,
+    calc(var(--tab-radius) * 2) var(--tab-height),
+    calc(100% - var(--tab-width) + var(--tab-radius)) 1px;
+  background-position:
+    left top,
+    calc(var(--tab-width) - var(--tab-radius)) top,
+    right top var(--tab-height);
+  background-repeat: no-repeat;
+}
+
 /* Service cards: without scripting the dialog can't open, so the button gives way to the quote
    link it would have led to. */
 [data-service-fallback] {

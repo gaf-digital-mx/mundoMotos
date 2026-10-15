@@ -54,7 +54,9 @@ export function ServiceCard({
       {/* The rows carry the 40/60 split: the panel's content sets the card's height and the
           photo keeps two thirds of that above it, at any width or text length. */}
       <div aria-hidden="true" />
-      <div className={`flex flex-col justify-center gap-6 rounded-t-3xl p-18 ${PANEL}`}>
+      <div
+        className={`col-start-1 row-start-2 flex flex-col justify-center gap-6 folder-edge folder-cut p-18 pt-30 ${PANEL}`}
+      >
         <h3 className="text-nav-label font-semibold md:text-heading-2xs md:font-normal">{name}</h3>
         {/* Clamped: two columns on a phone leave no room for the whole thing. The dialog has it. */}
         <p className="line-clamp-2 text-caption text-silver-mist md:line-clamp-3 md:text-body">
