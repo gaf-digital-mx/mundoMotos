@@ -36,8 +36,10 @@ export function ServiceCard({
       data-service-name={name}
       data-service-body={body}
       data-service-quote={quoteHref}
-      className="relative isolate grid grid-rows-2 overflow-hidden rounded-3xl border border-bone-white/10"
+      className="relative isolate grid grid-rows-[2fr_3fr] overflow-hidden rounded-3xl border border-bone-white/10"
     >
+      {/* Anchored to its bottom edge: when the card is narrower than the photo's own ratio, the
+          crop comes off the top rather than the subject at the bottom. */}
       <img
         src={large.src}
         srcSet={`${small.src} 320w, ${large.src} 512w`}
@@ -47,10 +49,10 @@ export function ServiceCard({
         height={large.height}
         loading="lazy"
         decoding="async"
-        className="absolute inset-0 -z-10 size-full object-cover"
+        className="absolute inset-0 -z-10 size-full object-cover object-bottom"
       />
-      {/* The two equal rows carry the split: the panel's content sets the card's height and the
-          photo keeps the matching half above it, at any width or text length. */}
+      {/* The rows carry the 40/60 split: the panel's content sets the card's height and the
+          photo keeps two thirds of that above it, at any width or text length. */}
       <div aria-hidden="true" />
       <div className={`flex flex-col justify-center gap-6 rounded-t-3xl p-18 ${PANEL}`}>
         <h3 className="text-nav-label font-semibold md:text-heading-2xs md:font-normal">{name}</h3>
