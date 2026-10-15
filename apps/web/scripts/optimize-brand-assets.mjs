@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 /**
- * Generates web-ready variants of the brand originals (run after replacing an original):
+ * Generates web-ready variants of the originals (run after replacing one):
  *   pnpm --filter @mundomotos/web optimize:assets
- * Originals stay in src/assets/brand/ as the source of truth; outputs go to src/assets/brand/generated/.
+ * Originals stay in src/assets/<group>/ as the source of truth; outputs go to <group>/generated/.
  * Metadata (EXIF/GPS) is stripped from every output.
  */
 import { mkdirSync } from 'node:fs';
@@ -10,9 +10,10 @@ import { join } from 'node:path';
 
 import sharp from 'sharp';
 
-const dir = new URL('../src/assets/brand/', import.meta.url).pathname;
-const out = join(dir, 'generated');
-mkdirSync(out, { recursive: true });
+const assets = new URL('../src/assets/', import.meta.url).pathname;
+
+const brand = join(assets, 'brand/');
+const services = join(assets, 'services/');
 
 const jobs = [
   { src: 'logo-vector.png', name: 'logo', widths: [96, 192, 512], format: 'webp' },
@@ -26,9 +27,21 @@ const jobs = [
     background: '#000000',
   },
   { src: 'fachada.jpg', name: 'fachada', widths: [640, 1280], format: 'webp' },
+  // Service cards. The originals are ~512px wide, so that is the ceiling: 320 covers a phone's
+  // two-column grid at 2x, 512 covers the three-column desktop grid (1x, slightly soft at 2x —
+  // acceptable for decorative photography, and the only option without larger sources).
+  ...['tune-up', 'brakes', 'tires', 'lighting', 'adjustments', 'valves'].map((name) => ({
+    dir: services,
+    src: `${name}.png`,
+    name,
+    widths: [320, 512],
+    format: 'webp',
+  })),
 ];
 
-for (const { src, name, widths, format, background } of jobs) {
+for (const { src, name, widths, format, background, dir = brand } of jobs) {
+  const out = join(dir, 'generated');
+  mkdirSync(out, { recursive: true });
   for (const width of widths) {
     const file = join(out, `${name}-${width}.${format}`);
     let image = sharp(join(dir, src)).resize({ width, withoutEnlargement: true });
@@ -38,6 +51,6 @@ for (const { src, name, widths, format, background } of jobs) {
         ? image.webp({ quality: 82 })
         : image.png({ palette: true, quality: 90, compressionLevel: 9 })
     ).toFile(file);
-    console.log('✔', file.replace(dir, ''));
+    console.log('✔', file.replace(assets, ''));
   }
 }

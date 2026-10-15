@@ -140,6 +140,20 @@
   }
 }
 
+/* Service cards: without scripting the dialog can't open, so the button gives way to the quote
+   link it would have led to. */
+[data-service-fallback] {
+  display: none;
+}
+@media (scripting: none) {
+  [data-service-more] {
+    display: none;
+  }
+  [data-service-fallback] {
+    display: inline-flex;
+  }
+}
+
 /*
  * Hero intro. The wordmark types itself out in place (see --animate-type) while the particles
  * fall; everything else waits, hidden, until the island flips the stage to `done` and they

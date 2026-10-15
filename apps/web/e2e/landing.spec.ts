@@ -5,7 +5,7 @@ test.describe('landing page', () => {
     await page.goto('/');
     const headings = page.getByRole('heading', { level: 2 });
     await expect(headings).toContainText([
-      'Servicios para que tu moto ruede como nueva',
+      'Que tu moto ruede como nueva',
       'Lo que más nos piden',
       'Estamos en Tepetlixpa',
       'Cuéntanos qué necesitas.',
@@ -35,7 +35,12 @@ test.describe('landing page', () => {
 
   test('tracked WhatsApp links redirect to wa.me with the message (ADR-0013)', async ({ page }) => {
     await page.goto('/');
-    const href = await page.getByRole('link', { name: /Cotizar.*Afinación/ }).getAttribute('href');
+    // The service quote now lives in the card's dialog.
+    await page.getByRole('button', { name: 'Ver más' }).first().click();
+    const href = await page
+      .getByRole('dialog')
+      .getByRole('link', { name: /Cotizar.*Afinación/ })
+      .getAttribute('href');
     expect(new URL(href ?? '', page.url()).searchParams.get('src')).toBe('services');
     const res = await page.request.get(href ?? '', { maxRedirects: 0 });
     expect(res.status()).toBe(302);
@@ -117,6 +122,61 @@ test.describe('landing page', () => {
     expect(url.hostname).toBe('www.google.com');
     expect(url.pathname).toBe('/maps/dir/');
     expect(url.searchParams.get('destination')).toContain('Mundo Motos');
+  });
+});
+
+test.describe('service cards', () => {
+  test('the intro copy links to the contact form and to Visítanos', async ({ page }) => {
+    await page.goto('/');
+    const intro = page.locator('#servicios header p');
+    await expect(intro.getByRole('link', { name: 'escríbenos por WhatsApp' })).toHaveAttribute(
+      'href',
+      '#contacto',
+    );
+    await expect(intro.getByRole('link', { name: 've aquí' })).toHaveAttribute(
+      'href',
+      '#ubicacion',
+    );
+  });
+
+  test('shows the six services as cards with a lazy, decorative photo each', async ({ page }) => {
+    await page.goto('/');
+    const cards = page.locator('#servicios [data-service-card]');
+    await expect(cards).toHaveCount(6);
+    await expect(cards.first().getByRole('heading', { level: 3 })).toHaveText('Afinación');
+    // Decorative: the name sits right below, so the photo adds nothing to a screen reader.
+    await expect(cards.first().locator('img')).toHaveAttribute('alt', '');
+    await expect(cards.first().locator('img')).toHaveAttribute('loading', 'lazy');
+  });
+
+  test('"Ver más" opens a dialog with that service, and Escape returns focus', async ({ page }) => {
+    await page.goto('/');
+    const card = page.locator('#servicios [data-service-card]').nth(1);
+    const button = card.getByRole('button', { name: 'Ver más' });
+    // Opened from the keyboard: macOS WebKit doesn't focus a button on click, and focus return
+    // is only meaningful for a visitor who had focus there in the first place.
+    await button.focus();
+    await page.keyboard.press('Enter');
+
+    const dialog = page.getByRole('dialog');
+    await expect(dialog).toBeVisible();
+    await expect(dialog.getByRole('heading', { level: 2 })).toHaveText('Cambio de balatas');
+    // The card clamps its copy; the dialog is where the whole thing lives.
+    await expect(dialog).toContainText('balatas delanteras y traseras');
+    await expect(dialog.getByRole('link', { name: /Cotizar/ })).toBeVisible();
+
+    await page.keyboard.press('Escape');
+    await expect(dialog).toBeHidden();
+    await expect(button).toBeFocused();
+  });
+
+  test('the dialog closes on a click outside its panel', async ({ page }) => {
+    await page.goto('/');
+    await page.locator('#servicios [data-service-card]').first().getByRole('button').click();
+    const dialog = page.getByRole('dialog');
+    await expect(dialog).toBeVisible();
+    await page.mouse.click(5, 5);
+    await expect(dialog).toBeHidden();
   });
 });
 

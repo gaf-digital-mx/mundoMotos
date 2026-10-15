@@ -68,9 +68,11 @@
   },
   "services": {
     "eyebrow": "Taller",
-    "title": "Servicios para que tu moto ruede como nueva",
-    "body": "Llega sin cita: te atendemos por orden de llegada. ¿Quieres saber el precio antes? Cotiza por WhatsApp.",
+    "title": "Que tu moto ruede como nueva",
+    "body": "¿Quieres cotizar antes? <contact>escríbenos por WhatsApp</contact> o <visit>ve aquí</visit> cómo llegar a nuestro taller.",
     "quote": "Cotizar",
+    "more": "Ver más",
+    "close": "Cerrar",
     "quoteMessage": "Hola, Mundo Motos. Quiero cotizar: {service}.",
     "items": {
       "tuneUp": {
@@ -89,17 +91,13 @@
         "name": "Calibración de punterías",
         "body": "Ajuste de válvulas para un motor más suave, silencioso y eficiente."
       },
-      "accessories": {
-        "name": "Instalación de accesorios",
-        "body": "Instalamos faros, direccionales, sliders, puños y más."
-      },
       "adjustments": {
         "name": "Ajustes generales",
         "body": "Cadena, cables, clutch y frenos ajustados para que manejes con confianza."
       },
       "lighting": {
-        "name": "Iluminación",
-        "body": "Instalación y reparación de focos, direccionales, stop y luces LED."
+        "name": "Iluminación y accesorios",
+        "body": "Instalación y venta de faros, direccionales, stop, luces LED, sliders, puños y más."
       }
     }
   },

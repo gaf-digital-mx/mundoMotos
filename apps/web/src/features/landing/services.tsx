@@ -1,11 +1,15 @@
 import { useTranslations } from 'next-intl';
 
-import { SERVICE_IDS } from '@/content/services';
-import { TRACKED_REL, whatsappHref } from '@/shared/lib/tracked-links';
+import { SERVICES } from '@/content/services';
+import { whatsappHref } from '@/shared/lib/tracked-links';
 import { SectionHeading } from '@/shared/ui/section-heading';
+
+import { ServiceCard } from './service-card';
+import { ServiceDialog } from './service-dialog';
 
 export function Services() {
   const t = useTranslations();
+  const newTabHint = t('common.opensInNewTab');
 
   return (
     <section
@@ -17,39 +21,49 @@ export function Services() {
         id="services-title"
         eyebrow={t('services.eyebrow')}
         title={t('services.title')}
-        body={t('services.body')}
+        body={t.rich('services.body', {
+          contact: (chunks) => (
+            <a
+              href="#contacto"
+              className="text-bone-white underline underline-offset-4 hover:text-ignition-gold"
+            >
+              {chunks}
+            </a>
+          ),
+          visit: (chunks) => (
+            <a
+              href="#ubicacion"
+              className="text-bone-white underline underline-offset-4 hover:text-ignition-gold"
+            >
+              {chunks}
+            </a>
+          ),
+        })}
       />
-      <ol className="mt-60 grid gap-x-36 md:grid-cols-2">
-        {SERVICE_IDS.map((id, index) => {
+      <ul className="mt-60 grid grid-cols-2 gap-18 md:grid-cols-3 md:gap-36">
+        {SERVICES.map(({ id, small, large }) => {
           const name = t(`services.items.${id}.name`);
           return (
-            <li key={id} className="flex gap-24 border-t border-ash-gray/30 py-30">
-              <span
-                aria-hidden="true"
-                className="text-nav-label font-semibold text-flame-orange tabular-nums"
-              >
-                {String(index + 1).padStart(2, '0')}
-              </span>
-              <div className="flex flex-1 flex-col gap-12">
-                <h3 className="text-heading-2xs font-normal">{name}</h3>
-                <p className="text-silver-mist">{t(`services.items.${id}.body`)}</p>
-                <a
-                  href={whatsappHref('services', t('services.quoteMessage', { service: name }))}
-                  target="_blank"
-                  rel={TRACKED_REL}
-                  className="self-start text-nav-label font-semibold tracking-label text-ignition-gold uppercase underline-offset-4 hover:underline"
-                >
-                  {t('services.quote')}
-                  <span className="sr-only">
-                    {' '}
-                    {name} {t('common.opensInNewTab')}
-                  </span>
-                </a>
-              </div>
+            <li key={id} className="contents">
+              <ServiceCard
+                name={name}
+                body={t(`services.items.${id}.body`)}
+                small={small}
+                large={large}
+                moreLabel={t('services.more')}
+                quoteLabel={t('services.quote')}
+                quoteHref={whatsappHref('services', t('services.quoteMessage', { service: name }))}
+                newTabHint={newTabHint}
+              />
             </li>
           );
         })}
-      </ol>
+      </ul>
+      <ServiceDialog
+        closeLabel={t('services.close')}
+        quoteLabel={t('services.quote')}
+        newTabHint={newTabHint}
+      />
     </section>
   );
 }
