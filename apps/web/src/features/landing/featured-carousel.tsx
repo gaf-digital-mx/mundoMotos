@@ -1,6 +1,13 @@
 'use client';
 
-import { useEffect, useRef, useState, useSyncExternalStore, type CSSProperties } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  type CSSProperties,
+} from 'react';
 
 import { ArrowRightIcon, PauseIcon, PlayIcon } from '@/shared/ui/icons';
 
@@ -23,6 +30,10 @@ type Props = {
 
 /** How long each category stays in the middle. */
 const STEP_MS = 3600;
+/** A gesture shorter than a quarter of a card's travel is a tap that wandered, not a drag. */
+const DRAG_PLACES = 0.25;
+/** ...and one that has not travelled this far sideways, in pixels, may still become a scroll. */
+const DRAG_SLACK = 10;
 
 /** Nothing to subscribe to: the only change is server render → client render. */
 const noStore = () => () => {
@@ -45,9 +56,14 @@ const panelId = (id: string) => `featured-panel-${id}`;
  * keeps: all 18 tracked links reachable, nothing hidden behind a control that never runs. The
  * carousel markup (and the controls that drive it) only exists once React is in charge.
  *
- * The rotation reverses at the ends instead of looping, so no card ever flies across the whole
- * strip. It stops for good the moment the visitor picks a category — fighting the rotation is
- * worse than losing it — and the pause button is there regardless (WCAG 2.2.2).
+ * The strip is a ring: it always travels the same way and the last category is followed by the
+ * first, which is also why each card's place is measured the short way around. The card that
+ * runs off one end crosses back to the other through the outermost place, where globals.css
+ * keeps it transparent, so the jump is never seen.
+ *
+ * Cards can also be dragged — pointer or thumb — and follow the gesture as it happens. Any
+ * manual pick, drag included, stops the rotation for good: fighting it is worse than losing it.
+ * The pause button is there regardless (WCAG 2.2.2).
  */
 export function FeaturedCarousel({ categories, rel, labels }: Props) {
   const [active, setActive] = useState(0);
@@ -62,10 +78,11 @@ export function FeaturedCarousel({ categories, rel, labels }: Props) {
   const [playing, setPlaying] = useState(movementWelcome);
   const [held, setHeld] = useState(false);
   const frame = useRef<HTMLDivElement>(null);
-  const direction = useRef(1);
+  const strip = useRef<HTMLUListElement>(null);
+  const total = categories.length;
 
-  // Hovering or tabbing in only holds the rotation: a category that changes under the pointer
-  // is annoying, and one that changes under the keyboard takes the focused chip with it.
+  // Tabbing in holds the rotation: a category that changes under the keyboard takes the focused
+  // chip with it. The pointer does not hold it — resting the mouse somewhere is not a request.
   useEffect(() => {
     const node = frame.current;
     if (!node) return;
@@ -75,13 +92,9 @@ export function FeaturedCarousel({ categories, rel, labels }: Props) {
     const release = () => {
       setHeld(false);
     };
-    node.addEventListener('pointerenter', hold);
-    node.addEventListener('pointerleave', release);
     node.addEventListener('focusin', hold);
     node.addEventListener('focusout', release);
     return () => {
-      node.removeEventListener('pointerenter', hold);
-      node.removeEventListener('pointerleave', release);
       node.removeEventListener('focusin', hold);
       node.removeEventListener('focusout', release);
     };
@@ -90,29 +103,100 @@ export function FeaturedCarousel({ categories, rel, labels }: Props) {
   useEffect(() => {
     if (!ready || !playing || held) return;
     const timer = setInterval(() => {
-      setActive((current) => {
-        const next = current + direction.current;
-        if (next >= 0 && next < categories.length) return next;
-        direction.current *= -1;
-        return current + direction.current;
-      });
+      setActive((current) => (current + 1) % total);
     }, STEP_MS);
     return () => {
       clearInterval(timer);
     };
-  }, [ready, playing, held, categories.length]);
+  }, [ready, playing, held, total]);
 
   const pick = (index: number) => {
     setActive(index);
     setPlaying(false);
   };
-  const step = (delta: number) => {
-    pick((active + delta + categories.length) % categories.length);
+  const nudge = useCallback(
+    (places: number) => {
+      setActive((current) => (current + (places % total) + total) % total);
+      setPlaying(false);
+    },
+    [total],
+  );
+
+  // Dragging the strip. Native listeners rather than JSX handlers: the gesture belongs to the
+  // whole strip, which is a list, and the cards themselves are not controls.
+  useEffect(() => {
+    const node = strip.current;
+    if (!ready || !node) return;
+    let pointer = 0;
+    let startX = 0;
+    let startY = 0;
+    let stepPx = 0;
+    let places = 0;
+    let dragging = false;
+
+    const down = (event: PointerEvent) => {
+      if (pointer || !event.isPrimary) return;
+      pointer = event.pointerId;
+      startX = event.clientX;
+      startY = event.clientY;
+      places = 0;
+      dragging = false;
+      // One card's travel, in pixels: `--step` is a registered length, so it comes back resolved
+      // whatever the viewport does to it.
+      const step = Number.parseFloat(getComputedStyle(node).getPropertyValue('--step'));
+      stepPx = step > 0 ? step : node.getBoundingClientRect().width / 2;
+    };
+
+    const move = (event: PointerEvent) => {
+      if (event.pointerId !== pointer) return;
+      const dx = event.clientX - startX;
+      if (!dragging) {
+        // Claimed only once the gesture is clearly sideways, so a thumb travelling down the
+        // screen still scrolls the page instead of nudging the strip.
+        if (Math.abs(dx) < DRAG_SLACK || Math.abs(dx) <= Math.abs(event.clientY - startY)) return;
+        dragging = true;
+        node.setPointerCapture(pointer);
+        node.dataset.dragging = '';
+      }
+      places = dx / stepPx;
+      node.style.setProperty('--drag', String(places));
+    };
+
+    const up = (event: PointerEvent) => {
+      if (event.pointerId !== pointer) return;
+      pointer = 0;
+      if (!dragging) return;
+      dragging = false;
+      delete node.dataset.dragging;
+      node.style.removeProperty('--drag');
+      // Pulling the strip to the right brings the cards on the left to the middle.
+      const settled = Math.round(places);
+      if (settled) nudge(-settled);
+      else if (Math.abs(places) > DRAG_PLACES) nudge(places > 0 ? -1 : 1);
+    };
+
+    node.addEventListener('pointerdown', down);
+    node.addEventListener('pointermove', move);
+    node.addEventListener('pointerup', up);
+    node.addEventListener('pointercancel', up);
+    return () => {
+      node.removeEventListener('pointerdown', down);
+      node.removeEventListener('pointermove', move);
+      node.removeEventListener('pointerup', up);
+      node.removeEventListener('pointercancel', up);
+    };
+  }, [ready, nudge]);
+
+  /** How far a card sits from the middle, the short way around: the ring has no ends. */
+  const placeOf = (index: number) => {
+    const ahead = (index - active + total) % total;
+    return ahead > total / 2 ? ahead - total : ahead;
   };
 
   return (
     <div ref={frame} data-enter className="mt-60">
       <ul
+        ref={strip}
         {...(ready ? { 'data-coverflow': '' } : {})}
         className={ready ? '-mx-4 md:-mx-24' : 'grid gap-18 md:grid-cols-2 md:gap-36'}
       >
@@ -122,7 +206,7 @@ export function FeaturedCarousel({ categories, rel, labels }: Props) {
           <li
             key={category.id}
             data-card
-            {...(ready ? { style: { '--offset': String(index - active) } as CSSProperties } : {})}
+            {...(ready ? { style: { '--offset': String(placeOf(index)) } as CSSProperties } : {})}
             {...(index === active ? { 'data-current': '' } : {})}
             className={`relative isolate flex flex-col justify-end overflow-hidden rounded-3xl border border-bone-white/10 ${
               ready ? '' : 'min-h-[220px]'
@@ -137,6 +221,7 @@ export function FeaturedCarousel({ categories, rel, labels }: Props) {
               height={category.photo.height}
               loading="lazy"
               decoding="async"
+              draggable={false}
               className="absolute inset-0 -z-20 size-full object-cover"
             />
             {/* The scrim fades across the whole card, not just behind the copy: a gradient that
@@ -199,7 +284,7 @@ export function FeaturedCarousel({ categories, rel, labels }: Props) {
           <button
             type="button"
             onClick={() => {
-              step(-1);
+              nudge(-1);
             }}
             aria-label={labels.previous}
             className="grid size-36 place-items-center rounded-full text-silver-mist hover:text-ignition-gold"
@@ -230,7 +315,7 @@ export function FeaturedCarousel({ categories, rel, labels }: Props) {
           <button
             type="button"
             onClick={() => {
-              step(1);
+              nudge(1);
             }}
             aria-label={labels.next}
             className="grid size-36 place-items-center rounded-full text-silver-mist hover:text-ignition-gold"

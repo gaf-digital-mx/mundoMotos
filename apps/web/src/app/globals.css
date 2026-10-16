@@ -292,47 +292,75 @@ html:has(dialog[open]) {
 /*
  * "Los más buscados" coverflow. The middle card faces the visitor and the rest fall away to
  * either side; the chips of the one in the middle are the only ones shown, right underneath.
- * Geometry only — the island owns `--offset` (how many places this card sits from the middle)
- * and nothing here applies until it adds `[data-coverflow]`, so the static grid the server
- * ships is untouched.
+ * Geometry only — the island owns `--offset` (how many places this card sits from the middle,
+ * counted the short way around the ring) and `--drag` (how far a gesture has pulled the strip,
+ * in places), and nothing here applies until it adds `[data-coverflow]`, so the static grid the
+ * server ships is untouched.
  *
- * Cards further out than `--limit` are not hidden: their travel and tilt are clamped, so they
- * stack up behind the outermost neighbour and off the edge of the screen. Nothing leaves the
- * accessibility tree or the tab order, which is why the chips can live outside the cards.
+ * Cards further out than `--limit` keep their travel and tilt clamped, so they stack up behind
+ * the outermost neighbour; past `--fade` they are transparent as well. That last place is where
+ * the ring closes: the card that runs off one end is the one that has to cross back to the
+ * other, and it does it where nobody can see it. Nothing leaves the accessibility tree or the
+ * tab order, which is why the chips can live outside the cards.
+ *
+ * `--step` is registered so the island can read it back in pixels and turn a gesture into
+ * places; `--drag` so a strip nobody is touching is at 0 without the island saying so.
  */
+@property --step {
+  syntax: '<length>';
+  inherits: true;
+  initial-value: 0px;
+}
+@property --drag {
+  syntax: '<number>';
+  inherits: true;
+  initial-value: 0;
+}
 [data-coverflow] {
-  --card-w: min(72vw, 300px);
-  --card-h: 200px;
-  --step: calc(var(--card-w) * 0.48);
-  --tilt: 40deg;
+  --card-w: min(75vw, 300px);
+  --card-h: 250px;
+  --step: calc(var(--card-w) * 0.58);
+  --tilt: 15deg;
   --limit: 1;
+  --fade: 2;
   position: relative;
   display: block;
   padding-top: var(--card-h);
   /* A perspective reaches this element's children and no further, which is why the card is the
      list item itself and not something inside it. The vanishing point sits in the middle of the
      cards rather than of the whole block, so the strip keystones evenly above and below. */
-  perspective: 900px;
+  perspective: 100vw;
   perspective-origin: 50% calc(var(--card-h) / 2);
   /* The strip runs off both edges of the screen by design; clipped so it never adds a
      horizontal scrollbar. `clip` rather than `hidden`: no scroll container, nothing that could
      scroll an anchor out of sight. */
   overflow-x: clip;
+  /* A sideways gesture belongs to the strip, anything vertical to the page: a thumb on a card
+     must still scroll past the section. */
+  touch-action: pan-y;
+  cursor: grab;
+}
+[data-coverflow][data-dragging] {
+  cursor: grabbing;
+  user-select: none;
 }
 @media (width >= 48rem) {
   [data-coverflow] {
-    --card-w: 460px;
-    --card-h: 300px;
+    --card-w: 500px;
+    --card-h: 350px;
     --step: calc(var(--card-w) * 0.44);
     --limit: 3;
+    --fade: 3;
   }
 }
 [data-coverflow] > li {
-  --away: max(var(--offset), calc(var(--offset) * -1));
-  --place: clamp(calc(var(--limit) * -1), var(--offset), var(--limit));
+  /* Where the card is right now: its place in the ring, plus whatever a finger is pulling. */
+  --shift: calc(var(--offset) + var(--drag));
+  --away: max(var(--shift), calc(var(--shift) * -1));
+  --place: clamp(calc(var(--limit) * -1), var(--shift), var(--limit));
   /* Every card off to one side is turned by the same angle, like a real card rack: multiplying
      the angle by the distance instead would turn the far ones past 90deg, showing their backs. */
-  --turn: calc(clamp(-1, var(--offset), 1) * var(--tilt));
+  --turn: calc(clamp(-1, var(--shift), 1) * var(--tilt));
   --depth: min(var(--away), var(--limit));
   position: absolute;
   top: 0;
@@ -340,9 +368,14 @@ html:has(dialog[open]) {
   width: var(--card-w);
   height: var(--card-h);
   margin-left: calc(var(--card-w) / -2);
-  transform: translateX(calc(var(--place) * var(--step))) translateZ(calc(var(--depth) * -150px))
+  transform: translateX(calc(var(--place) * var(--step))) translateZ(calc(var(--depth) * -250px))
     rotateY(var(--turn));
+  opacity: clamp(0, calc(var(--fade) - var(--away)), 1);
   z-index: calc(10 - var(--depth));
+}
+/* Under a finger the strip is not animating towards anything: it is where the finger put it. */
+[data-coverflow][data-dragging] > li {
+  transition: none;
 }
 @media (prefers-reduced-motion: no-preference) {
   [data-coverflow] > li,

@@ -284,13 +284,44 @@ test.describe('featured categories', () => {
       .locator('#refacciones [id^="featured-panel-"]:visible')
       .first()
       .getAttribute('id');
-    // Away from the carousel: the pointer and the focused button hold the rotation by
-    // themselves, which would hide a broken pause button.
+    // Away from the carousel: the focused button holds the rotation by itself, which would
+    // hide a broken pause button.
     await page.locator('#featured-title').click();
     await expect(toggle).toHaveAttribute('aria-label', /^Reanudar/);
     // Comfortably longer than one turn of the rotation (3.6s).
     await page.waitForTimeout(5000);
     await expect(page.locator(`#${showing ?? ''}`)).toBeVisible();
+  });
+
+  test('a drag moves the strip along, and the ring has no ends', async ({ page }) => {
+    await page.goto('/');
+    const strip = page.locator('#refacciones [data-coverflow]');
+    await strip.scrollIntoViewIfNeeded();
+    // Picking a category stops the rotation: from here on the gesture is the only thing moving.
+    await page.getByRole('button', { name: 'Ver Iluminación' }).click();
+    const box = await strip.boundingBox();
+    const x = (box?.x ?? 0) + (box?.width ?? 0) / 2;
+    // The cards sit at the top of the strip; the rest of its box is the space they are drawn in.
+    const y = (box?.y ?? 0) + 40;
+
+    // Pulling left brings the next category over, further than any card's travel on any screen.
+    await page.mouse.move(x, y);
+    await page.mouse.down();
+    await page.mouse.move(x - 200, y, { steps: 12 });
+    await page.mouse.up();
+    await expect(page.locator('#featured-panel-accessories')).toBeVisible();
+
+    // Pulling the other way past the first category lands on the last one, not on nothing.
+    await page.mouse.move(x, y);
+    await page.mouse.down();
+    await page.mouse.move(x + 200, y, { steps: 12 });
+    await page.mouse.up();
+    await expect(page.locator('#featured-panel-lighting')).toBeVisible();
+    await page.getByRole('button', { name: 'Categoría anterior' }).click();
+    await expect(page.locator('#featured-panel-brakePads')).toBeVisible();
+    // ...and the category after the last one is the first again.
+    await page.getByRole('button', { name: 'Categoría siguiente' }).click();
+    await expect(page.locator('#featured-panel-lighting')).toBeVisible();
   });
 
   test('a chip asks for its own part by name', async ({ page }) => {
