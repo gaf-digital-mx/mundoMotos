@@ -282,6 +282,13 @@ html:has(dialog[open]) {
   translate: 40px 32px;
   scale: 0.9;
 }
+/* The travel is sideways as well as up, so every block still waiting below the fold sticks out
+   past the right edge and widens the page (1.4.10). Clipped at the landmark rather than taken
+   out of the movement: `overflow-x: clip` adds no scroll container and leaves the vertical axis
+   visible, so nothing sticky, fixed or anchored changes. */
+main {
+  overflow-x: clip;
+}
 /* Keyboard reaching a control before its block arrives ends the wait: focus is never invisible
    (2.4.7, 2.4.11). Same rule the hero intro uses. */
 [data-enter-ready] [data-enter]:focus-within {
@@ -336,8 +343,8 @@ html:has(dialog[open]) {
      scroll an anchor out of sight. */
   overflow-x: clip;
   /* A sideways gesture belongs to the strip, anything vertical to the page: a thumb on a card
-     must still scroll past the section. */
-  touch-action: pan-y;
+     must still scroll past the section — and pinching it must still zoom (1.4.4). */
+  touch-action: pan-y pinch-zoom;
   cursor: grab;
 }
 [data-coverflow][data-dragging] {

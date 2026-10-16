@@ -123,11 +123,12 @@ export function FeaturedCarousel({ categories, rel, labels }: Props) {
   );
 
   // Dragging the strip. Native listeners rather than JSX handlers: the gesture belongs to the
-  // whole strip, which is a list, and the cards themselves are not controls.
+  // whole strip, which is a list, and the cards themselves are not controls. Everything after
+  // the press is watched on the window, so a release anywhere ends the gesture.
   useEffect(() => {
     const node = strip.current;
     if (!ready || !node) return;
-    let pointer = 0;
+    let pointer: number | null = null;
     let startX = 0;
     let startY = 0;
     let stepPx = 0;
@@ -135,7 +136,7 @@ export function FeaturedCarousel({ categories, rel, labels }: Props) {
     let dragging = false;
 
     const down = (event: PointerEvent) => {
-      if (pointer || !event.isPrimary) return;
+      if (pointer !== null || !event.isPrimary) return;
       pointer = event.pointerId;
       startX = event.clientX;
       startY = event.clientY;
@@ -147,15 +148,28 @@ export function FeaturedCarousel({ categories, rel, labels }: Props) {
       stepPx = step > 0 ? step : node.getBoundingClientRect().width / 2;
     };
 
+    const release = () => {
+      dragging = false;
+      delete node.dataset.dragging;
+      node.style.removeProperty('--drag');
+    };
+
     const move = (event: PointerEvent) => {
       if (event.pointerId !== pointer) return;
+      // A press that ended out of reach — another window, a context menu — sends no `pointerup`
+      // anybody hears. The first move with nothing held down is where the strip finds out.
+      if (event.buttons === 0) {
+        pointer = null;
+        if (dragging) release();
+        return;
+      }
       const dx = event.clientX - startX;
       if (!dragging) {
         // Claimed only once the gesture is clearly sideways, so a thumb travelling down the
         // screen still scrolls the page instead of nudging the strip.
         if (Math.abs(dx) < DRAG_SLACK || Math.abs(dx) <= Math.abs(event.clientY - startY)) return;
         dragging = true;
-        node.setPointerCapture(pointer);
+        node.setPointerCapture(event.pointerId);
         node.dataset.dragging = '';
       }
       places = dx / stepPx;
@@ -164,26 +178,32 @@ export function FeaturedCarousel({ categories, rel, labels }: Props) {
 
     const up = (event: PointerEvent) => {
       if (event.pointerId !== pointer) return;
-      pointer = 0;
+      pointer = null;
       if (!dragging) return;
-      dragging = false;
-      delete node.dataset.dragging;
-      node.style.removeProperty('--drag');
+      release();
       // Pulling the strip to the right brings the cards on the left to the middle.
       const settled = Math.round(places);
       if (settled) nudge(-settled);
       else if (Math.abs(places) > DRAG_PLACES) nudge(places > 0 ? -1 : 1);
     };
 
+    // The browser taking the gesture over (a scroll it decided was its own) is not a pick: the
+    // strip goes back to the category it was showing.
+    const cancel = (event: PointerEvent) => {
+      if (event.pointerId !== pointer) return;
+      pointer = null;
+      if (dragging) release();
+    };
+
     node.addEventListener('pointerdown', down);
-    node.addEventListener('pointermove', move);
-    node.addEventListener('pointerup', up);
-    node.addEventListener('pointercancel', up);
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
+    window.addEventListener('pointercancel', cancel);
     return () => {
       node.removeEventListener('pointerdown', down);
-      node.removeEventListener('pointermove', move);
-      node.removeEventListener('pointerup', up);
-      node.removeEventListener('pointercancel', up);
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+      window.removeEventListener('pointercancel', cancel);
     };
   }, [ready, nudge]);
 
@@ -215,7 +235,7 @@ export function FeaturedCarousel({ categories, rel, labels }: Props) {
             <img
               src={category.photo.src}
               srcSet={category.photo.srcSet}
-              sizes="(min-width: 768px) 460px, 72vw"
+              sizes="(min-width: 768px) 500px, 75vw"
               alt=""
               width={category.photo.width}
               height={category.photo.height}

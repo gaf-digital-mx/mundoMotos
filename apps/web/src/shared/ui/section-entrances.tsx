@@ -22,12 +22,17 @@ export function SectionEntrances() {
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
     const blocks = [...document.querySelectorAll<HTMLElement>('[data-enter]')];
+    // Measured first, marked after: marking a block invalidates style for the next one's
+    // measurement, and a dozen of those alternating per frame is a dozen forced reflows.
     const sweep = () => {
-      for (const block of blocks) {
-        const { top } = block.getBoundingClientRect();
-        if (top < window.innerHeight * ENTER) block.dataset.entered = '';
-        else if (top >= window.innerHeight * LEAVE) delete block.dataset.entered;
-      }
+      const tops = blocks.map((block) => block.getBoundingClientRect().top);
+      const enter = window.innerHeight * ENTER;
+      const leave = window.innerHeight * LEAVE;
+      blocks.forEach((block, index) => {
+        const top = tops[index] ?? 0;
+        if (top < enter) block.dataset.entered = '';
+        else if (top >= leave) delete block.dataset.entered;
+      });
     };
 
     // Whatever is already on screen is marked before anything can hide it: the visitor is
