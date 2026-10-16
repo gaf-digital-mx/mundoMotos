@@ -299,7 +299,17 @@ test.describe('featured categories', () => {
     await strip.scrollIntoViewIfNeeded();
     // Picking a category stops the rotation: from here on the gesture is the only thing moving.
     await page.getByRole('button', { name: 'Ver Iluminación' }).click();
-    const box = await strip.boundingBox();
+    // The section is still rising into place when it is scrolled to, and a drag aimed at where
+    // it was lands next to it: wait for the strip to stop moving before measuring it.
+    let box = await strip.boundingBox();
+    await expect
+      .poll(async () => {
+        const now = await strip.boundingBox();
+        const still = now && box && Math.abs(now.y - box.y) < 1 && Math.abs(now.x - box.x) < 1;
+        box = now;
+        return Boolean(still);
+      })
+      .toBe(true);
     const x = (box?.x ?? 0) + (box?.width ?? 0) / 2;
     // The cards sit at the top of the strip; the rest of its box is the space they are drawn in.
     const y = (box?.y ?? 0) + 40;
@@ -507,6 +517,15 @@ test.describe('"Cómo llegar" pill', () => {
       expect(changes).toBeLessThanOrEqual(14);
     });
   }
+
+  test('no dock slot travels with a section entrance', async ({ page }) => {
+    await page.goto('/');
+    // A slot inside a block that rises into place moves while the block settles, and the dock
+    // measures that moving box: the pill then swaps copies several times over, which is the
+    // flicker the test above counts. Keep the slots out of the entrances instead.
+    await expect(page.locator('[data-dock-slot]')).not.toHaveCount(0);
+    await expect(page.locator('[data-enter] [data-dock-slot]')).toHaveCount(0);
+  });
 
   test('focus follows the pill when it docks', async ({ page }) => {
     await page.goto('/');
