@@ -56,3 +56,25 @@ export function PinIcon({ className }: { className?: string }) {
     </svg>
   );
 }
+
+export function PauseIcon({ className }: { className?: string }) {
+  return (
+    <svg {...base} className={className}>
+      <path d="M9 5v14M15 5v14" />
+    </svg>
+  );
+}
+
+export function PlayIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      aria-hidden
+      focusable={false}
+      className={className}
+    >
+      <path d="M7 4.8a1 1 0 0 1 1.5-.9l10 7.2a1 1 0 0 1 0 1.8l-10 7.2a1 1 0 0 1-1.5-.9V4.8Z" />
+    </svg>
+  );
+}

@@ -30,12 +30,12 @@ export function Location() {
           eyebrow={t('location.eyebrow')}
           title={t('location.title')}
         />
-        <address className="text-heading-2xs font-normal not-italic">
+        <address data-enter className="text-heading-2xs font-normal not-italic">
           {address.street}
           <br />
           {address.postalCode} {address.locality}, {address.region}
         </address>
-        <dl className="grid grid-cols-[auto_1fr] gap-x-18 gap-y-6 text-silver-mist">
+        <dl data-enter className="grid grid-cols-[auto_1fr] gap-x-18 gap-y-6 text-silver-mist">
           {business.openingHours.map(({ id, opens, closes }) => (
             <div key={id} className="contents">
               <dt>{t(`footer.hours.${id}`)}</dt>
@@ -45,7 +45,7 @@ export function Location() {
             </div>
           ))}
         </dl>
-        <div className="flex flex-col gap-12">
+        <div data-enter className="flex flex-col gap-12">
           <h3 className="text-nav-label font-semibold tracking-label text-ignition-gold uppercase">
             {t('location.areaTitle')}
           </h3>
@@ -65,6 +65,7 @@ export function Location() {
       </div>
       <div className="flex flex-col gap-18">
         <img
+          data-enter
           src={fachada1280.src}
           srcSet={`${fachada640.src} 640w, ${fachada1280.src} 1280w`}
           sizes="(min-width: 768px) 50vw, 100vw"

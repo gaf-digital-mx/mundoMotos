@@ -56,7 +56,6 @@
 
   --container-page: 1280px;
 
-  --animate-marquee: marquee 60s linear infinite;
   /* The wordmark types itself out while the particles fall: one step per character
      (--type-steps comes from the name's length). Left-aligned and in its final place, so a
      webfont arriving mid-animation only extends its right edge. */
@@ -90,11 +89,6 @@
       opacity: 0;
       filter: blur(10px);
       translate: 0 -16px;
-    }
-  }
-  @keyframes marquee {
-    to {
-      transform: translateX(-50%);
     }
   }
 }
@@ -266,11 +260,13 @@ html:has(dialog[open]) {
 }
 
 /*
- * Section entrances. A block tagged `[data-enter]` rises into place as it scrolls in, driven by
- * the SectionEntrances island: it marks whatever is already on screen, then hides and observes
- * the rest. Deliberately *not* a `view()` timeline — a scroll-driven animation that never
- * reaches the end of its range (a block near the end of the document, or one that already fits
- * on screen) would leave the copy stuck at `opacity: 0`, and no entrance is worth that.
+ * Section entrances. A block tagged `[data-enter]` rises into place as it scrolls in and sinks
+ * back out when it leaves through the bottom edge again, so scrolling up replays every entrance
+ * in reverse. One transition both ways: the displaced state is simply whether the block is still
+ * below the trigger line, which the SectionEntrances island keeps marking for the life of the
+ * page. Deliberately *not* a `view()` timeline — a scroll-driven animation that never reaches
+ * the end of its range (a block near the end of the document, or one that already fits on
+ * screen) would leave the copy stuck mid-flight, and no entrance is worth that.
  * Nothing is hidden until the island says so, so a dropped chunk or no scripting shows the page
  * exactly as the server rendered it.
  */
@@ -279,12 +275,12 @@ html:has(dialog[open]) {
    reader. Travel and scale change nothing about the colour. */
 [data-enter-ready] [data-enter] {
   transition:
-    translate 600ms cubic-bezier(0.2, 0, 0, 1),
-    scale 600ms cubic-bezier(0.2, 0, 0, 1);
+    translate 700ms cubic-bezier(0.2, 0, 0, 1),
+    scale 700ms cubic-bezier(0.2, 0, 0, 1);
 }
 [data-enter-ready] [data-enter]:not([data-entered]) {
-  translate: 0 32px;
-  scale: 0.97;
+  translate: 40px 32px;
+  scale: 0.9;
 }
 /* Keyboard reaching a control before its block arrives ends the wait: focus is never invisible
    (2.4.7, 2.4.11). Same rule the hero intro uses. */
@@ -294,29 +290,82 @@ html:has(dialog[open]) {
 }
 
 /*
- * Depth on the category cards: the photo drifts and scales a little as the card crosses the
- * viewport. This one *is* a scroll timeline — it is decorative, so a card that never finishes
- * its range simply keeps a slightly larger photo, which costs nothing. No JS fallback: browsers
- * without `animation-timeline` just show the photo still.
+ * "Los más buscados" coverflow. The middle card faces the visitor and the rest fall away to
+ * either side; the chips of the one in the middle are the only ones shown, right underneath.
+ * Geometry only — the island owns `--offset` (how many places this card sits from the middle)
+ * and nothing here applies until it adds `[data-coverflow]`, so the static grid the server
+ * ships is untouched.
+ *
+ * Cards further out than `--limit` are not hidden: their travel and tilt are clamped, so they
+ * stack up behind the outermost neighbour and off the edge of the screen. Nothing leaves the
+ * accessibility tree or the tab order, which is why the chips can live outside the cards.
  */
-@supports (animation-timeline: view()) {
-  @media (prefers-reduced-motion: no-preference) {
-    [data-depth] {
-      animation: depth linear both;
-      animation-timeline: view();
-      animation-range: cover 0% cover 100%;
-    }
-    @keyframes depth {
-      from {
-        scale: 1.12;
-        translate: 0 -2%;
-      }
-      to {
-        scale: 1;
-        translate: 0 2%;
-      }
-    }
+[data-coverflow] {
+  --card-w: min(72vw, 300px);
+  --card-h: 200px;
+  --step: calc(var(--card-w) * 0.48);
+  --tilt: 40deg;
+  --limit: 1;
+  position: relative;
+  display: block;
+  padding-top: var(--card-h);
+  /* A perspective reaches this element's children and no further, which is why the card is the
+     list item itself and not something inside it. The vanishing point sits in the middle of the
+     cards rather than of the whole block, so the strip keystones evenly above and below. */
+  perspective: 900px;
+  perspective-origin: 50% calc(var(--card-h) / 2);
+  /* The strip runs off both edges of the screen by design; clipped so it never adds a
+     horizontal scrollbar. `clip` rather than `hidden`: no scroll container, nothing that could
+     scroll an anchor out of sight. */
+  overflow-x: clip;
+}
+@media (width >= 48rem) {
+  [data-coverflow] {
+    --card-w: 460px;
+    --card-h: 300px;
+    --step: calc(var(--card-w) * 0.44);
+    --limit: 3;
   }
+}
+[data-coverflow] > li {
+  --away: max(var(--offset), calc(var(--offset) * -1));
+  --place: clamp(calc(var(--limit) * -1), var(--offset), var(--limit));
+  /* Every card off to one side is turned by the same angle, like a real card rack: multiplying
+     the angle by the distance instead would turn the far ones past 90deg, showing their backs. */
+  --turn: calc(clamp(-1, var(--offset), 1) * var(--tilt));
+  --depth: min(var(--away), var(--limit));
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: var(--card-w);
+  height: var(--card-h);
+  margin-left: calc(var(--card-w) / -2);
+  transform: translateX(calc(var(--place) * var(--step))) translateZ(calc(var(--depth) * -150px))
+    rotateY(var(--turn));
+  z-index: calc(10 - var(--depth));
+}
+@media (prefers-reduced-motion: no-preference) {
+  [data-coverflow] > li,
+  [data-coverflow] [data-dim] {
+    transition:
+      transform 700ms cubic-bezier(0.2, 0, 0, 1),
+      opacity 700ms cubic-bezier(0.2, 0, 0, 1);
+  }
+}
+/* The dimmer sits under the heading, so it only ever adds contrast to the copy. */
+[data-coverflow] [data-dim] {
+  opacity: 1;
+}
+[data-coverflow] > li[data-current] [data-dim] {
+  opacity: 0;
+}
+[data-coverflow] > li[data-current] {
+  border-color: color-mix(in oklab, var(--color-bone-white) 25%, transparent);
+}
+/* Before the island mounts (and wherever it never does) the cards are a plain grid and the
+   dimmer has no business there. */
+[data-dim] {
+  opacity: 0;
 }
 
 /*

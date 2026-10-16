@@ -107,6 +107,11 @@
     "body": "¿Buscas algo que no ves aquí? Pregúntanos por WhatsApp.",
     "ask": "Preguntar disponibilidad",
     "askMessage": "Hola, Mundo Motos. ¿Tienen disponible: {item}?",
+    "show": "Ver {category}",
+    "previous": "Categoría anterior",
+    "next": "Categoría siguiente",
+    "pause": "Pausar el carrusel de categorías",
+    "play": "Reanudar el carrusel de categorías",
     "categories": {
       "lighting": "Iluminación",
       "accessories": "Accesorios",

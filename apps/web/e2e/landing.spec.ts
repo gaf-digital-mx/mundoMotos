@@ -55,8 +55,9 @@ test.describe('landing page', () => {
 
   test('every featured item keeps its own tracked WhatsApp chip', async ({ page }) => {
     await page.goto('/');
-    // The 18 items moved from a scrolling strip into seven category cards; none was lost.
-    await expect(page.getByRole('link', { name: /Preguntar disponibilidad/ })).toHaveCount(18);
+    // The 18 items moved from a scrolling strip into seven category cards; none was lost. The
+    // carousel only shows the middle category's chips, so the count includes the hidden ones.
+    await expect(page.locator('#refacciones a[href^="/api/go/whatsapp"]')).toHaveCount(18);
   });
 
   test('offers a call on phones and WhatsApp elsewhere', async ({ page }) => {
@@ -249,19 +250,52 @@ test.describe('service cards without scripting', () => {
 test.describe('featured categories', () => {
   test('shows seven category cards with a lazy, decorative photo each @smoke', async ({ page }) => {
     await page.goto('/');
-    const cards = page.locator('#refacciones li > article');
+    const cards = page.locator('#refacciones [data-card]');
     await expect(cards).toHaveCount(7);
     const first = cards.first();
     await expect(first.getByRole('heading', { level: 3 })).toHaveText('Iluminación');
     // Decorative: the category name sits on top of it.
     await expect(first.locator('img')).toHaveAttribute('alt', '');
     await expect(first.locator('img')).toHaveAttribute('loading', 'lazy');
-    await expect(first.getByRole('link')).toHaveCount(6);
+  });
+
+  test('only the category in the middle shows its chips', async ({ page }) => {
+    await page.goto('/');
+    // Picking a category also stops the rotation, so nothing moves under the assertions.
+    await page.getByRole('button', { name: 'Ver Iluminación' }).click();
+    await expect(page.locator('#refacciones a:visible')).toHaveCount(6);
+    await expect(page.getByRole('link', { name: /Foco H4/ })).toBeVisible();
+
+    await page.getByRole('button', { name: 'Ver Protección' }).click();
+    await expect(page.getByRole('link', { name: /Cascos/ })).toBeVisible();
+    await expect(page.getByRole('link', { name: /Foco H4/ })).toBeHidden();
+  });
+
+  test('rotates on its own and stays put once paused', async ({ page }) => {
+    await page.goto('/');
+    const lighting = page.locator('#featured-panel-lighting');
+    await expect(lighting).toBeVisible();
+    // It starts on the first category and moves along without anyone touching it.
+    await expect(lighting).toBeHidden({ timeout: 15_000 });
+
+    const toggle = page.locator('#refacciones [data-carousel-toggle]');
+    await toggle.click();
+    const showing = await page
+      .locator('#refacciones [id^="featured-panel-"]:visible')
+      .first()
+      .getAttribute('id');
+    // Away from the carousel: the pointer and the focused button hold the rotation by
+    // themselves, which would hide a broken pause button.
+    await page.locator('#featured-title').click();
+    await expect(toggle).toHaveAttribute('aria-label', /^Reanudar/);
+    // Comfortably longer than one turn of the rotation (3.6s).
+    await page.waitForTimeout(5000);
+    await expect(page.locator(`#${showing ?? ''}`)).toBeVisible();
   });
 
   test('a chip asks for its own part by name', async ({ page }) => {
     await page.goto('/');
-    const chip = page.getByRole('link', { name: /Foco H4.*Preguntar disponibilidad/ });
+    const chip = page.locator('#featured-panel-lighting a').first();
     const href = (await chip.getAttribute('href')) ?? '';
     const url = new URL(href, page.url());
     expect(url.searchParams.get('src')).toBe('featured');
@@ -281,12 +315,13 @@ test.describe('section entrances', () => {
     });
     await page.waitForTimeout(900);
     // A block the visitor has scrolled past must never still be displaced: the guard against an
-    // entrance that moves copy and then fails to put it back. The entrance never touches
-    // opacity — a block caught mid-fade would render its text under 4.5:1.
+    // entrance that moves copy and then fails to put it back. Blocks still poking in from the
+    // bottom edge are the exit, and are allowed to be on their way out. The entrance never
+    // touches opacity — a block caught mid-fade would render its text under 4.5:1.
     const stuck = await page.locator('[data-enter]').evaluateAll(
       (blocks) =>
         blocks
-          .filter((block) => block.getBoundingClientRect().top < window.innerHeight)
+          .filter((block) => block.getBoundingClientRect().top < window.innerHeight * 0.9)
           .filter((block) => {
             const { translate, scale, opacity } = getComputedStyle(block);
             const moved = translate !== 'none' && translate !== '0px';
@@ -297,6 +332,21 @@ test.describe('section entrances', () => {
     expect(stuck).toBe(0);
   });
 
+  test('a block sinks back out when it is scrolled below the fold again', async ({ page }) => {
+    await page.goto('/');
+    const block = page.locator('#ubicacion [data-enter]').first();
+    await page.locator('#ubicacion').scrollIntoViewIfNeeded();
+    await expect(block).toHaveAttribute('data-entered', '');
+
+    // Scrolling up is the exit: the same travel, backwards, ready to play again on the way down.
+    await page.evaluate(() => {
+      window.scrollTo(0, 0);
+    });
+    await expect(block).not.toHaveAttribute('data-entered', /.*/);
+    await page.locator('#ubicacion').scrollIntoViewIfNeeded();
+    await expect(block).toHaveAttribute('data-entered', '');
+  });
+
   test('nothing is displaced when the island never runs', async ({ browser }) => {
     const context = await browser.newContext({ javaScriptEnabled: false });
     const page = await context.newPage();
@@ -304,7 +354,10 @@ test.describe('section entrances', () => {
     // Without the island nothing marks <html>, so no block is ever hidden or moved.
     await expect(page.locator('html')).not.toHaveAttribute('data-enter-ready', /.*/);
     await expect(page.locator('#refacciones h2')).toBeVisible();
+    // The carousel is the island's doing too: without it every category shows every chip, and
+    // no control is rendered that nothing could drive.
     await expect(page.getByRole('link', { name: /Preguntar disponibilidad/ })).toHaveCount(18);
+    await expect(page.locator('#refacciones button')).toHaveCount(0);
     await context.close();
   });
 });

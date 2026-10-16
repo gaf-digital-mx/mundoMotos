@@ -84,6 +84,7 @@ export function ContactForm({ whatsappNumber, trackUrl, labels, messageTemplate 
 
   return (
     <form
+      data-enter
       noValidate
       onSubmit={onSubmit}
       onInput={() => {
