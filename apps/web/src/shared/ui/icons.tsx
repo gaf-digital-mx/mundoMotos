@@ -1,6 +1,4 @@
 /** Decorative line icons (stroke = currentColor). The surrounding text always carries the meaning. */
-import type { FeaturedCategory } from '@/content/featured';
-
 const base = {
   viewBox: '0 0 24 24',
   fill: 'none',
@@ -46,31 +44,6 @@ export function FacebookIcon({ className }: { className?: string }) {
       className={className}
     >
       <path d="M24 12.07C24 5.44 18.63.07 12 .07S0 5.44 0 12.07c0 5.99 4.39 10.95 10.13 11.85v-8.38H7.08v-3.47h3.05V9.43c0-3.01 1.79-4.67 4.53-4.67 1.31 0 2.69.24 2.69.24v2.95h-1.51c-1.49 0-1.96.93-1.96 1.87v2.25h3.33l-.53 3.47h-2.8v8.38C19.61 23.02 24 18.06 24 12.07Z" />
-    </svg>
-  );
-}
-
-const PATHS: Record<FeaturedCategory, string> = {
-  lighting:
-    'M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3Z',
-  accessories: 'M3 12h4l2-3h6l2 3h4M7 12v3a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2v-3',
-  protection: 'M4 14a8 8 0 0 1 16 0v3H4v-3ZM4 14h9a3 3 0 0 0 3-3V7.5M8 17v2h8v-2',
-  tires: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Zm0 5a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z',
-  tubes: 'M12 4a8 8 0 1 0 0 16 8 8 0 0 0 0-16Zm0 3a5 5 0 1 0 0 10 5 5 0 0 0 0-10ZM12 4v-1',
-  rims: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Zm0 7a2 2 0 1 0 0 4 2 2 0 0 0 0-4Zm0-7v7m0 4v7M3 12h7m4 0h7',
-  brakePads: 'M5 7a9 9 0 0 1 14 0l-2 2a6 6 0 0 0-10 0L5 7Zm-1 6h16v4H4v-4Z',
-};
-
-export function CategoryIcon({
-  category,
-  className,
-}: {
-  category: FeaturedCategory;
-  className?: string;
-}) {
-  return (
-    <svg {...base} className={className}>
-      <path d={PATHS[category]} />
     </svg>
   );
 }

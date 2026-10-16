@@ -7,7 +7,7 @@ test.describe('landing page', () => {
     const headings = page.getByRole('heading', { level: 2 });
     await expect(headings).toContainText([
       'Que tu moto ruede como nueva',
-      'Lo que más nos piden',
+      'Los más buscados',
       'Estamos en Tepetlixpa',
       'Cuéntanos qué necesitas.',
       '¿Listo para darle vida a tu moto?',
@@ -53,21 +53,10 @@ test.describe('landing page', () => {
     expect(location.searchParams.get('text')).toContain('Afinación');
   });
 
-  test('carousel duplicate is hidden from assistive tech and keyboard', async ({ page }) => {
+  test('every featured item keeps its own tracked WhatsApp chip', async ({ page }) => {
     await page.goto('/');
-    const duplicate = page.locator('#refacciones [aria-hidden="true"][inert]');
-    await expect(duplicate).toHaveCount(1);
+    // The 18 items moved from a scrolling strip into seven category cards; none was lost.
     await expect(page.getByRole('link', { name: /Preguntar disponibilidad/ })).toHaveCount(18);
-  });
-
-  test('carousel can be paused and resumed (WCAG 2.2.2)', async ({ page }) => {
-    await page.goto('/');
-    const toggle = page.getByRole('button', { name: 'Pausar carrusel' });
-    await toggle.click();
-    const resume = page.getByRole('button', { name: 'Reanudar carrusel' });
-    await expect(page.locator('#refacciones [data-paused]')).toHaveCount(1);
-    await resume.click();
-    await expect(page.locator('#refacciones [data-paused]')).toHaveCount(0);
   });
 
   test('offers a call on phones and WhatsApp elsewhere', async ({ page }) => {
@@ -254,6 +243,69 @@ test.describe('service cards without scripting', () => {
     expect(
       new URL((await quote.getAttribute('href')) ?? '', page.url()).searchParams.get('src'),
     ).toBe('services');
+  });
+});
+
+test.describe('featured categories', () => {
+  test('shows seven category cards with a lazy, decorative photo each @smoke', async ({ page }) => {
+    await page.goto('/');
+    const cards = page.locator('#refacciones li > article');
+    await expect(cards).toHaveCount(7);
+    const first = cards.first();
+    await expect(first.getByRole('heading', { level: 3 })).toHaveText('Iluminación');
+    // Decorative: the category name sits on top of it.
+    await expect(first.locator('img')).toHaveAttribute('alt', '');
+    await expect(first.locator('img')).toHaveAttribute('loading', 'lazy');
+    await expect(first.getByRole('link')).toHaveCount(6);
+  });
+
+  test('a chip asks for its own part by name', async ({ page }) => {
+    await page.goto('/');
+    const chip = page.getByRole('link', { name: /Foco H4.*Preguntar disponibilidad/ });
+    const href = (await chip.getAttribute('href')) ?? '';
+    const url = new URL(href, page.url());
+    expect(url.searchParams.get('src')).toBe('featured');
+    expect(url.searchParams.get('text')).toContain('Foco H4');
+  });
+});
+
+test.describe('section entrances', () => {
+  test('every block that reaches the screen ends up in its place', async ({ page }) => {
+    await page.goto('/');
+    for (const id of ['#servicios', '#refacciones', '#ubicacion', '#contacto']) {
+      await page.locator(id).scrollIntoViewIfNeeded();
+      await expect(page.locator(`${id} h2`)).toBeVisible();
+    }
+    await page.evaluate(() => {
+      window.scrollTo(0, document.body.scrollHeight);
+    });
+    await page.waitForTimeout(900);
+    // A block the visitor has scrolled past must never still be displaced: the guard against an
+    // entrance that moves copy and then fails to put it back. The entrance never touches
+    // opacity — a block caught mid-fade would render its text under 4.5:1.
+    const stuck = await page.locator('[data-enter]').evaluateAll(
+      (blocks) =>
+        blocks
+          .filter((block) => block.getBoundingClientRect().top < window.innerHeight)
+          .filter((block) => {
+            const { translate, scale, opacity } = getComputedStyle(block);
+            const moved = translate !== 'none' && translate !== '0px';
+            const scaled = scale !== 'none' && scale !== '1';
+            return moved || scaled || Number(opacity) < 1;
+          }).length,
+    );
+    expect(stuck).toBe(0);
+  });
+
+  test('nothing is displaced when the island never runs', async ({ browser }) => {
+    const context = await browser.newContext({ javaScriptEnabled: false });
+    const page = await context.newPage();
+    await page.goto('/');
+    // Without the island nothing marks <html>, so no block is ever hidden or moved.
+    await expect(page.locator('html')).not.toHaveAttribute('data-enter-ready', /.*/);
+    await expect(page.locator('#refacciones h2')).toBeVisible();
+    await expect(page.getByRole('link', { name: /Preguntar disponibilidad/ })).toHaveCount(18);
+    await context.close();
   });
 });
 

@@ -14,7 +14,7 @@ export function FinalCta() {
       aria-labelledby="cta-title"
       className="mx-auto max-w-(--container-page) px-4 py-60 md:px-24 md:py-96"
     >
-      <div className="flex flex-col items-start gap-24">
+      <div data-enter className="flex flex-col items-start gap-24">
         <h2
           id="cta-title"
           className="max-w-[900px] text-heading-sm font-normal tracking-display uppercase md:text-heading-lg"

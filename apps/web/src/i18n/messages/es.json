@@ -103,7 +103,7 @@
   },
   "featured": {
     "eyebrow": "Refacciones y accesorios",
-    "title": "Lo que más nos piden",
+    "title": "Los más buscados",
     "body": "¿Buscas algo que no ves aquí? Pregúntanos por WhatsApp.",
     "ask": "Preguntar disponibilidad",
     "askMessage": "Hola, Mundo Motos. ¿Tienen disponible: {item}?",
@@ -135,9 +135,7 @@
       "tubes": "Cámaras",
       "rims": "Rines",
       "brakePads": "Balatas"
-    },
-    "pauseLabel": "Pausar carrusel",
-    "playLabel": "Reanudar carrusel"
+    }
   },
   "location": {
     "eyebrow": "Visítanos",
