@@ -14,6 +14,7 @@ const assets = new URL('../src/assets/', import.meta.url).pathname;
 
 const brand = join(assets, 'brand/');
 const services = join(assets, 'services/');
+const featured = join(assets, 'featured/');
 
 const jobs = [
   { src: 'logo-vector.png', name: 'logo', widths: [96, 192, 512], format: 'webp' },
@@ -38,6 +39,11 @@ const jobs = [
     widths: [320, 512],
     format: 'webp',
   })),
+  // Featured categories. One photo per category card: 480 covers a phone and the two-column
+  // grid, 960 the card that spans both columns on a wide screen.
+  ...['lighting', 'accessories', 'protection', 'tires', 'tubes', 'rims', 'brake-pads'].map(
+    (name) => ({ dir: featured, src: `${name}.jpg`, name, widths: [480, 960], format: 'webp' }),
+  ),
 ];
 
 for (const { src, name, widths, format, background, dir = brand } of jobs) {

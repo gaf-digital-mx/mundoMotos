@@ -15,31 +15,39 @@ export function FinalCta() {
       className="mx-auto max-w-(--container-page) px-4 py-60 md:px-24 md:py-96"
     >
       <div className="flex flex-col items-start gap-24">
+        {/* Entered piece by piece rather than as one block: the pill's dock slot is in here, and
+            a slot that travels with an entrance makes the pill flicker — the dock measures the
+            moving box and swaps copies while it settles. */}
         <h2
+          data-enter
           id="cta-title"
           className="max-w-[900px] text-heading-sm font-normal tracking-display uppercase md:text-heading-lg"
         >
           {t('finalCta.title')}
         </h2>
-        <p className="max-w-[620px] text-silver-mist">{t('finalCta.body')}</p>
+        <p data-enter className="max-w-[620px] text-silver-mist">
+          {t('finalCta.body')}
+        </p>
         <div className="flex flex-wrap items-center gap-18">
           {/* The header is not sticky, so this section needs a CTA that works on a desktop too:
               touch widths dial, everyone else — including a zoomed, narrow desktop window —
               opens WhatsApp. Exactly one of the two is ever visible. */}
-          <PhoneButton
-            number={siteConfig.phoneNumber}
-            source="final-cta"
-            label={t('finalCta.cta')}
-            callHint={t('common.callHint')}
-            className="md:hidden pointer-fine:hidden"
-          />
-          <WhatsappButton
-            source="final-cta"
-            message={t('common.whatsappGreeting')}
-            label={t('finalCta.whatsapp')}
-            newTabHint={t('common.opensInNewTab')}
-            className="max-md:hidden pointer-fine:inline-flex"
-          />
+          <div data-enter className="flex flex-wrap items-center gap-18">
+            <PhoneButton
+              number={siteConfig.phoneNumber}
+              source="final-cta"
+              label={t('finalCta.cta')}
+              callHint={t('common.callHint')}
+              className="md:hidden pointer-fine:hidden"
+            />
+            <WhatsappButton
+              source="final-cta"
+              message={t('common.whatsappGreeting')}
+              label={t('finalCta.whatsapp')}
+              newTabHint={t('common.opensInNewTab')}
+              className="max-md:hidden pointer-fine:inline-flex"
+            />
+          </div>
           {/* The floating "Cómo llegar" pill docks here while this section is on screen. */}
           <DockedDirections dock="final-cta" />
         </div>

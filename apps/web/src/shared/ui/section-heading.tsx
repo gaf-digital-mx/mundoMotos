@@ -8,10 +8,13 @@ type Props = {
   body?: ReactNode;
 };
 
-/** Section headline block from the design system: amber label, large weight-400 title, light body. */
+/**
+ * Section headline block from the design system: amber label, large weight-400 title, light body.
+ * Every one of them rises in as it scrolls into view (`[data-enter]`, see globals.css).
+ */
 export function SectionHeading({ id, eyebrow, title, body }: Props) {
   return (
-    <header className="flex max-w-[760px] flex-col gap-18">
+    <header data-enter className="flex max-w-[760px] flex-col gap-18">
       <p className="text-nav-label font-semibold tracking-label text-ignition-gold uppercase">
         {eyebrow}
       </p>

@@ -46,7 +46,7 @@ export function Services() {
           return (
             // A grid item rather than `display: contents`, so the list keeps its semantics in
             // every screen reader and the cards still stretch to an equal row height.
-            <li key={id} className="grid">
+            <li key={id} data-enter className="grid">
               <ServiceCard
                 name={name}
                 body={t(`services.items.${id}.body`)}

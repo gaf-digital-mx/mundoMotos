@@ -7,7 +7,7 @@ test.describe('landing page', () => {
     const headings = page.getByRole('heading', { level: 2 });
     await expect(headings).toContainText([
       'Que tu moto ruede como nueva',
-      'Lo que más nos piden',
+      'Los más buscados',
       'Estamos en Tepetlixpa',
       'Cuéntanos qué necesitas.',
       '¿Listo para darle vida a tu moto?',
@@ -53,21 +53,11 @@ test.describe('landing page', () => {
     expect(location.searchParams.get('text')).toContain('Afinación');
   });
 
-  test('carousel duplicate is hidden from assistive tech and keyboard', async ({ page }) => {
+  test('every featured item keeps its own tracked WhatsApp chip', async ({ page }) => {
     await page.goto('/');
-    const duplicate = page.locator('#refacciones [aria-hidden="true"][inert]');
-    await expect(duplicate).toHaveCount(1);
-    await expect(page.getByRole('link', { name: /Preguntar disponibilidad/ })).toHaveCount(18);
-  });
-
-  test('carousel can be paused and resumed (WCAG 2.2.2)', async ({ page }) => {
-    await page.goto('/');
-    const toggle = page.getByRole('button', { name: 'Pausar carrusel' });
-    await toggle.click();
-    const resume = page.getByRole('button', { name: 'Reanudar carrusel' });
-    await expect(page.locator('#refacciones [data-paused]')).toHaveCount(1);
-    await resume.click();
-    await expect(page.locator('#refacciones [data-paused]')).toHaveCount(0);
+    // The 18 items moved from a scrolling strip into seven category cards; none was lost. The
+    // carousel only shows the middle category's chips, so the count includes the hidden ones.
+    await expect(page.locator('#refacciones a[href^="/api/go/whatsapp"]')).toHaveCount(18);
   });
 
   test('offers a call on phones and WhatsApp elsewhere', async ({ page }) => {
@@ -257,6 +247,162 @@ test.describe('service cards without scripting', () => {
   });
 });
 
+test.describe('featured categories', () => {
+  test('shows seven category cards with a lazy, decorative photo each @smoke', async ({ page }) => {
+    await page.goto('/');
+    const cards = page.locator('#refacciones [data-card]');
+    await expect(cards).toHaveCount(7);
+    const first = cards.first();
+    await expect(first.getByRole('heading', { level: 3 })).toHaveText('Iluminación');
+    // Decorative: the category name sits on top of it.
+    await expect(first.locator('img')).toHaveAttribute('alt', '');
+    await expect(first.locator('img')).toHaveAttribute('loading', 'lazy');
+  });
+
+  test('only the category in the middle shows its chips', async ({ page }) => {
+    await page.goto('/');
+    // Picking a category also stops the rotation, so nothing moves under the assertions.
+    await page.getByRole('button', { name: 'Ver Iluminación' }).click();
+    await expect(page.locator('#refacciones a:visible')).toHaveCount(6);
+    await expect(page.getByRole('link', { name: /Foco H4/ })).toBeVisible();
+
+    await page.getByRole('button', { name: 'Ver Protección' }).click();
+    await expect(page.getByRole('link', { name: /Cascos/ })).toBeVisible();
+    await expect(page.getByRole('link', { name: /Foco H4/ })).toBeHidden();
+  });
+
+  test('rotates on its own and stays put once paused', async ({ page }) => {
+    await page.goto('/');
+    const lighting = page.locator('#featured-panel-lighting');
+    await expect(lighting).toBeVisible();
+    // It starts on the first category and moves along without anyone touching it.
+    await expect(lighting).toBeHidden({ timeout: 15_000 });
+
+    const toggle = page.locator('#refacciones [data-carousel-toggle]');
+    await toggle.click();
+    const showing = await page
+      .locator('#refacciones [id^="featured-panel-"]:visible')
+      .first()
+      .getAttribute('id');
+    // Away from the carousel: the focused button holds the rotation by itself, which would
+    // hide a broken pause button.
+    await page.locator('#featured-title').click();
+    await expect(toggle).toHaveAttribute('aria-label', /^Reanudar/);
+    // Comfortably longer than one turn of the rotation (3.6s).
+    await page.waitForTimeout(5000);
+    await expect(page.locator(`#${showing ?? ''}`)).toBeVisible();
+  });
+
+  test('a drag moves the strip along, and the ring has no ends', async ({ page }) => {
+    await page.goto('/');
+    const strip = page.locator('#refacciones [data-coverflow]');
+    await strip.scrollIntoViewIfNeeded();
+    // Picking a category stops the rotation: from here on the gesture is the only thing moving.
+    await page.getByRole('button', { name: 'Ver Iluminación' }).click();
+    // The section is still rising into place when it is scrolled to, and a drag aimed at where
+    // it was lands next to it: wait for the strip to stop moving before measuring it.
+    let box = await strip.boundingBox();
+    await expect
+      .poll(async () => {
+        const now = await strip.boundingBox();
+        const still = now && box && Math.abs(now.y - box.y) < 1 && Math.abs(now.x - box.x) < 1;
+        box = now;
+        return Boolean(still);
+      })
+      .toBe(true);
+    const x = (box?.x ?? 0) + (box?.width ?? 0) / 2;
+    // The cards sit at the top of the strip; the rest of its box is the space they are drawn in.
+    const y = (box?.y ?? 0) + 40;
+
+    // Pulling left brings the next category over, further than any card's travel on any screen.
+    await page.mouse.move(x, y);
+    await page.mouse.down();
+    await page.mouse.move(x - 200, y, { steps: 12 });
+    await page.mouse.up();
+    await expect(page.locator('#featured-panel-accessories')).toBeVisible();
+
+    // Pulling the other way past the first category lands on the last one, not on nothing.
+    await page.mouse.move(x, y);
+    await page.mouse.down();
+    await page.mouse.move(x + 200, y, { steps: 12 });
+    await page.mouse.up();
+    await expect(page.locator('#featured-panel-lighting')).toBeVisible();
+    await page.getByRole('button', { name: 'Categoría anterior' }).click();
+    await expect(page.locator('#featured-panel-brakePads')).toBeVisible();
+    // ...and the category after the last one is the first again.
+    await page.getByRole('button', { name: 'Categoría siguiente' }).click();
+    await expect(page.locator('#featured-panel-lighting')).toBeVisible();
+  });
+
+  test('a chip asks for its own part by name', async ({ page }) => {
+    await page.goto('/');
+    const chip = page.locator('#featured-panel-lighting a').first();
+    const href = (await chip.getAttribute('href')) ?? '';
+    const url = new URL(href, page.url());
+    expect(url.searchParams.get('src')).toBe('featured');
+    expect(url.searchParams.get('text')).toContain('Foco H4');
+  });
+});
+
+test.describe('section entrances', () => {
+  test('every block that reaches the screen ends up in its place', async ({ page }) => {
+    await page.goto('/');
+    for (const id of ['#servicios', '#refacciones', '#ubicacion', '#contacto']) {
+      await page.locator(id).scrollIntoViewIfNeeded();
+      await expect(page.locator(`${id} h2`)).toBeVisible();
+    }
+    await page.evaluate(() => {
+      window.scrollTo(0, document.body.scrollHeight);
+    });
+    await page.waitForTimeout(900);
+    // A block the visitor has scrolled past must never still be displaced: the guard against an
+    // entrance that moves copy and then fails to put it back. Blocks still poking in from the
+    // bottom edge are the exit, and are allowed to be on their way out. The entrance never
+    // touches opacity — a block caught mid-fade would render its text under 4.5:1.
+    const stuck = await page.locator('[data-enter]').evaluateAll(
+      (blocks) =>
+        blocks
+          .filter((block) => block.getBoundingClientRect().top < window.innerHeight * 0.9)
+          .filter((block) => {
+            const { translate, scale, opacity } = getComputedStyle(block);
+            const moved = translate !== 'none' && translate !== '0px';
+            const scaled = scale !== 'none' && scale !== '1';
+            return moved || scaled || Number(opacity) < 1;
+          }).length,
+    );
+    expect(stuck).toBe(0);
+  });
+
+  test('a block sinks back out when it is scrolled below the fold again', async ({ page }) => {
+    await page.goto('/');
+    const block = page.locator('#ubicacion [data-enter]').first();
+    await page.locator('#ubicacion').scrollIntoViewIfNeeded();
+    await expect(block).toHaveAttribute('data-entered', '');
+
+    // Scrolling up is the exit: the same travel, backwards, ready to play again on the way down.
+    await page.evaluate(() => {
+      window.scrollTo(0, 0);
+    });
+    await expect(block).not.toHaveAttribute('data-entered', /.*/);
+    await page.locator('#ubicacion').scrollIntoViewIfNeeded();
+    await expect(block).toHaveAttribute('data-entered', '');
+  });
+
+  test('nothing is displaced when the island never runs', async ({ browser }) => {
+    const context = await browser.newContext({ javaScriptEnabled: false });
+    const page = await context.newPage();
+    await page.goto('/');
+    // Without the island nothing marks <html>, so no block is ever hidden or moved.
+    await expect(page.locator('html')).not.toHaveAttribute('data-enter-ready', /.*/);
+    await expect(page.locator('#refacciones h2')).toBeVisible();
+    // The carousel is the island's doing too: without it every category shows every chip, and
+    // no control is rendered that nothing could drive.
+    await expect(page.getByRole('link', { name: /Preguntar disponibilidad/ })).toHaveCount(18);
+    await expect(page.locator('#refacciones button')).toHaveCount(0);
+    await context.close();
+  });
+});
+
 test.describe('"Cómo llegar" pill', () => {
   test('docks into the hero and the location section, and floats in between', async ({ page }) => {
     await page.goto('/');
@@ -371,6 +517,15 @@ test.describe('"Cómo llegar" pill', () => {
       expect(changes).toBeLessThanOrEqual(14);
     });
   }
+
+  test('no dock slot travels with a section entrance', async ({ page }) => {
+    await page.goto('/');
+    // A slot inside a block that rises into place moves while the block settles, and the dock
+    // measures that moving box: the pill then swaps copies several times over, which is the
+    // flicker the test above counts. Keep the slots out of the entrances instead.
+    await expect(page.locator('[data-dock-slot]')).not.toHaveCount(0);
+    await expect(page.locator('[data-enter] [data-dock-slot]')).toHaveCount(0);
+  });
 
   test('focus follows the pill when it docks', async ({ page }) => {
     await page.goto('/');

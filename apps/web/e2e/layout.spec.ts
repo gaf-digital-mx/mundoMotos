@@ -22,11 +22,15 @@ test.describe('responsive layout', () => {
   for (const path of ['/', '/aviso-de-privacidad']) {
     test(`has no horizontal scroll at 320px on ${path} (WCAG 1.4.10)`, async ({ page }) => {
       await page.goto(path);
-      const overflow = await page.evaluate(
-        (expected) => document.documentElement.scrollWidth - expected,
-        320,
-      );
-      expect(overflow).toBeLessThanOrEqual(0);
+      // Measured once the page has settled and again further down it: a block on its way in is
+      // displaced sideways, and a page that only fits before anything moves does not fit.
+      const widest = async () =>
+        page.evaluate((expected) => document.documentElement.scrollWidth - expected, 320);
+      await page.waitForTimeout(1200);
+      expect(await widest()).toBeLessThanOrEqual(0);
+      await page.locator('footer').scrollIntoViewIfNeeded();
+      await page.waitForTimeout(1200);
+      expect(await widest()).toBeLessThanOrEqual(0);
     });
   }
 
