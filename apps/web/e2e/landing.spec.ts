@@ -18,10 +18,15 @@ const drag = async (page: Page, x: number, y: number, dx: number) => {
   await expect(strip).toHaveAttribute('data-dragging', '');
   await page.mouse.move(x + dx, y, { steps: 12 });
   // The cards follow the gesture as it happens: `--drag` is how many places they have moved.
-  const pulled = await strip.evaluate((node) => node.style.getPropertyValue('--drag'));
-  expect(Math.abs(Number(pulled))).toBeGreaterThan(0.5);
+  // Polled rather than read once, like the assertions around it: an engine is free to resolve
+  // the move before the page has run its listener, and a single read would race that.
+  await expect
+    .poll(async () =>
+      Math.abs(Number(await strip.evaluate((node) => node.style.getPropertyValue('--drag')))),
+    )
+    .toBeGreaterThan(0.5);
   await page.mouse.up();
-  await expect(strip).not.toHaveAttribute('data-dragging', '');
+  await expect(strip).not.toHaveAttribute('data-dragging');
 };
 
 test.describe('landing page', () => {
