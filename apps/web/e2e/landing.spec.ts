@@ -1,5 +1,28 @@
 import AxeBuilder from '@axe-core/playwright';
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
+
+/**
+ * Drags the category strip sideways from (`x`, `y`) by `dx` pixels.
+ *
+ * It checks the strip took the gesture before letting go, because a drag that does nothing can
+ * fail in three places — the press never reaching the strip, the strip never claiming the
+ * gesture, or the release landing on the wrong card — and only the last one is about the
+ * carousel's own arithmetic. A bare assertion on the panel afterwards cannot tell them apart.
+ */
+const drag = async (page: Page, x: number, y: number, dx: number) => {
+  const strip = page.locator('#refacciones [data-coverflow]');
+  await page.mouse.move(x, y);
+  await page.mouse.down();
+  // Far enough to be sideways rather than a tap that wandered (the island's own threshold).
+  await page.mouse.move(x + Math.sign(dx) * 20, y);
+  await expect(strip).toHaveAttribute('data-dragging', '');
+  await page.mouse.move(x + dx, y, { steps: 12 });
+  // The cards follow the gesture as it happens: `--drag` is how many places they have moved.
+  const pulled = await strip.evaluate((node) => node.style.getPropertyValue('--drag'));
+  expect(Math.abs(Number(pulled))).toBeGreaterThan(0.5);
+  await page.mouse.up();
+  await expect(strip).not.toHaveAttribute('data-dragging', '');
+};
 
 test.describe('landing page', () => {
   test('renders every section in order @smoke', async ({ page }) => {
@@ -310,22 +333,21 @@ test.describe('featured categories', () => {
         return Boolean(still);
       })
       .toBe(true);
-    const x = (box?.x ?? 0) + (box?.width ?? 0) / 2;
+    const middle = (box?.x ?? 0) + (box?.width ?? 0) / 2;
     // The cards sit at the top of the strip; the rest of its box is the space they are drawn in.
     const y = (box?.y ?? 0) + 40;
+    // Both ends of the gesture have to stay on screen — a narrow phone is only ~390px wide, so
+    // a 200px pull from the middle would end off the viewport, where no thumb can reach and no
+    // engine promises anything. Start it off-centre instead, still on the middle card.
+    const travel = 200;
+    const grip = 70;
 
     // Pulling left brings the next category over, further than any card's travel on any screen.
-    await page.mouse.move(x, y);
-    await page.mouse.down();
-    await page.mouse.move(x - 200, y, { steps: 12 });
-    await page.mouse.up();
+    await drag(page, middle + grip, y, -travel);
     await expect(page.locator('#featured-panel-accessories')).toBeVisible();
 
     // Pulling the other way past the first category lands on the last one, not on nothing.
-    await page.mouse.move(x, y);
-    await page.mouse.down();
-    await page.mouse.move(x + 200, y, { steps: 12 });
-    await page.mouse.up();
+    await drag(page, middle - grip, y, travel);
     await expect(page.locator('#featured-panel-lighting')).toBeVisible();
     await page.getByRole('button', { name: 'Categoría anterior' }).click();
     await expect(page.locator('#featured-panel-brakePads')).toBeVisible();
