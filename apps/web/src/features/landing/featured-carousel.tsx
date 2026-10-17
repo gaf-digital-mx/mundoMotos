@@ -134,14 +134,22 @@ export function FeaturedCarousel({ categories, rel, labels }: Props) {
     let stepPx = 0;
     let places = 0;
     let dragging = false;
+    // Whether this engine reports held buttons at all, which is what makes the check in `move`
+    // below meaningful: an engine that always says zero must not have every gesture cut short.
+    let buttonsReported = false;
 
     const down = (event: PointerEvent) => {
-      if (pointer !== null || !event.isPrimary) return;
+      if (!event.isPrimary) return;
+      // A press this listener never saw end — a `pointerup` the engine swallowed, a pointer it
+      // dropped — is abandoned rather than kept: a gesture nobody is making must not be able to
+      // own the strip for good.
+      if (dragging) release();
       pointer = event.pointerId;
       startX = event.clientX;
       startY = event.clientY;
       places = 0;
       dragging = false;
+      buttonsReported = event.buttons > 0;
       // One card's travel, in pixels: `--step` is a registered length, so it comes back resolved
       // whatever the viewport does to it.
       const step = Number.parseFloat(getComputedStyle(node).getPropertyValue('--step'));
@@ -156,9 +164,13 @@ export function FeaturedCarousel({ categories, rel, labels }: Props) {
 
     const move = (event: PointerEvent) => {
       if (event.pointerId !== pointer) return;
+      // An engine that reports a held button even once is one whose word can be taken below.
+      buttonsReported ||= event.buttons > 0;
       // A press that ended out of reach — another window, a context menu — sends no `pointerup`
-      // anybody hears. The first move with nothing held down is where the strip finds out.
-      if (event.buttons === 0) {
+      // anybody hears. The first move with nothing held down is where the strip finds out, but
+      // only where the press itself said something was held: otherwise this is all the engine
+      // ever reports and the gesture would end before it began.
+      if (buttonsReported && event.buttons === 0) {
         pointer = null;
         if (dragging) release();
         return;
@@ -169,7 +181,12 @@ export function FeaturedCarousel({ categories, rel, labels }: Props) {
         // screen still scrolls the page instead of nudging the strip.
         if (Math.abs(dx) < DRAG_SLACK || Math.abs(dx) <= Math.abs(event.clientY - startY)) return;
         dragging = true;
-        node.setPointerCapture(event.pointerId);
+        try {
+          node.setPointerCapture(event.pointerId);
+        } catch {
+          // Capture only keeps the gesture tidy; everything after the press is watched on the
+          // window anyway. An engine that refuses it must not take the drag down with it.
+        }
         node.dataset.dragging = '';
       }
       places = dx / stepPx;
