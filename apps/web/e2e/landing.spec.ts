@@ -2,20 +2,49 @@ import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 
 /**
- * Drags the category strip sideways from (`x`, `y`) by `dx` pixels.
+ * Drags the category strip sideways by `dx` pixels, gripping it `offset` pixels from its middle.
  *
  * It checks the strip took the gesture before letting go, because a drag that does nothing can
  * fail in three places — the press never reaching the strip, the strip never claiming the
  * gesture, or the release landing on the wrong card — and only the last one is about the
  * carousel's own arithmetic. A bare assertion on the panel afterwards cannot tell them apart.
  */
-const drag = async (page: Page, x: number, y: number, dx: number) => {
+const drag = async (page: Page, offset: number, dx: number) => {
   const strip = page.locator('#refacciones [data-coverflow]');
-  await page.mouse.move(x, y);
+  // The cards sit at the top of the strip; the rest of its box is the space they are drawn in.
+  const grip = { x: ((await strip.boundingBox())?.width ?? 0) / 2 + offset, y: 40 };
+  // Pointed at rather than pressed at coordinates measured earlier: the section rises into place
+  // on its way in, and Playwright waits here for the strip to stop moving and to be the thing
+  // under that point. A box measured a moment too early is a press that lands beside the strip,
+  // where the island — which listens on the list, not on the window — never hears it.
+  await strip.hover({ position: grip });
+  const box = await strip.boundingBox();
+  const x = (box?.x ?? 0) + grip.x;
+  const y = (box?.y ?? 0) + grip.y;
+  // What the browser actually sent, in case the strip does not take the gesture: then it says
+  // why rather than only that it did not. That answer took three CI rounds the first time.
+  const sent = await page.evaluateHandle(() => {
+    const log: string[] = [];
+    const note = (event: Event) => {
+      const { type, pointerType, button, buttons, isPrimary } = event as PointerEvent;
+      log.push(`${type}:${pointerType}:button=${button}:buttons=${buttons}:primary=${isPrimary}`);
+    };
+    for (const type of ['pointerdown', 'pointermove', 'pointerup', 'pointercancel']) {
+      window.addEventListener(type, note);
+    }
+    return log;
+  });
   await page.mouse.down();
   // Far enough to be sideways rather than a tap that wandered (the island's own threshold).
   await page.mouse.move(x + Math.sign(dx) * 20, y);
-  await expect(strip).toHaveAttribute('data-dragging', '');
+  const took = 'the strip took the gesture';
+  await expect
+    .poll(async () =>
+      (await strip.evaluate((node) => node.hasAttribute('data-dragging')))
+        ? took
+        : `the strip never took the gesture; the page saw ${(await sent.jsonValue()).join(' | ')}`,
+    )
+    .toBe(took);
   await page.mouse.move(x + dx, y, { steps: 12 });
   // The cards follow the gesture as it happens: `--drag` is how many places they have moved.
   // Polled rather than read once, like the assertions around it: an engine is free to resolve
@@ -327,32 +356,19 @@ test.describe('featured categories', () => {
     await strip.scrollIntoViewIfNeeded();
     // Picking a category stops the rotation: from here on the gesture is the only thing moving.
     await page.getByRole('button', { name: 'Ver Iluminación' }).click();
-    // The section is still rising into place when it is scrolled to, and a drag aimed at where
-    // it was lands next to it: wait for the strip to stop moving before measuring it.
-    let box = await strip.boundingBox();
-    await expect
-      .poll(async () => {
-        const now = await strip.boundingBox();
-        const still = now && box && Math.abs(now.y - box.y) < 1 && Math.abs(now.x - box.x) < 1;
-        box = now;
-        return Boolean(still);
-      })
-      .toBe(true);
-    const middle = (box?.x ?? 0) + (box?.width ?? 0) / 2;
-    // The cards sit at the top of the strip; the rest of its box is the space they are drawn in.
-    const y = (box?.y ?? 0) + 40;
-    // Both ends of the gesture have to stay on screen — a narrow phone is only ~390px wide, so
-    // a 200px pull from the middle would end off the viewport, where no thumb can reach and no
-    // engine promises anything. Start it off-centre instead, still on the middle card.
+    // Both ends of a gesture have to stay on screen — a narrow phone is only ~390px wide, so a
+    // 200px pull from the middle would end off the viewport, where no thumb can reach and no
+    // engine promises anything. Gripping the strip off-centre, still on the middle card, keeps
+    // the whole of it in reach.
     const travel = 200;
     const grip = 70;
 
     // Pulling left brings the next category over, further than any card's travel on any screen.
-    await drag(page, middle + grip, y, -travel);
+    await drag(page, grip, -travel);
     await expect(page.locator('#featured-panel-accessories')).toBeVisible();
 
     // Pulling the other way past the first category lands on the last one, not on nothing.
-    await drag(page, middle - grip, y, travel);
+    await drag(page, -grip, travel);
     await expect(page.locator('#featured-panel-lighting')).toBeVisible();
     await page.getByRole('button', { name: 'Categoría anterior' }).click();
     await expect(page.locator('#featured-panel-brakePads')).toBeVisible();
