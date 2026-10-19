@@ -152,10 +152,10 @@
   "contact": {
     "eyebrow": "¿Tienes una pregunta?",
     "title": "Cuéntanos qué necesitas.",
-    "body": "Este sitio no guarda tu información.",
+    "body": "*Este sitio no guarda tu información.",
     "nameLabel": "Tu nombre",
     "queryLabel": "Describe tu duda",
-    "queryPlaceholder": "Ej. ¿Tienen balatas para Italika FT150?",
+    "queryExample": "Ej. ¿Tienen balatas para Italika FT150?",
     "submit": "Enviar por WhatsApp",
     "messageTemplate": "Hola, Mundo Motos. Soy {name}. {query}",
     "errors": {

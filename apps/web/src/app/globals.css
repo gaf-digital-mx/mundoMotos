@@ -436,6 +436,10 @@ html:not([data-directions-dock]):has([data-dock='hero']) [data-dock='hero'] {
 html:not([data-directions-dock]):has([data-dock='hero']) [data-directions='floating'] {
   visibility: hidden;
 }
+/* A region that asked for the lane to itself is on screen (DirectionsDock sets this). */
+html[data-directions-muted] [data-directions='floating'] {
+  visibility: hidden;
+}
 @media (scripting: none) {
   [data-directions='floating'] {
     visibility: visible !important;
@@ -478,5 +482,105 @@ html:not([data-directions-dock]):has([data-dock='hero']) [data-directions='float
       scroll-behavior: auto !important;
       transition-duration: 0.01ms !important;
     }
+  }
+}
+
+/*
+ * Section backgrounds. A photo behind a whole section, edge to edge on every screen, with the
+ * copy above it still inside the page container.
+ *
+ * The photo is an element rather than a `background-image`: `background-position` does not run on
+ * the compositor, and `background-attachment: fixed` is ignored on iOS Safari — neither could
+ * carry the drift below on the screens that matter most here. An `<img>` moved with `translate`
+ * costs the main thread nothing.
+ *
+ * The layer is taller than the section it fills and rides a `view()` timeline, so it drifts
+ * against the scroll. The `img` rule below carries the travel and what it costs at the sides.
+ *
+ * `[data-parallax]` must never sit inside a `[data-enter]` block. An entrance translates its
+ * whole subtree, and a layer drifting inside a frame that is itself moving fights it — the trap
+ * the docked pill already fell into once.
+ */
+[data-section-bg] {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  /* `clip` rather than `hidden`: no scroll container, so nothing sticky or anchored changes. */
+  overflow: clip;
+}
+[data-section-bg] img {
+  position: absolute;
+  /* Two knobs that move together. `--drift-reach` is how far the layer hangs past the section
+     at each end, in the section's height; `--drift-travel` is how far it then moves, in its own.
+     The second has to stay inside the first once the layer's own height is counted — ±8% of a
+     layer 124% tall is 9.9% of the section against a reach of 12% — and the margin between them
+     cannot be thin: at 0.4%, about two pixels, a fractional device ratio or a zoom level rounds
+     it away and a hairline of page shows along one edge.
+     The reach is also what sets the crop, since a layer that much taller than the section has to
+     be covered from a photo that was not that shape. A wider drift is a bigger crop; how much
+     bigger depends on the picture, which is why a section can raise both. */
+  inset: calc(var(--drift-reach, 12%) * -1) 0;
+  width: 100%;
+  height: calc(100% + var(--drift-reach, 12%) * 2);
+  object-fit: cover;
+  object-position: center;
+}
+/* The copy runs down the left of the section, over the brightest part of the photo, so the veil
+   is heaviest there and clears towards the artwork on the right. On a phone the copy spans the
+   whole width, so there it runs top to bottom instead.
+   How dark it has to be belongs to the photograph, not to the pattern: a darker picture wants
+   less of it and a lit one wants more, so each section sets its own and these are the closing
+   section's. `e2e/contrast.spec.ts` is what says whether a given set is enough. */
+[data-section-bg]::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to bottom,
+    color-mix(in srgb, var(--color-void) var(--veil-near, 74%), transparent) 0%,
+    color-mix(in srgb, var(--color-void) var(--veil-mid, 60%), transparent) 50%,
+    color-mix(in srgb, var(--color-void) var(--veil-far, 26%), transparent) 100%
+  );
+}
+@media (width >= 48rem) {
+  [data-section-bg]::after {
+    background: linear-gradient(
+      to right,
+      color-mix(in srgb, var(--color-void) var(--veil-near-md, 66%), transparent) 0%,
+      color-mix(in srgb, var(--color-void) var(--veil-mid-md, 50%), transparent) 25%,
+      color-mix(in srgb, var(--color-void) var(--veil-far-md, 10%), transparent) 100%
+    );
+  }
+}
+/* Forced colours drop the gradient but not the photograph, which would leave system-coloured
+   text straight on the sunset. The picture is decoration; the words are not. */
+@media (forced-colors: active) {
+  [data-section-bg] {
+    display: none;
+  }
+}
+/* Nothing to fall back to but a still photo, which is the whole point of doing this in CSS: a
+   browser without scroll-driven animations, or a visitor who does not want movement, simply
+   keeps the picture. */
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    [data-parallax] {
+      animation: section-drift linear both;
+      animation-timeline: view();
+      /* The last section on the page never finishes leaving the viewport — the document ends
+         first — so the tail of the default `cover` range cannot be scrolled to and the drift
+         would stop short of its travel (measured: it reached 2% of the 4%). Ending the range
+         early fits the whole travel inside the part that can actually be reached; a section with
+         open road above and below it can raise `--drift-end` back towards 100%. */
+      animation-range: cover 0% cover var(--drift-end, 70%);
+    }
+  }
+}
+@keyframes section-drift {
+  from {
+    translate: 0 calc(var(--drift-travel, 8%) * -1);
+  }
+  to {
+    translate: 0 var(--drift-travel, 8%);
   }
 }

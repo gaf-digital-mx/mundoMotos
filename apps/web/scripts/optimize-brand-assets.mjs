@@ -15,6 +15,7 @@ const assets = new URL('../src/assets/', import.meta.url).pathname;
 const brand = join(assets, 'brand/');
 const services = join(assets, 'services/');
 const featured = join(assets, 'featured/');
+const backgrounds = join(assets, 'backgrounds/');
 
 const jobs = [
   { src: 'logo-vector.png', name: 'logo', widths: [96, 192, 512], format: 'webp' },
@@ -44,9 +45,47 @@ const jobs = [
   ...['lighting', 'accessories', 'protection', 'tires', 'tubes', 'rims', 'brake-pads'].map(
     (name) => ({ dir: featured, src: `${name}.jpg`, name, widths: [480, 960], format: 'webp' }),
   ),
+  // Section backgrounds. These run the full width of the screen rather than the page container,
+  // so the widths follow the viewport: 768 a phone, 1280 a tablet or a narrow window, 1887 the
+  // original's own width — the ceiling, since nothing is gained by enlarging it. They sit under
+  // a veil, which is why they are the one group worth compressing harder than the rest.
+  {
+    dir: backgrounds,
+    src: 'final-cta.png',
+    name: 'final-cta',
+    widths: [768, 1280, 1887],
+    format: 'webp',
+    quality: 70,
+  },
+  // The phone gets its own portrait cut of the same scene: the wide one holds a 3.8:1 frame, and
+  // a phone can only ever show a sliver of that. 940 is the original's width and the ceiling.
+  {
+    dir: backgrounds,
+    src: 'final-cta-mobile.png',
+    name: 'final-cta-mobile',
+    widths: [480, 768, 940],
+    format: 'webp',
+    quality: 70,
+  },
+  {
+    dir: backgrounds,
+    src: 'contact.png',
+    name: 'contact',
+    widths: [768, 1280, 1920],
+    format: 'webp',
+    quality: 70,
+  },
+  {
+    dir: backgrounds,
+    src: 'contact-mobile.png',
+    name: 'contact-mobile',
+    widths: [480, 758],
+    format: 'webp',
+    quality: 70,
+  },
 ];
 
-for (const { src, name, widths, format, background, dir = brand } of jobs) {
+for (const { src, name, widths, format, background, quality = 82, dir = brand } of jobs) {
   const out = join(dir, 'generated');
   mkdirSync(out, { recursive: true });
   for (const width of widths) {
@@ -55,7 +94,7 @@ for (const { src, name, widths, format, background, dir = brand } of jobs) {
     if (background) image = image.flatten({ background });
     await (
       format === 'webp'
-        ? image.webp({ quality: 82 })
+        ? image.webp({ quality })
         : image.png({ palette: true, quality: 90, compressionLevel: 9 })
     ).toFile(file);
     console.log('✔', file.replace(assets, ''));

@@ -21,7 +21,12 @@ export function SectionHeading({ id, eyebrow, title, body }: Props) {
       <h2 id={id} className="text-heading-sm font-normal tracking-display md:text-heading">
         {title}
       </h2>
-      {body === undefined ? null : <p className="text-silver-mist">{body}</p>}
+      {/* Silver on the sections that sit on black, where it reads 4.57:1. A section standing on
+          a photograph raises `--section-body` to white instead: silver has nothing left to give
+          once there is a picture underneath it. */}
+      {body === undefined ? null : (
+        <p className="text-[color:var(--section-body,var(--color-silver-mist))]">{body}</p>
+      )}
     </header>
   );
 }

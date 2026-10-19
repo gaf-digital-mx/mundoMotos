@@ -3,6 +3,8 @@
 import { useEffect } from 'react';
 
 const STATE = 'data-directions-dock';
+/** Set while a region that wants the floating pill out of the way is on screen. */
+const MUTED = 'data-directions-muted';
 
 const TRAVEL_MS = 320;
 const FADE_MS = 180;
@@ -95,10 +97,35 @@ export function DirectionsDock() {
       { rootMargin: `0px 0px -${String(FLOATING_BAND_PX)}px 0px`, threshold: 1 },
     );
     for (const slot of slots.keys()) observer.observe(slot);
+
+    // A region can ask for the pill to step aside entirely: the contact form does, because on a
+    // phone the pill rides the same bottom lane as its submit button and covers it. Tied to the
+    // region being on screen rather than to a field having focus — focus survives scrolling, so
+    // a field left focused would have taken the pill away for the rest of the page.
+    let covered = false;
+    const applyMute = () => {
+      // The pill must not be hidden out from under the keyboard (WCAG 2.4.3): while it has
+      // focus the mute waits, and `focusout` brings it back to finish the job.
+      root.toggleAttribute(MUTED, covered && document.activeElement !== floating);
+    };
+    const muter = new IntersectionObserver(
+      (entries) => {
+        covered = entries.some((entry) => entry.isIntersecting);
+        applyMute();
+      },
+      { threshold: 0 },
+    );
+    const mute = document.querySelector('[data-directions-mute]');
+    if (mute) muter.observe(mute);
+    floating.addEventListener('focusout', applyMute);
+
     return () => {
       observer.disconnect();
+      muter.disconnect();
+      floating.removeEventListener('focusout', applyMute);
       travel?.cancel();
       root.removeAttribute(STATE);
+      root.removeAttribute(MUTED);
     };
   }, []);
 
