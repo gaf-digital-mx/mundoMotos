@@ -91,9 +91,17 @@ export function ContactForm({ whatsappNumber, trackUrl, labels, messageTemplate 
   // Silver rather than ash for the rule: the panel behind it is glass now, and ash only cleared
   // 1.4.11 while the panel was dark enough to be a wall. No placeholder colour any more — there
   // are no placeholders left to colour.
+  // A rejected field is amber rather than flame, and takes a ground of its own. Over glass,
+  // flame reaches 1.72:1 against the 3:1 a control owes (1.4.11); amber on the bare panel still
+  // only reached 2.93 at the foot of the form, where the picture behind is at its lightest. The
+  // ground settles that, and a filled field is a better answer to "which one" than a hairline.
   const fieldClass =
-    'w-full border-0 border-b border-bone-white bg-transparent px-0 py-12 text-body font-normal text-bone-white focus:border-ignition-gold focus:ring-0 aria-invalid:border-flame-orange';
+    'w-full border-0 border-b border-bone-white bg-transparent px-0 py-12 text-body font-normal text-bone-white focus:border-ignition-gold focus:ring-0 aria-invalid:border-amber aria-invalid:bg-void/30 aria-invalid:px-12';
   const labelClass = 'text-nav-label font-semibold tracking-label uppercase';
+  // White, not flame. At 12px over glass flame reaches 2.24:1 against a 4.5:1 bar, and this
+  // is the one line a visitor has to read to get unstuck. The amber rule beside it is what
+  // says which field, so nothing rests on the colour of the words.
+  const errorClass = 'text-caption font-semibold text-bone-white';
 
   return (
     <form
@@ -125,7 +133,7 @@ export function ContactForm({ whatsappNumber, trackUrl, labels, messageTemplate 
           className={fieldClass}
         />
         {errors.name ? (
-          <p id={`${id}-name-error`} className="text-caption text-flame-orange">
+          <p id={`${id}-name-error`} className={errorClass}>
             {errorText('name')}
           </p>
         ) : null}
@@ -159,7 +167,7 @@ export function ContactForm({ whatsappNumber, trackUrl, labels, messageTemplate 
           className={`${fieldClass} resize-none`}
         />
         {errors.query ? (
-          <p id={`${id}-query-error`} className="text-caption text-flame-orange">
+          <p id={`${id}-query-error`} className={errorClass}>
             {errorText('query')}
           </p>
         ) : null}
@@ -174,7 +182,7 @@ export function ContactForm({ whatsappNumber, trackUrl, labels, messageTemplate 
         <span className="sr-only"> {labels.newTabHint}</span>
       </button>
 
-      <p aria-live="polite" className="text-caption text-silver-mist">
+      <p aria-live="polite" className="text-caption text-bone-white">
         {sent ? labels.sent : ''}
       </p>
     </form>
