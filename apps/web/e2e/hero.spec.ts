@@ -88,13 +88,20 @@ test.describe('interactive hero', () => {
     const wordmark = page.locator('[data-wordmark]');
     const left = () => wordmark.evaluate((el) => Math.round(el.getBoundingClientRect().left));
 
-    const start = await left();
     // Typed out left to right (a clip), so a late font only extends the right edge.
-    expect(
-      await wordmark.evaluate((el) =>
-        el.getAnimations().map((animation) => (animation as CSSAnimation).animationName),
-      ),
-    ).toContain('type');
+    // Polled, and measured only once it is typing: the page is navigated with
+    // `waitUntil: 'commit'`, so asking any earlier can land before the animation exists — and
+    // before the hero has been laid out at all, which anchors `start` to a position the wordmark
+    // never really had and reports the settling as a shift.
+    await expect
+      .poll(async () =>
+        wordmark.evaluate((el) =>
+          el.getAnimations().map((animation) => (animation as CSSAnimation).animationName),
+        ),
+      )
+      .toContain('type');
+    // Still well before the font, which this test holds back for 1.2s.
+    const start = await left();
     await expect(page.locator('[data-intro]')).toHaveAttribute('data-intro', 'done', {
       timeout: 6000,
     });
