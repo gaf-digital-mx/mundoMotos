@@ -78,8 +78,10 @@ export function ContactForm({ whatsappNumber, trackUrl, labels, messageTemplate 
     setSent(true);
   };
 
+  // Silver rather than ash for the rule and the hint: the panel behind them is glass now, and
+  // ash only cleared its thresholds when the panel was dark enough to be a wall.
   const fieldClass =
-    'w-full border-0 border-b border-ash-gray bg-transparent px-0 py-12 text-body font-normal text-bone-white placeholder:text-ash-gray focus:border-ignition-gold focus:ring-0 aria-invalid:border-flame-orange';
+    'w-full border-0 border-b border-silver-mist bg-transparent px-0 py-12 text-body font-normal text-bone-white placeholder:text-silver-mist focus:border-ignition-gold focus:ring-0 aria-invalid:border-flame-orange';
   const labelClass = 'text-nav-label font-semibold tracking-label uppercase';
 
   return (
@@ -94,7 +96,7 @@ export function ContactForm({ whatsappNumber, trackUrl, labels, messageTemplate 
       // bare rule each, and a 1px rule has to hold 3:1 against whatever it lands on (1.4.11) —
       // over the lit metal in the corner of that picture, nothing thin survives. Translucent
       // rather than solid so the workshop still reads through it.
-      className="flex flex-col gap-30 rounded-3xl border border-bone-white/10 bg-void/70 p-24 backdrop-blur-sm md:p-30"
+      className="flex flex-col gap-30 rounded-3xl border border-bone-white/10 bg-void/50 p-24 backdrop-blur-2xl md:p-30"
     >
       <div className="flex flex-col gap-6">
         <label htmlFor={`${id}-name`} className={labelClass}>
