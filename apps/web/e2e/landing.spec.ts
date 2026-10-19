@@ -578,6 +578,20 @@ test.describe('"Cómo llegar" pill', () => {
     await expect(page.locator('[data-enter] [data-parallax]')).toHaveCount(0);
   });
 
+  test('the floating pill steps aside while a field has focus', async ({ page }) => {
+    await page.goto('/');
+    const floating = page.locator("[data-directions='floating']");
+    const field = page.locator('#contacto input').first();
+    await field.scrollIntoViewIfNeeded();
+    await expect(floating).toBeVisible();
+    // On a phone the pill rides the same lane as the form's submit button, over the control of
+    // the thing being filled in.
+    await field.focus();
+    await expect(floating).toBeHidden();
+    await page.locator('#contact-title').click();
+    await expect(floating).toBeVisible();
+  });
+
   test('focus follows the pill when it docks', async ({ page }) => {
     await page.goto('/');
     await page.locator('#servicios').scrollIntoViewIfNeeded();
