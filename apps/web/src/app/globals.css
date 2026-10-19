@@ -491,9 +491,7 @@ html:not([data-directions-dock]):has([data-dock='hero']) [data-directions='float
  * costs the main thread nothing.
  *
  * The layer is taller than the section it fills and rides a `view()` timeline, so it drifts
- * against the scroll. Travel is ±4% of its own height and the overshoot hiding its edges is the
- * same 4%, which is also what caps the crop: the photo is only ever scaled a little past the
- * section, because a wider crop starts eating the artwork at the sides.
+ * against the scroll. The `img` rule below carries the travel and what it costs at the sides.
  *
  * `[data-parallax]` must never sit inside a `[data-enter]` block. An entrance translates its
  * whole subtree, and a layer drifting inside a frame that is itself moving fights it — the trap
@@ -508,13 +506,15 @@ html:not([data-directions-dock]):has([data-dock='hero']) [data-directions='float
 }
 [data-section-bg] img {
   position: absolute;
-  /* The overshoot is what the drift travels into, so it is the ±8% below plus a little, and it
-     is also what sets the crop: covering a section 20% taller than itself costs the wide photo
-     about 17% of its width at each side, which is as far as it can go before the artwork at the
-     edges starts to disappear. */
-  inset: -10% 0;
+  /* The overshoot is what the drift travels into, and it has to beat it: ±8% of a layer 124%
+     tall is 9.9% of the section against the 12% here. At the 10% this started on the margin was
+     0.4% — about two pixels, which a fractional device ratio or a zoom level can round away into
+     a hairline of page showing along one edge. The overshoot also sets the crop: covering a
+     section this much taller than itself costs the wide photo about 18% of its width at each
+     side, which is as far as it goes before the artwork at the edges starts to disappear. */
+  inset: -12% 0;
   width: 100%;
-  height: 120%;
+  height: 124%;
   object-fit: cover;
   object-position: center;
 }
@@ -540,6 +540,13 @@ html:not([data-directions-dock]):has([data-dock='hero']) [data-directions='float
       color-mix(in srgb, var(--color-void) 50%, transparent) 25%,
       color-mix(in srgb, var(--color-void) 10%, transparent) 100%
     );
+  }
+}
+/* Forced colours drop the gradient but not the photograph, which would leave system-coloured
+   text straight on the sunset. The picture is decoration; the words are not. */
+@media (forced-colors: active) {
+  [data-section-bg] {
+    display: none;
   }
 }
 /* Nothing to fall back to but a still photo, which is the whole point of doing this in CSS: a

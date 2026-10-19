@@ -6,12 +6,16 @@ import { business } from '@/shared/config/business';
 
 import { WhatsappButton } from './whatsapp-button';
 
-/** In-page anchors to landing sections; absolute so they also work from other pages. */
+/**
+ * In-page anchors to landing sections; absolute so they also work from other pages.
+ * In the order the sections appear on the page: a menu that runs the other way sends people
+ * backwards through it.
+ */
 const NAV = [
   { href: '/#servicios', key: 'services' },
+  { href: '/#contacto', key: 'contact' },
   { href: '/#refacciones', key: 'featured' },
   { href: '/#ubicacion', key: 'location' },
-  { href: '/#contacto', key: 'contact' },
 ] as const;
 
 export function SiteHeader() {

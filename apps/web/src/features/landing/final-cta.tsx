@@ -18,6 +18,9 @@ const photo = {
   srcSet: `${ctaSmall.src} 768w, ${ctaMedium.src} 1280w, ${ctaLarge.src} 1887w`,
   width: ctaLarge.width,
   height: ctaLarge.height,
+  // The 3.8:1 photo covering a frame about half as wide-shaped is painted far past the window:
+  // 189vw of it at 1280px, where `100vw` would have picked the 1280 file and enlarged it 1.9x.
+  sizes: '190vw',
 };
 
 const phonePhoto = {
@@ -25,6 +28,8 @@ const phonePhoto = {
   srcSet: `${ctaPhoneSmall.src} 480w, ${ctaPhoneMedium.src} 768w, ${ctaPhoneLarge.src} 940w`,
   width: ctaPhoneLarge.width,
   height: ctaPhoneLarge.height,
+  // The portrait cut is shaped close to the frame it fills, so it barely overflows it.
+  sizes: '110vw',
 };
 
 export function FinalCta() {
@@ -55,12 +60,15 @@ export function FinalCta() {
             {t('finalCta.title')}
           </h2>
           {/* White rather than the silver the other sections use, and 24px rather than 18px: a
-              veil dark enough to carry 18px copy buries the picture it is protecting. Measured
-              against the worst pixel behind the line, white clears 4.5:1 on both layouts (4.57:1
-              on a desktop, 4.56:1 on a phone) — 24px is large text, so the bar is only 3:1, and
-              the rest is margin for a photograph that may yet be swapped.
-              Worth knowing: axe cannot check any of this. Contrast against an image comes back
-              as "incomplete", which the E2E assertion does not fail on. */}
+              veil dark enough to carry 18px copy buries the picture it is protecting. 24px is
+              large text, so the bar is 3:1 rather than 4.5:1.
+              The drift slides the sunset under the copy, so the contrast behind a line is not one
+              number but a range. Sampled at both ends of the travel, the worst pixel behind this
+              line reads 4.12:1 on a desktop and 3.87:1 on a phone — clear, but by less than a
+              point, and 18px here would fail outright.
+              None of which the suite can tell you: axe returns "incomplete" for text over an
+              image, and the assertion only fails on violations. These came from sampling the
+              rendered pixels with the text hidden. */}
           <p data-enter className="max-w-[620px] text-heading-2xs text-bone-white">
             {t('finalCta.body')}
           </p>
