@@ -22,7 +22,7 @@ export function SiteFooter() {
     // The separation lives inside the footer now that the closing section carries a photograph to
     // its own edge: a margin would have cut a band of page background between the two. With the
     // inner block's own `py-60`, this lands on the 96px the wide sections breathe.
-    <footer className="border-t border-ash-gray/20 pt-36">
+    <footer className="pt-36">
       <div className="mx-auto grid max-w-(--container-page) gap-36 px-4 py-60 md:grid-cols-3 md:px-24">
         <div className="flex flex-col gap-12">
           <p className="text-heading-2xs font-semibold text-ignition-gold">{business.name}</p>
@@ -118,11 +118,15 @@ export function SiteFooter() {
         </section>
       </div>
 
-      <div className="mx-auto flex max-w-(--container-page) flex-col gap-12 px-4 pb-96 text-caption text-ash-gray md:flex-row md:justify-between md:px-24">
-        <p>{t('footer.copyright')}</p>
-        <Link href="/aviso-de-privacidad" className={linkClass}>
-          {t('footer.privacy')}
-        </Link>
+      {/* The rule runs the whole width while the fine print under it keeps the page container,
+          so it is the wrapper that carries it. */}
+      <div className="border-t border-ash-gray/20">
+        <div className="mx-auto flex max-w-(--container-page) flex-col gap-12 px-4 pt-24 pb-96 text-caption text-ash-gray md:flex-row md:justify-between md:px-24">
+          <p>{t('footer.copyright')}</p>
+          <Link href="/aviso-de-privacidad" className={linkClass}>
+            {t('footer.privacy')}
+          </Link>
+        </div>
       </div>
     </footer>
   );
