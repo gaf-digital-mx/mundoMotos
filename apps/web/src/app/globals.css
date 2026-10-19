@@ -519,26 +519,29 @@ html:not([data-directions-dock]):has([data-dock='hero']) [data-directions='float
   object-position: center;
 }
 /* The copy runs down the left of the section, over the brightest part of the photo, so the veil
-   is heaviest there and clears towards the right to leave the sunset alone. On a phone the copy
-   spans the whole width, so there the veil runs top to bottom instead. */
+   is heaviest there and clears towards the artwork on the right. On a phone the copy spans the
+   whole width, so there it runs top to bottom instead.
+   How dark it has to be belongs to the photograph, not to the pattern: a darker picture wants
+   less of it and a lit one wants more, so each section sets its own and these are the closing
+   section's. `e2e/contrast.spec.ts` is what says whether a given set is enough. */
 [data-section-bg]::after {
   content: '';
   position: absolute;
   inset: 0;
   background: linear-gradient(
     to bottom,
-    color-mix(in srgb, var(--color-void) 74%, transparent) 0%,
-    color-mix(in srgb, var(--color-void) 60%, transparent) 50%,
-    color-mix(in srgb, var(--color-void) 26%, transparent) 100%
+    color-mix(in srgb, var(--color-void) var(--veil-near, 74%), transparent) 0%,
+    color-mix(in srgb, var(--color-void) var(--veil-mid, 60%), transparent) 50%,
+    color-mix(in srgb, var(--color-void) var(--veil-far, 26%), transparent) 100%
   );
 }
 @media (width >= 48rem) {
   [data-section-bg]::after {
     background: linear-gradient(
       to right,
-      color-mix(in srgb, var(--color-void) 66%, transparent) 0%,
-      color-mix(in srgb, var(--color-void) 50%, transparent) 25%,
-      color-mix(in srgb, var(--color-void) 10%, transparent) 100%
+      color-mix(in srgb, var(--color-void) var(--veil-near-md, 66%), transparent) 0%,
+      color-mix(in srgb, var(--color-void) var(--veil-mid-md, 50%), transparent) 25%,
+      color-mix(in srgb, var(--color-void) var(--veil-far-md, 10%), transparent) 100%
     );
   }
 }

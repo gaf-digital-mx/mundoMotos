@@ -90,7 +90,11 @@ export function ContactForm({ whatsappNumber, trackUrl, labels, messageTemplate 
       onInput={() => {
         setSent(false);
       }}
-      className="flex flex-col gap-30"
+      // A surface of its own, because the section behind it is a photograph: the fields are a
+      // bare rule each, and a 1px rule has to hold 3:1 against whatever it lands on (1.4.11) —
+      // over the lit metal in the corner of that picture, nothing thin survives. Translucent
+      // rather than solid so the workshop still reads through it.
+      className="flex flex-col gap-30 rounded-3xl border border-bone-white/10 bg-void/70 p-24 backdrop-blur-sm md:p-30"
     >
       <div className="flex flex-col gap-6">
         <label htmlFor={`${id}-name`} className={labelClass}>

@@ -67,6 +67,22 @@ const jobs = [
     format: 'webp',
     quality: 70,
   },
+  {
+    dir: backgrounds,
+    src: 'contact.png',
+    name: 'contact',
+    widths: [768, 1280, 1920],
+    format: 'webp',
+    quality: 70,
+  },
+  {
+    dir: backgrounds,
+    src: 'contact-mobile.png',
+    name: 'contact-mobile',
+    widths: [480, 758],
+    format: 'webp',
+    quality: 70,
+  },
 ];
 
 for (const { src, name, widths, format, background, quality = 82, dir = brand } of jobs) {
