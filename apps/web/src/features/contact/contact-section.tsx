@@ -61,7 +61,7 @@ export function ContactSection() {
           labels={{
             name: t('contact.nameLabel'),
             query: t('contact.queryLabel'),
-            queryPlaceholder: t('contact.queryPlaceholder'),
+            queryExample: t('contact.queryExample'),
             submit: t('contact.submit'),
             sent: t('contact.sent'),
             newTabHint: t('common.opensInNewTab'),
