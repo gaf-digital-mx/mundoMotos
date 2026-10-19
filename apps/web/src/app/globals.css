@@ -436,22 +436,11 @@ html:not([data-directions-dock]):has([data-dock='hero']) [data-dock='hero'] {
 html:not([data-directions-dock]):has([data-dock='hero']) [data-directions='floating'] {
   visibility: hidden;
 }
-/* A field with focus sends the floating pill away. On a phone it rides the same bottom lane as
-   the form's own submit button, so it covers the control of whatever someone is in the middle of
-   filling in — and "Cómo llegar" is not what they are doing. It comes back when they leave the
-   field, and every section that docks it still shows its own copy. */
-html:has(form :is(input, textarea):focus) [data-directions='floating'] {
-  visibility: hidden;
-}
 @media (scripting: none) {
   [data-directions='floating'] {
     visibility: visible !important;
   }
   [data-directions='docked'] {
-    visibility: hidden !important;
-  }
-  /* The pill is always the floating one here, so it is also the one in the way. */
-  html:has(form :is(input, textarea):focus) [data-directions='floating'] {
     visibility: hidden !important;
   }
 }
