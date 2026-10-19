@@ -64,9 +64,9 @@ test.describe('landing page', () => {
     const headings = page.getByRole('heading', { level: 2 });
     await expect(headings).toContainText([
       'Que tu moto ruede como nueva',
+      'Cuéntanos qué necesitas.',
       'Los más buscados',
       'Estamos en Tepetlixpa',
-      'Cuéntanos qué necesitas.',
       '¿Listo para darle vida a tu moto?',
     ]);
   });
@@ -568,6 +568,14 @@ test.describe('"Cómo llegar" pill', () => {
     // flicker the test above counts. Keep the slots out of the entrances instead.
     await expect(page.locator('[data-dock-slot]')).not.toHaveCount(0);
     await expect(page.locator('[data-enter] [data-dock-slot]')).toHaveCount(0);
+  });
+
+  test('no parallax layer travels with a section entrance', async ({ page }) => {
+    await page.goto('/');
+    // Same trap as the dock slot above: an entrance translates its whole subtree, so a layer
+    // drifting inside one would be drifting against a frame that is itself moving.
+    await expect(page.locator('[data-parallax]')).not.toHaveCount(0);
+    await expect(page.locator('[data-enter] [data-parallax]')).toHaveCount(0);
   });
 
   test('focus follows the pill when it docks', async ({ page }) => {

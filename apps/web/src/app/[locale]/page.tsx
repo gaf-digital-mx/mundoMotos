@@ -13,9 +13,9 @@ export default function HomePage() {
     <>
       <Hero />
       <Services />
+      <ContactSection />
       <FeaturedCategories />
       <Location />
-      <ContactSection />
       <FinalCta />
       <BusinessJsonLd />
       <SectionEntrances />
