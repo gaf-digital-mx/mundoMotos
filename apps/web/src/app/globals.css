@@ -436,6 +436,10 @@ html:not([data-directions-dock]):has([data-dock='hero']) [data-dock='hero'] {
 html:not([data-directions-dock]):has([data-dock='hero']) [data-directions='floating'] {
   visibility: hidden;
 }
+/* A region that asked for the lane to itself is on screen (DirectionsDock sets this). */
+html[data-directions-muted] [data-directions='floating'] {
+  visibility: hidden;
+}
 @media (scripting: none) {
   [data-directions='floating'] {
     visibility: visible !important;

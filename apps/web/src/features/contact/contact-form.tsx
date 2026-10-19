@@ -106,6 +106,9 @@ export function ContactForm({ whatsappNumber, trackUrl, labels, messageTemplate 
   return (
     <form
       data-enter
+      // The floating "Cómo llegar" pill steps aside while this is on screen: on a phone it
+      // rides the same bottom lane as the submit button below.
+      data-directions-mute
       noValidate
       onSubmit={onSubmit}
       onInput={() => {

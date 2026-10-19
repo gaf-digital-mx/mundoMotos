@@ -521,16 +521,20 @@ test.describe('"Cómo llegar" pill', () => {
           attributeFilter: ['data-directions-dock'],
         });
       });
-      // Exactly one copy of the pill — floating or docked — is ever visible on screen.
+      // Exactly one copy of the pill — floating or docked — is ever visible on screen, except
+      // over a region that asked for the lane to itself, where there is deliberately none.
       const pillOnScreen = () =>
-        page.evaluate(
-          () =>
-            [...document.querySelectorAll('[data-directions]')].filter((element) => {
-              if (getComputedStyle(element).visibility === 'hidden') return false;
-              const rect = element.getBoundingClientRect();
-              return rect.bottom > 0 && rect.top < window.innerHeight;
-            }).length === 1,
-        );
+        page.evaluate(() => {
+          const onScreen = (element: Element) => {
+            const rect = element.getBoundingClientRect();
+            return rect.bottom > 0 && rect.top < window.innerHeight;
+          };
+          const showing = [...document.querySelectorAll('[data-directions]')].filter(
+            (element) => getComputedStyle(element).visibility !== 'hidden' && onScreen(element),
+          ).length;
+          const muted = [...document.querySelectorAll('[data-directions-mute]')].some(onScreen);
+          return showing === (muted ? 0 : 1);
+        });
       const scrollable = await page.evaluate(
         () => document.documentElement.scrollHeight - window.innerHeight,
       );
@@ -576,6 +580,20 @@ test.describe('"Cómo llegar" pill', () => {
     // drifting inside one would be drifting against a frame that is itself moving.
     await expect(page.locator('[data-parallax]')).not.toHaveCount(0);
     await expect(page.locator('[data-enter] [data-parallax]')).toHaveCount(0);
+  });
+
+  test('the floating pill leaves the lane the contact form needs', async ({ page }) => {
+    await page.goto('/');
+    const floating = page.locator("[data-directions='floating']");
+    await page.locator('#servicios').scrollIntoViewIfNeeded();
+    await expect(floating).toBeVisible();
+    // On a phone the pill rides the same bottom lane as the form's submit button. Tied to the
+    // form being on screen, not to a field having focus: focus outlives the scroll, and a field
+    // left focused would have taken the pill away for the rest of the page.
+    await page.locator('#contacto form').scrollIntoViewIfNeeded();
+    await expect(floating).toBeHidden();
+    await page.locator('#refacciones').scrollIntoViewIfNeeded();
+    await expect(floating).toBeVisible();
   });
 
   test('focus follows the pill when it docks', async ({ page }) => {
