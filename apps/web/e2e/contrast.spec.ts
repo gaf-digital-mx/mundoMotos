@@ -13,8 +13,12 @@ import sharp from 'sharp';
  * middle of the range is the one position that proves nothing.
  */
 
-/** The keyframes in globals.css. The layer is pinned at each in turn. */
-const DRIFTS = ['-8%', '0%', '8%'] as const;
+/**
+ * Where along its travel each layer is pinned. Not a list of percentages: how far a layer drifts
+ * is the section's own `--drift-travel`, so a section that widens its parallax would otherwise
+ * keep being measured at the old extremes — which are no longer the worst of it.
+ */
+const STOPS = ['start', 'middle', 'end'] as const;
 
 const channel = (value: number) => {
   const srgb = value / 255;
@@ -60,14 +64,16 @@ const worstAgainst = async (page: Page, region: Locator, hide: Locator, color: s
   return worst;
 };
 
-/** Pins the drift so the photograph is measured where it actually reaches, not mid-travel. */
-const pinDrift = async (page: Page, drift: string) => {
-  await page.locator('[data-parallax]').evaluateAll((nodes, value) => {
+/** Pins every layer at one end of its own travel, or at the middle of it. */
+const pinDrift = async (page: Page, stop: (typeof STOPS)[number]) => {
+  await page.locator('[data-parallax]').evaluateAll((nodes, which) => {
     for (const node of nodes as HTMLElement[]) {
+      const travel = getComputedStyle(node).getPropertyValue('--drift-travel').trim() || '8%';
       node.style.animation = 'none';
-      node.style.translate = `0 ${value}`;
+      node.style.translate =
+        which === 'middle' ? '0 0%' : `0 calc(${travel} * ${which === 'start' ? -1 : 1})`;
     }
-  }, drift);
+  }, stop);
 };
 
 const checkText = async (page: Page, selector: string) => {
@@ -107,15 +113,15 @@ test.skip(({ browserName }) => browserName !== 'chromium', 'one engine is enough
 
 test.describe('contrast over the section photographs', () => {
   test.describe('on a phone', () => {
-    for (const drift of DRIFTS) {
-      test(`the closing CTA holds its copy at ${drift}`, async ({ page }) => {
+    for (const drift of STOPS) {
+      test(`the closing CTA holds its copy at the ${drift} of the drift`, async ({ page }) => {
         await settle(page, '[aria-labelledby="cta-title"]');
         await pinDrift(page, drift);
         await checkText(page, '#cta-title');
         await checkText(page, '#cta-title + p');
       });
 
-      test(`the contact section holds its copy at ${drift}`, async ({ page }) => {
+      test(`the contact section holds its copy at the ${drift} of the drift`, async ({ page }) => {
         await settle(page, '#contacto');
         await pinDrift(page, drift);
         await checkText(page, '#contact-title');
@@ -130,15 +136,15 @@ test.describe('contrast over the section photographs', () => {
     // rather than under it — and the form is the half that lands on the lit half of the photo.
     test.use({ viewport: { width: 1440, height: 900 } });
 
-    for (const drift of DRIFTS) {
-      test(`the closing CTA holds its copy at ${drift}`, async ({ page }) => {
+    for (const drift of STOPS) {
+      test(`the closing CTA holds its copy at the ${drift} of the drift`, async ({ page }) => {
         await settle(page, '[aria-labelledby="cta-title"]');
         await pinDrift(page, drift);
         await checkText(page, '#cta-title');
         await checkText(page, '#cta-title + p');
       });
 
-      test(`the contact form stays legible at ${drift}`, async ({ page }) => {
+      test(`the contact form stays legible at the ${drift} of the drift`, async ({ page }) => {
         await settle(page, '#contacto');
         await pinDrift(page, drift);
         await checkText(page, '#contact-title');

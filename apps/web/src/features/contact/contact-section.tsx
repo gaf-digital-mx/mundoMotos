@@ -39,7 +39,7 @@ export function ContactSection() {
     // would otherwise finish its travel early and sit frozen for the rest of its exit.
     // The veil is heavier than the closing section's: the workshop is lit from the left, right
     // under the heading, where the default set left the title at 2.78:1 against its 3:1 bar.
-    <div className="relative isolate [--drift-end:100%] [--section-body:var(--color-bone-white)] [--veil-far-md:34%] [--veil-far:16%] [--veil-mid-md:64%] [--veil-mid:40%] [--veil-near-md:80%] [--veil-near:52%]">
+    <div className="relative isolate [--drift-end:100%] [--drift-reach:18%] [--drift-travel:12%] [--section-body:var(--color-bone-white)] [--veil-far-md:34%] [--veil-far:16%] [--veil-mid-md:64%] [--veil-mid:40%] [--veil-near-md:80%] [--veil-near:52%]">
       <SectionBackground photo={photo} mobile={phonePhoto} />
       <section
         id="contacto"

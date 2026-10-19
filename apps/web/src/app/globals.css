@@ -506,15 +506,18 @@ html:not([data-directions-dock]):has([data-dock='hero']) [data-directions='float
 }
 [data-section-bg] img {
   position: absolute;
-  /* The overshoot is what the drift travels into, and it has to beat it: ±8% of a layer 124%
-     tall is 9.9% of the section against the 12% here. At the 10% this started on the margin was
-     0.4% — about two pixels, which a fractional device ratio or a zoom level can round away into
-     a hairline of page showing along one edge. The overshoot also sets the crop: covering a
-     section this much taller than itself costs the wide photo about 18% of its width at each
-     side, which is as far as it goes before the artwork at the edges starts to disappear. */
-  inset: -12% 0;
+  /* Two knobs that move together. `--drift-reach` is how far the layer hangs past the section
+     at each end, in the section's height; `--drift-travel` is how far it then moves, in its own.
+     The second has to stay inside the first once the layer's own height is counted — ±8% of a
+     layer 124% tall is 9.9% of the section against a reach of 12% — and the margin between them
+     cannot be thin: at 0.4%, about two pixels, a fractional device ratio or a zoom level rounds
+     it away and a hairline of page shows along one edge.
+     The reach is also what sets the crop, since a layer that much taller than the section has to
+     be covered from a photo that was not that shape. A wider drift is a bigger crop; how much
+     bigger depends on the picture, which is why a section can raise both. */
+  inset: calc(var(--drift-reach, 12%) * -1) 0;
   width: 100%;
-  height: 124%;
+  height: calc(100% + var(--drift-reach, 12%) * 2);
   object-fit: cover;
   object-position: center;
 }
@@ -571,9 +574,9 @@ html:not([data-directions-dock]):has([data-dock='hero']) [data-directions='float
 }
 @keyframes section-drift {
   from {
-    translate: 0 -8%;
+    translate: 0 calc(var(--drift-travel, 8%) * -1);
   }
   to {
-    translate: 0 8%;
+    translate: 0 var(--drift-travel, 8%);
   }
 }
