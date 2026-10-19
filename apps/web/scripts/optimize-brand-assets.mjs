@@ -57,6 +57,16 @@ const jobs = [
     format: 'webp',
     quality: 70,
   },
+  // The phone gets its own portrait cut of the same scene: the wide one holds a 3.8:1 frame, and
+  // a phone can only ever show a sliver of that. 940 is the original's width and the ceiling.
+  {
+    dir: backgrounds,
+    src: 'final-cta-mobile.png',
+    name: 'final-cta-mobile',
+    widths: [480, 768, 940],
+    format: 'webp',
+    quality: 70,
+  },
 ];
 
 for (const { src, name, widths, format, background, quality = 82, dir = brand } of jobs) {

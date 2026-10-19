@@ -3,6 +3,9 @@ import { useTranslations } from 'next-intl';
 import ctaMedium from '@/assets/backgrounds/generated/final-cta-1280.webp';
 import ctaLarge from '@/assets/backgrounds/generated/final-cta-1887.webp';
 import ctaSmall from '@/assets/backgrounds/generated/final-cta-768.webp';
+import ctaPhoneSmall from '@/assets/backgrounds/generated/final-cta-mobile-480.webp';
+import ctaPhoneMedium from '@/assets/backgrounds/generated/final-cta-mobile-768.webp';
+import ctaPhoneLarge from '@/assets/backgrounds/generated/final-cta-mobile-940.webp';
 import { siteConfig } from '@/shared/config/business';
 import { PhoneButton } from '@/shared/ui/phone-button';
 import { SectionBackground } from '@/shared/ui/section-background';
@@ -17,6 +20,13 @@ const photo = {
   height: ctaLarge.height,
 };
 
+const phonePhoto = {
+  src: ctaPhoneLarge.src,
+  srcSet: `${ctaPhoneSmall.src} 480w, ${ctaPhoneMedium.src} 768w, ${ctaPhoneLarge.src} 940w`,
+  width: ctaPhoneLarge.width,
+  height: ctaPhoneLarge.height,
+};
+
 export function FinalCta() {
   const t = useTranslations();
 
@@ -25,10 +35,13 @@ export function FinalCta() {
     // wrapped rather than widened: a section that gave up its container would start its heading
     // at a different place from every other one on the page.
     <div className="relative isolate">
-      <SectionBackground photo={photo} />
+      <SectionBackground photo={photo} mobile={phonePhoto} />
+      {/* Taller than its copy on a phone, with the copy held in the middle of it: the portrait
+          photograph is a standing scene, and a section cut to the text would show the rider's
+          wheels and nothing else. A wide screen takes its height from the copy as before. */}
       <section
         aria-labelledby="cta-title"
-        className="mx-auto max-w-(--container-page) px-4 py-60 md:px-24 md:py-96"
+        className="mx-auto flex min-h-[620px] max-w-(--container-page) flex-col justify-center px-4 py-60 md:min-h-0 md:px-24 md:py-96"
       >
         <div className="flex flex-col items-start gap-24">
           {/* Entered piece by piece rather than as one block: the pill's dock slot is in here,
@@ -37,13 +50,18 @@ export function FinalCta() {
           <h2
             data-enter
             id="cta-title"
-            className="max-w-[900px] text-heading-sm font-normal tracking-display uppercase md:text-heading-lg"
+            className="max-w-[800px] text-heading-sm font-normal tracking-display uppercase md:text-heading-lg"
           >
             {t('finalCta.title')}
           </h2>
-          {/* Full white rather than the silver the other sections use: over a photograph, even
-              veiled, silver has nothing left of its 4.57:1 to give away. */}
-          <p data-enter className="max-w-[620px] text-bone-white">
+          {/* White rather than the silver the other sections use, and 24px rather than 18px: a
+              veil dark enough to carry 18px copy buries the picture it is protecting. Measured
+              against the worst pixel behind the line, white clears 4.5:1 on both layouts (4.57:1
+              on a desktop, 4.56:1 on a phone) — 24px is large text, so the bar is only 3:1, and
+              the rest is margin for a photograph that may yet be swapped.
+              Worth knowing: axe cannot check any of this. Contrast against an image comes back
+              as "incomplete", which the E2E assertion does not fail on. */}
+          <p data-enter className="max-w-[620px] text-heading-2xs text-bone-white">
             {t('finalCta.body')}
           </p>
           <div className="flex flex-wrap items-center gap-18">

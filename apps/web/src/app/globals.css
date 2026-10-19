@@ -506,15 +506,17 @@ html:not([data-directions-dock]):has([data-dock='hero']) [data-directions='float
   /* `clip` rather than `hidden`: no scroll container, so nothing sticky or anchored changes. */
   overflow: clip;
 }
-[data-section-bg] > img {
+[data-section-bg] img {
   position: absolute;
-  inset: -4% 0;
+  /* The overshoot is what the drift travels into, so it is the ±8% below plus a little, and it
+     is also what sets the crop: covering a section 20% taller than itself costs the wide photo
+     about 17% of its width at each side, which is as far as it can go before the artwork at the
+     edges starts to disappear. */
+  inset: -10% 0;
   width: 100%;
-  height: 108%;
+  height: 120%;
   object-fit: cover;
-  /* A phone sees a sliver of a very wide photo. Held to the right of centre, that sliver is the
-     rider rather than the empty middle of the road. */
-  object-position: 68% center;
+  object-position: center;
 }
 /* The copy runs down the left of the section, over the brightest part of the photo, so the veil
    is heaviest there and clears towards the right to leave the sunset alone. On a phone the copy
@@ -525,20 +527,18 @@ html:not([data-directions-dock]):has([data-dock='hero']) [data-directions='float
   inset: 0;
   background: linear-gradient(
     to bottom,
-    color-mix(in srgb, var(--color-void) 88%, transparent),
-    color-mix(in srgb, var(--color-void) 72%, transparent)
+    color-mix(in srgb, var(--color-void) 74%, transparent) 0%,
+    color-mix(in srgb, var(--color-void) 60%, transparent) 50%,
+    color-mix(in srgb, var(--color-void) 26%, transparent) 100%
   );
 }
 @media (width >= 48rem) {
-  [data-section-bg] > img {
-    object-position: center;
-  }
   [data-section-bg]::after {
     background: linear-gradient(
       to right,
-      color-mix(in srgb, var(--color-void) 92%, transparent) 0%,
-      color-mix(in srgb, var(--color-void) 74%, transparent) 45%,
-      color-mix(in srgb, var(--color-void) 40%, transparent) 100%
+      color-mix(in srgb, var(--color-void) 66%, transparent) 0%,
+      color-mix(in srgb, var(--color-void) 50%, transparent) 25%,
+      color-mix(in srgb, var(--color-void) 10%, transparent) 100%
     );
   }
 }
@@ -561,9 +561,9 @@ html:not([data-directions-dock]):has([data-dock='hero']) [data-directions='float
 }
 @keyframes section-drift {
   from {
-    translate: 0 -4%;
+    translate: 0 -8%;
   }
   to {
-    translate: 0 4%;
+    translate: 0 8%;
   }
 }

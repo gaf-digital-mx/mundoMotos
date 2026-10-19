@@ -1,7 +1,14 @@
+type Source = { src: string; srcSet: string; width: number; height: number };
+
 type Props = {
   /** Already-built responsive sources: the photo is decorative, so it carries no alt text. */
-  photo: { src: string; srcSet: string; width: number; height: number };
+  photo: Source;
+  /** A portrait cut of the same scene for phones, where a wide frame shows only a sliver. */
+  mobile?: Source;
 };
+
+/** Below the `md` breakpoint, where the layout is one column. */
+const PHONE = '(width < 48rem)';
 
 /**
  * A photo behind a whole section, running the full width of the screen while the copy above it
@@ -11,21 +18,24 @@ type Props = {
  * It must be rendered outside every `[data-enter]` block: an entrance translates its whole
  * subtree, and a layer drifting inside a frame that is itself moving fights it.
  */
-export function SectionBackground({ photo }: Props) {
+export function SectionBackground({ photo, mobile }: Props) {
   return (
     <div data-section-bg aria-hidden="true">
-      <img
-        data-parallax
-        src={photo.src}
-        srcSet={photo.srcSet}
-        sizes="100vw"
-        alt=""
-        width={photo.width}
-        height={photo.height}
-        loading="lazy"
-        decoding="async"
-        draggable={false}
-      />
+      <picture>
+        {mobile ? <source media={PHONE} srcSet={mobile.srcSet} sizes="100vw" /> : null}
+        <img
+          data-parallax
+          src={photo.src}
+          srcSet={photo.srcSet}
+          sizes="100vw"
+          alt=""
+          width={photo.width}
+          height={photo.height}
+          loading="lazy"
+          decoding="async"
+          draggable={false}
+        />
+      </picture>
     </div>
   );
 }

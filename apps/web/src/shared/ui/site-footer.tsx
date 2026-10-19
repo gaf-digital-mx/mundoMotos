@@ -19,7 +19,10 @@ export function SiteFooter() {
   const newTab = t('common.opensInNewTab');
 
   return (
-    <footer className="mt-120 border-t border-ash-gray/20">
+    // The separation lives inside the footer now that the closing section carries a photograph to
+    // its own edge: a margin would have cut a band of page background between the two. With the
+    // inner block's own `py-60`, this lands on the 96px the wide sections breathe.
+    <footer className="border-t border-ash-gray/20 pt-36">
       <div className="mx-auto grid max-w-(--container-page) gap-36 px-4 py-60 md:grid-cols-3 md:px-24">
         <div className="flex flex-col gap-12">
           <p className="text-heading-2xs font-semibold text-ignition-gold">{business.name}</p>
