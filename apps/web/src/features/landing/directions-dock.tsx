@@ -98,10 +98,13 @@ export function DirectionsDock() {
     );
     for (const slot of slots.keys()) observer.observe(slot);
 
-    // A region can ask for the pill to step aside entirely: the contact form does, because on a
-    // phone the pill rides the same bottom lane as its submit button and covers it. Tied to the
-    // region being on screen rather than to a field having focus — focus survives scrolling, so
-    // a field left focused would have taken the pill away for the rest of the page.
+    // A region can ask for the pill to step aside entirely: the contact form's submit button
+    // does, because on a phone the pill rides the same bottom lane and covers it. Tied to the
+    // region reaching that lane rather than to a field having focus — focus survives scrolling,
+    // so a field left focused would have taken the pill away for the rest of the page.
+    // The lane is the lower half of the screen, which is what `rootMargin` cuts the root down
+    // to: above it the two are nowhere near each other. Whether that matters at all is the
+    // stylesheet's call — from `md` the pill sits in the corner and the button moves left.
     let covered = false;
     const applyMute = () => {
       // The pill must not be hidden out from under the keyboard (WCAG 2.4.3): while it has
@@ -113,7 +116,7 @@ export function DirectionsDock() {
         covered = entries.some((entry) => entry.isIntersecting);
         applyMute();
       },
-      { threshold: 0 },
+      { rootMargin: '-50% 0px 0px 0px', threshold: 0 },
     );
     const mute = document.querySelector('[data-directions-mute]');
     if (mute) muter.observe(mute);

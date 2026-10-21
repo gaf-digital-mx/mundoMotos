@@ -532,7 +532,14 @@ test.describe('"Cómo llegar" pill', () => {
           const showing = [...document.querySelectorAll('[data-directions]')].filter(
             (element) => getComputedStyle(element).visibility !== 'hidden' && onScreen(element),
           ).length;
-          const muted = [...document.querySelectorAll('[data-directions-mute]')].some(onScreen);
+          // The pill only shares a lane below `md`, and only with what has reached the lower
+          // half of the screen.
+          const muted =
+            window.matchMedia('(width < 48rem)').matches &&
+            [...document.querySelectorAll('[data-directions-mute]')].some((element) => {
+              const rect = element.getBoundingClientRect();
+              return rect.bottom > window.innerHeight / 2 && rect.top < window.innerHeight;
+            });
           return showing === (muted ? 0 : 1);
         });
       const scrollable = await page.evaluate(
@@ -582,17 +589,30 @@ test.describe('"Cómo llegar" pill', () => {
     await expect(page.locator('[data-enter] [data-parallax]')).toHaveCount(0);
   });
 
-  test('the floating pill leaves the lane the contact form needs', async ({ page }) => {
+  test('the floating pill leaves the bottom lane on a phone, and keeps it on a desktop', async ({
+    page,
+  }) => {
     await page.goto('/');
     const floating = page.locator("[data-directions='floating']");
-    await page.locator('#servicios').scrollIntoViewIfNeeded();
+    const submit = page.locator('#contacto button[type="submit"]');
+    const intoLowerHalf = async () => {
+      await submit.evaluate((element) => {
+        window.scrollBy(0, element.getBoundingClientRect().top - window.innerHeight * 0.75);
+      });
+    };
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    // Above the halfway line the two are nowhere near each other, so the pill stays.
+    await submit.evaluate((element) => {
+      window.scrollBy(0, element.getBoundingClientRect().top - window.innerHeight * 0.2);
+    });
     await expect(floating).toBeVisible();
-    // On a phone the pill rides the same bottom lane as the form's submit button. Tied to the
-    // form being on screen, not to a field having focus: focus outlives the scroll, and a field
-    // left focused would have taken the pill away for the rest of the page.
-    await page.locator('#contacto form').scrollIntoViewIfNeeded();
+    await intoLowerHalf();
     await expect(floating).toBeHidden();
-    await page.locator('#refacciones').scrollIntoViewIfNeeded();
+
+    // From `md` the pill is in the corner and the button is left-aligned: no lane to share.
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await intoLowerHalf();
     await expect(floating).toBeVisible();
   });
 
