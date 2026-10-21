@@ -98,18 +98,27 @@ export function DirectionsDock() {
     );
     for (const slot of slots.keys()) observer.observe(slot);
 
-    // A region can ask for the pill to step aside entirely: the contact form's submit button
-    // does, because on a phone the pill rides the same bottom lane and covers it. Tied to the
+    // A region can ask for the pill to step aside: the contact form's submit button does,
+    // because on a narrow window the pill rides the same bottom lane and covers it. Tied to the
     // region reaching that lane rather than to a field having focus — focus survives scrolling,
     // so a field left focused would have taken the pill away for the rest of the page.
     // The lane is the lower half of the screen, which is what `rootMargin` cuts the root down
-    // to: above it the two are nowhere near each other. Whether that matters at all is the
-    // stylesheet's call — from `md` the pill sits in the corner and the button moves left.
+    // to; `sharesLane` then asks whether the two are in each other's way at this width at all.
+    // Measured rather than guessed at a breakpoint: the button is left-aligned from `md`, but
+    // only within its column, so it still reaches the pill's corner until about 975px.
+    const mute = document.querySelector('[data-directions-mute]');
+    const sharesLane = () => {
+      if (!mute) return false;
+      const pill = floating.getBoundingClientRect();
+      const region = mute.getBoundingClientRect();
+      return pill.right > region.left && pill.left < region.right;
+    };
+
     let covered = false;
     const applyMute = () => {
       // The pill must not be hidden out from under the keyboard (WCAG 2.4.3): while it has
       // focus the mute waits, and `focusout` brings it back to finish the job.
-      root.toggleAttribute(MUTED, covered && document.activeElement !== floating);
+      root.toggleAttribute(MUTED, covered && sharesLane() && document.activeElement !== floating);
     };
     const muter = new IntersectionObserver(
       (entries) => {
@@ -118,14 +127,17 @@ export function DirectionsDock() {
       },
       { rootMargin: '-50% 0px 0px 0px', threshold: 0 },
     );
-    const mute = document.querySelector('[data-directions-mute]');
     if (mute) muter.observe(mute);
     floating.addEventListener('focusout', applyMute);
+    // Whether they share a lane is a question about the layout, so it is asked again when the
+    // layout changes.
+    window.addEventListener('resize', applyMute);
 
     return () => {
       observer.disconnect();
       muter.disconnect();
       floating.removeEventListener('focusout', applyMute);
+      window.removeEventListener('resize', applyMute);
       travel?.cancel();
       root.removeAttribute(STATE);
       root.removeAttribute(MUTED);

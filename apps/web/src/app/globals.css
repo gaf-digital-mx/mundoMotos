@@ -436,13 +436,10 @@ html:not([data-directions-dock]):has([data-dock='hero']) [data-dock='hero'] {
 html:not([data-directions-dock]):has([data-dock='hero']) [data-directions='floating'] {
   visibility: hidden;
 }
-/* A region that asked for the bottom lane has reached it (DirectionsDock sets this). Only here:
-   from `md` the pill sits in the corner and the contact form's submit button is left-aligned, so
-   there is no lane to share and the pill stays where it is. */
-@media (width < 48rem) {
-  html[data-directions-muted] [data-directions='floating'] {
-    visibility: hidden;
-  }
+/* A region that asked for the bottom lane has reached it, and at this width the two really are
+   in each other's way (DirectionsDock measures both and sets this). */
+html[data-directions-muted] [data-directions='floating'] {
+  visibility: hidden;
 }
 @media (scripting: none) {
   [data-directions='floating'] {

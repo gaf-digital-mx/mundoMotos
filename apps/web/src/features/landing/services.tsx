@@ -5,7 +5,7 @@ import { whatsappHref } from '@/shared/lib/tracked-links';
 import { SectionHeading } from '@/shared/ui/section-heading';
 
 import { ServiceCard } from './service-card';
-import { RPM_SLOT, type ServiceDetail } from './service-detail';
+import { RPM_SLOT, numberLocale, type ServiceDetail } from './service-detail';
 import { ServiceDialog } from './service-dialog';
 
 export function Services() {
@@ -41,14 +41,13 @@ export function Services() {
         // figure fills the slot. Passing the slot as the ICU value keeps the key typed and the
         // unit on whichever side of the number the language wants it.
         readout: t('services.items.tuneUp.detail.figure.readout', { rpm: RPM_SLOT }),
-        unit: t('services.items.tuneUp.detail.figure.unit'),
         control: t('services.items.tuneUp.detail.figure.control'),
         alt: t('services.items.tuneUp.detail.figure.alt'),
         keys: {
           air: t('services.items.tuneUp.detail.figure.keys.air'),
           spark: t('services.items.tuneUp.detail.figure.keys.spark'),
         },
-        locale,
+        locale: numberLocale(locale),
         tag: t('services.eyebrow'),
       },
     },

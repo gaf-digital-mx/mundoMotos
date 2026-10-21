@@ -3,7 +3,7 @@
 import { Plate } from '@/shared/iso/react/draw';
 
 import { IDLE_RPM, readoutOf } from './engine';
-import { TuneUpLive } from './live';
+import { HINT_ID, TuneUpLive } from './live';
 import './tune-up.css';
 
 import type { FigureLabels } from '../../service-detail';
@@ -19,7 +19,9 @@ export function TuneUpFigure({ labels }: { labels: FigureLabels }) {
       <Plate
         fig={labels.tag}
         title={labels.title}
-        hint={labels.hint}
+        // The card's corners are hidden from assistive tech, so the instruction is given an id
+        // and the throttle is described by it: a screen reader still learns the figure is live.
+        hint={<span id={HINT_ID}>{labels.hint}</span>}
         // The resting reading, so the card is right from the first paint rather than blank until
         // the first frame.
         readout={readoutOf(IDLE_RPM, labels.readout, labels.locale)}

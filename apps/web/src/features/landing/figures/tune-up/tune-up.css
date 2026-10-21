@@ -60,9 +60,17 @@
   stroke-dasharray: 0.01 4.6;
 }
 
-/* The throttle: the knob under it is the picture, this is the control. */
+/* The throttle sits over the knob in the drawing, and holds a target big enough for a thumb. */
+.tune-up {
+  position: relative;
+}
+
 .tune-up-grip {
-  fill: transparent;
+  position: absolute;
+  translate: -50% -50%;
+  width: clamp(44px, 10%, 76px);
+  aspect-ratio: 1;
+  border-radius: var(--radius-full);
   cursor: grab;
   touch-action: none;
 }
@@ -71,19 +79,55 @@
   cursor: grabbing;
 }
 
-/* An outline on an SVG shape is unreliable across engines; a stroke is not. */
 .tune-up-grip:focus-visible {
-  outline: none;
-  stroke: var(--color-ignition-gold);
-  stroke-width: 2;
-  stroke-dasharray: 5 4;
+  outline: 2px dashed var(--color-ignition-gold);
+  outline-offset: 2px;
 }
 
 /*
- * Forced colours repaint every fill and stroke, which turns a drawing built out of four tones of
- * near-black into one solid blob. The card and its legend keys go; the caption below them says
- * what the figure says, in words.
+ * The kit pins the card's four labels to its corners and never wraps them. That was sized for
+ * short English tags; in Spanish they are two to three times longer and, below about 412px, the
+ * tag lands on the title and the hint runs out of the card (1.4.10). Narrow, they come out of
+ * the corners and stack around the drawing instead.
  */
+@media (width < 48rem) {
+  .iso-plate {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 16px 12px;
+  }
+
+  .iso-plate-corners {
+    display: contents;
+  }
+
+  .iso-plate-corner {
+    position: static;
+    white-space: normal;
+  }
+
+  .iso-plate-corner[data-corner='fig'] {
+    order: 1;
+  }
+
+  .iso-plate-corner[data-corner='title'] {
+    order: 2;
+  }
+
+  .tune-up {
+    order: 3;
+  }
+
+  .iso-plate-corner[data-corner='hint'] {
+    order: 4;
+  }
+
+  .iso-plate-corner[data-corner='readout'] {
+    order: 5;
+  }
+}
+
 @media (forced-colors: active) {
   .iso-plate,
   .iso-keys {

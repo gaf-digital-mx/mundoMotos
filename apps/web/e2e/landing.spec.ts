@@ -585,13 +585,21 @@ test.describe('"Cómo llegar" pill', () => {
           const showing = [...document.querySelectorAll('[data-directions]')].filter(
             (element) => getComputedStyle(element).visibility !== 'hidden' && onScreen(element),
           ).length;
-          // The pill only shares a lane below `md`, and only with what has reached the lower
-          // half of the screen.
+          // The pill steps aside only for a region that has reached the lower half of the
+          // screen *and* is in its way across the width: the same two questions the island asks.
+          const pill = document
+            .querySelector('[data-directions="floating"]')
+            ?.getBoundingClientRect();
           const muted =
-            window.matchMedia('(width < 48rem)').matches &&
+            pill !== undefined &&
             [...document.querySelectorAll('[data-directions-mute]')].some((element) => {
               const rect = element.getBoundingClientRect();
-              return rect.bottom > window.innerHeight / 2 && rect.top < window.innerHeight;
+              return (
+                rect.bottom > window.innerHeight / 2 &&
+                rect.top < window.innerHeight &&
+                pill.right > rect.left &&
+                pill.left < rect.right
+              );
             });
           return showing === (muted ? 0 : 1);
         });
@@ -642,7 +650,7 @@ test.describe('"Cómo llegar" pill', () => {
     await expect(page.locator('[data-enter] [data-parallax]')).toHaveCount(0);
   });
 
-  test('the floating pill leaves the bottom lane on a phone, and keeps it on a desktop', async ({
+  test('the floating pill leaves the lane it shares, and keeps the one it does not', async ({
     page,
   }) => {
     await page.goto('/');
@@ -663,10 +671,18 @@ test.describe('"Cómo llegar" pill', () => {
     await intoLowerHalf();
     await expect(floating).toBeHidden();
 
-    // From `md` the pill is in the corner and the button is left-aligned: no lane to share.
+    // A small laptop: the button is left-aligned from `md`, but only inside its column, and its
+    // right edge still reaches the pill's corner. It was this width that a breakpoint missed.
+    await page.setViewportSize({ width: 900, height: 800 });
+    await intoLowerHalf();
+    await expect(floating).toBeHidden();
+
+    // Wide: the button is far from the corner the pill sits in, so there is nothing to clear.
     await page.setViewportSize({ width: 1440, height: 900 });
     await intoLowerHalf();
     await expect(floating).toBeVisible();
+    const [pill, button] = await Promise.all([floating.boundingBox(), submit.boundingBox()]);
+    expect(pill && button && pill.x > button.x + button.width).toBe(true);
   });
 
   test('focus follows the pill when it docks', async ({ page }) => {
