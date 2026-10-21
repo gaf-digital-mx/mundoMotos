@@ -1,22 +1,29 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { Suspense, useEffect, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
+
+import { SERVICE_FIGURES } from './figures';
+import { ServiceWorksTable } from './service-works-table';
+
+import type { ServiceDetail } from './service-detail';
 
 type Props = {
   closeLabel: string;
   quoteLabel: string;
   newTabHint: string;
+  /** Keyed by service id; a service without an entry shows its body alone. */
+  details: Record<string, ServiceDetail>;
 };
 
-type Service = { name: string; body: string; quote: string };
+type Service = { id: string; name: string; body: string; quote: string };
 
 /**
  * One dialog for every service card. The cards are server-rendered; this island only wires their
  * "Ver más" buttons to a native <dialog>, which brings the focus trap, Escape and focus return
  * with it. The copy comes from the card that was clicked, so no string is duplicated.
  */
-export function ServiceDialog({ closeLabel, quoteLabel, newTabHint }: Props) {
+export function ServiceDialog({ closeLabel, quoteLabel, newTabHint, details }: Props) {
   const ref = useRef<HTMLDialogElement>(null);
   const [service, setService] = useState<Service | null>(null);
 
@@ -33,6 +40,7 @@ export function ServiceDialog({ closeLabel, quoteLabel, newTabHint }: Props) {
       // heading and then jumps to its real size.
       flushSync(() => {
         setService({
+          id: card.dataset.serviceId ?? '',
           name: card.dataset.serviceName ?? '',
           body: card.dataset.serviceBody ?? '',
           quote: card.dataset.serviceQuote ?? '',
@@ -73,6 +81,10 @@ export function ServiceDialog({ closeLabel, quoteLabel, newTabHint }: Props) {
     };
   }, []);
 
+  const detail = service ? details[service.id] : undefined;
+  const figure = detail?.figure;
+  const Figure = service ? SERVICE_FIGURES[service.id] : undefined;
+
   return (
     <dialog
       ref={ref}
@@ -80,7 +92,7 @@ export function ServiceDialog({ closeLabel, quoteLabel, newTabHint }: Props) {
       onClose={() => {
         setService(null);
       }}
-      className="m-auto w-[min(32rem,calc(100vw-2rem))] rounded-3xl bg-void p-0 text-bone-white backdrop:bg-void/80 backdrop:backdrop-blur-sm"
+      className="m-auto max-h-[calc(100dvh-2rem)] w-[min(36rem,calc(100vw-2rem))] rounded-3xl bg-void p-0 text-bone-white backdrop:bg-void/80 backdrop:backdrop-blur-sm"
     >
       {/* Nothing until a card is picked: the exported HTML carries an empty dialog, not a heading
           and a dead quote link. */}
@@ -90,6 +102,22 @@ export function ServiceDialog({ closeLabel, quoteLabel, newTabHint }: Props) {
             {service.name}
           </h2>
           <p className="text-silver-mist">{service.body}</p>
+          {Figure && figure ? (
+            // Loaded on demand: the figure is the heaviest thing in this dialog and the landing
+            // page must not carry it. The placeholder holds the card's height so the dialog
+            // doesn't jump when the chunk lands.
+            <Suspense
+              fallback={<div aria-hidden="true" className="aspect-3/2 w-full rounded-3xl" />}
+            >
+              <Figure labels={figure} />
+            </Suspense>
+          ) : null}
+          {detail && (
+            <>
+              <ServiceWorksTable title={detail.title} table={detail.table} works={detail.works} />
+              <p className="text-caption text-silver-mist">{detail.note}</p>
+            </>
+          )}
           <div className="flex flex-wrap items-center gap-18">
             <a
               href={service.quote}

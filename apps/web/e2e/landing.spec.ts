@@ -275,6 +275,59 @@ test.describe('service cards', () => {
     expect(blocking, JSON.stringify(blocking, null, 2)).toEqual([]);
   });
 
+  test('the tune-up dialog tables what the service covers, per vehicle', async ({ page }) => {
+    await page.goto('/');
+    await page.locator('#servicios [data-service-card]').first().getByRole('button').click();
+    const dialog = page.getByRole('dialog');
+    const table = dialog.getByRole('table');
+    await expect(table).toBeVisible();
+    // Eight jobs plus the header row.
+    await expect(table.getByRole('row')).toHaveCount(9);
+    // The one line that differs is the reason this is a table and not a list: a scooter has no
+    // chain to tension. The mark alone says nothing, so the answer is also spelled out.
+    const chain = table.getByRole('row', { name: /cadena/ });
+    await expect(chain).toContainText('Sí lo incluye');
+    await expect(chain).toContainText('No aplica');
+    await expect(dialog).toContainText('El costo varía dependiendo marca, modelo y cilindraje');
+  });
+
+  test('the figure is fetched when the dialog opens, never with the page', async ({ page }) => {
+    const chunks: string[] = [];
+    page.on('request', (request) => {
+      if (/\.js(\?|$)/.test(request.url())) chunks.push(request.url());
+    });
+    await page.goto('/');
+    await expect(page.locator('#servicios [data-service-card]').first()).toBeVisible();
+    const before = chunks.length;
+    expect(await page.locator('.iso-svg').count()).toBe(0);
+
+    await page.locator('#servicios [data-service-card]').first().getByRole('button').click();
+    const figure = page.locator('.iso-svg');
+    await expect(figure).toBeVisible();
+    expect(chunks.length, 'the figure arrives in a chunk of its own').toBeGreaterThan(before);
+
+    // The throttle is the only control, and it answers the keyboard as a slider should.
+    const throttle = page.getByRole('slider');
+    const readout = page.locator('[data-readout]');
+    await throttle.focus();
+    // The card carries its resting reading before the first frame, so this is never empty.
+    const idle = await readout.textContent();
+    expect(idle).toMatch(/\d/);
+    await throttle.press('End');
+    await expect.poll(async () => readout.textContent()).not.toBe(idle);
+    await throttle.press('Home');
+    await expect.poll(async () => readout.textContent()).toBe(idle);
+  });
+
+  test('a service with no detail copy shows its body alone', async ({ page }) => {
+    await page.goto('/');
+    await page.locator('#servicios [data-service-card]').nth(1).getByRole('button').click();
+    const dialog = page.getByRole('dialog');
+    await expect(dialog.getByRole('heading', { level: 2 })).toHaveText('Cambio de balatas');
+    await expect(dialog.getByRole('table')).toHaveCount(0);
+    await expect(dialog.locator('.iso-svg')).toHaveCount(0);
+  });
+
   test('the page behind the open dialog cannot be scrolled', async ({ page }) => {
     await page.goto('/');
     // Asserted through the style rather than a wheel event: mobile WebKit has no wheel.

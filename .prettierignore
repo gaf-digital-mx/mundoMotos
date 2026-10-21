@@ -10,3 +10,7 @@ pnpm-lock.yaml
 # Written by release-please
 CHANGELOG.md
 .release-please-manifest.json
+# Vendored from the `anatomy` skill's kit, kept as upstream wrote it
+apps/web/src/shared/iso/iso-kit.ts
+apps/web/src/shared/iso/iso.css
+apps/web/src/shared/iso/react/

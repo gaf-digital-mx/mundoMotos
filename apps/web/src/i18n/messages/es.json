@@ -69,15 +69,49 @@
   "services": {
     "eyebrow": "Taller",
     "title": "Que tu moto ruede como nueva",
-    "body": "¿Quieres cotizar antes? <contact>escríbenos por WhatsApp</contact> o <visit>ve aquí</visit> cómo llegar a nuestro taller.",
+    "body": "¿Tienes una duda? <contact>escríbenos por WhatsApp</contact> o <visit>ve aquí</visit> cómo llegar a nuestro taller.",
     "quote": "Cotizar",
     "more": "Ver más",
     "close": "Cerrar",
     "quoteMessage": "Hola, Mundo Motos. Quiero cotizar: {service}.",
+    "table": {
+      "work": "Trabajo",
+      "bike": "Moto",
+      "scooter": "Motoneta",
+      "yes": "Sí lo incluye",
+      "no": "No aplica"
+    },
     "items": {
       "tuneUp": {
         "name": "Afinación",
-        "body": "Revisión y ajuste del motor, bujías y filtros para que tu moto rinda mejor."
+        "body": "Mantenimiento preventivo para garantizar el buen funcionamiento del motor",
+        "detail": {
+          "title": "La afinación incluye",
+          "note": "El costo varía dependiendo marca, modelo y cilindraje.",
+          "figure": {
+            "title": "Cómo respira el motor",
+            "hint": "Acelera con la perilla o con ← →",
+            "caption": "Filtro, carburador y bujía son los tres puntos que toca una afinación: el aire limpio entra por el filtro, el carburador lo mezcla con gasolina y la bujía enciende la mezcla. Sucios, el motor pierde fuerza y gasta más.",
+            "readout": "{rpm} rpm",
+            "unit": "rpm",
+            "control": "Acelerador",
+            "alt": "Banco de taller visto en perspectiva: la caja del filtro de aire, una manguera con abrazaderas, el carburador con su cuba y su tapa, el múltiple y la cabeza del cilindro con sus aletas. Arriba va la bujía con su cable hacia la bobina, y al frente un tacómetro y la perilla del acelerador. Al abrir el acelerador sube la corredera, el aire recorre el camino punteado y la chispa salta en la ventana de la cámara.",
+            "keys": {
+              "air": "El camino del aire",
+              "spark": "La chispa en la bujía"
+            }
+          },
+          "items": {
+            "oil": "Cambio de aceite",
+            "plug": "Cambio de bujía",
+            "airFilter": "Cambio de filtro de aire",
+            "carburetor": "Lavado de carburador",
+            "chain": "Tensión y lubricación de cadena",
+            "cables": "Lubricación de chicotes",
+            "brakes": "Ajuste de frenos",
+            "wash": "Lavado de la moto"
+          }
+        }
       },
       "brakes": {
         "name": "Cambio de balatas",

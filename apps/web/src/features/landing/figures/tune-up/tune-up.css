@@ -1,0 +1,92 @@
+@import '../../../../shared/iso/iso.css';
+
+/*
+ * The kit ships its own near-black palette. Everything it paints with is re-pointed at this
+ * site's tokens here, so the drawing is made of the same blacks and greys as the page around it
+ * and the one lit accent is the brand's gold. The kit's own values stay untouched upstream.
+ */
+.iso {
+  --anatomy-page: var(--color-void);
+  --anatomy-card: color-mix(in srgb, var(--color-bone-white) 8%, var(--color-void));
+  --anatomy-text: var(--color-silver-mist);
+  --anatomy-strong: var(--color-bone-white);
+  --anatomy-muted: var(--color-ash-gray);
+  --anatomy-paper: color-mix(in srgb, var(--color-bone-white) 8%, var(--color-void));
+  --anatomy-face: color-mix(in srgb, var(--color-bone-white) 11%, var(--color-void));
+  --anatomy-top: color-mix(in srgb, var(--color-bone-white) 12%, var(--color-void));
+  --anatomy-shade-0: color-mix(in srgb, var(--color-bone-white) 6%, var(--color-void));
+  --anatomy-shade-1: color-mix(in srgb, var(--color-bone-white) 7.5%, var(--color-void));
+  --anatomy-shade-2: color-mix(in srgb, var(--color-bone-white) 9%, var(--color-void));
+  --anatomy-shade-3: color-mix(in srgb, var(--color-bone-white) 10.5%, var(--color-void));
+  --anatomy-lit-top: color-mix(in srgb, var(--color-ignition-gold) 22%, var(--color-void));
+  --anatomy-lit-shade: color-mix(in srgb, var(--color-ignition-gold) 13%, var(--color-void));
+  --anatomy-hi: var(--color-silver-mist);
+  --anatomy-mid: var(--color-ash-gray);
+  --anatomy-lo: color-mix(in srgb, var(--color-bone-white) 42%, var(--color-void));
+  --anatomy-faint: color-mix(in srgb, var(--color-bone-white) 26%, var(--color-void));
+  --anatomy-lit: var(--color-ignition-gold);
+  --anatomy-halo: var(--color-void);
+  --anatomy-dot: var(--color-silver-mist);
+}
+
+/* The card sits inside the dialog's own stack, which owns the spacing and the corner radius. */
+.iso-figure {
+  margin: 0;
+}
+
+.iso-plate {
+  border-radius: var(--radius-3xl);
+  padding: 44px 12px;
+}
+
+.iso-plate-corner {
+  font-size: var(--text-caption);
+}
+
+.iso-legend {
+  font-size: var(--text-caption);
+  line-height: 1.6;
+}
+
+@media (width >= 48rem) {
+  .iso-plate {
+    padding: 48px 24px;
+  }
+}
+
+/* The air's path: fatter, rounder dots than the kit's default, so it never reads as a seam. */
+.tune-up-air {
+  stroke-width: 1.7;
+  stroke-dasharray: 0.01 4.6;
+}
+
+/* The throttle: the knob under it is the picture, this is the control. */
+.tune-up-grip {
+  fill: transparent;
+  cursor: grab;
+  touch-action: none;
+}
+
+.tune-up-grip:active {
+  cursor: grabbing;
+}
+
+/* An outline on an SVG shape is unreliable across engines; a stroke is not. */
+.tune-up-grip:focus-visible {
+  outline: none;
+  stroke: var(--color-ignition-gold);
+  stroke-width: 2;
+  stroke-dasharray: 5 4;
+}
+
+/*
+ * Forced colours repaint every fill and stroke, which turns a drawing built out of four tones of
+ * near-black into one solid blob. The card and its legend keys go; the caption below them says
+ * what the figure says, in words.
+ */
+@media (forced-colors: active) {
+  .iso-plate,
+  .iso-keys {
+    display: none;
+  }
+}
