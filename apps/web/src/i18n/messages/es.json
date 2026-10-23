@@ -74,6 +74,28 @@
     "more": "Ver más",
     "close": "Cerrar",
     "quoteMessage": "Hola, Mundo Motos. Quiero cotizar: {service}.",
+    "quoteForm": {
+      "title": "Cuéntanos de tu moto",
+      "brand": "Marca",
+      "brandPlaceholder": "Elige tu marca",
+      "brandOther": "Otra",
+      "brandOtherLabel": "¿Cuál marca?",
+      "model": "Modelo",
+      "displacement": "Cilindraje",
+      "displacementPlaceholder": "Elige el cilindraje",
+      "displacementOption": "{cc} cc",
+      "displacementOver": "Más de 250 cc",
+      "displacementUnknown": "No sé",
+      "errors": {
+        "brandRequired": "Elige la marca de tu moto.",
+        "tooLong": "Usa un texto más corto."
+      },
+      "message": {
+        "brand": "Marca: {brand}.",
+        "model": "Modelo: {model}.",
+        "displacement": "Cilindraje: {displacement}."
+      }
+    },
     "table": {
       "work": "Trabajo",
       "bike": "Moto",

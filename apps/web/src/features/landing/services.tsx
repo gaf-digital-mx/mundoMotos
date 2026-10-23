@@ -1,9 +1,12 @@
 import { useTranslations } from 'next-intl';
 
+import { DISPLACEMENTS_CC, MOTORCYCLE_BRANDS } from '@/content/motorcycle-brands';
 import { SERVICES, TUNE_UP_WORKS } from '@/content/services';
-import { whatsappHref } from '@/shared/lib/tracked-links';
+import { siteConfig } from '@/shared/config/business';
+import { trackPath, whatsappHref } from '@/shared/lib/tracked-links';
 import { SectionHeading } from '@/shared/ui/section-heading';
 
+import { type ServiceQuote } from './quote-form';
 import { ServiceCard } from './service-card';
 import { type ServiceDetail } from './service-detail';
 import { ServiceDialog } from './service-dialog';
@@ -32,6 +35,48 @@ export function Services() {
         ...work,
         label: t(`services.items.tuneUp.detail.items.${work.id}`),
       })),
+    },
+  };
+
+  // Only the tune-up asks about the bike before quoting: it is the service whose price depends on
+  // the answers (see its note), and the one whose dialog is built to carry a form. The other five
+  // keep their plain quote link; adding one is an entry here.
+  const quotes: Record<string, ServiceQuote> = {
+    tuneUp: {
+      whatsappNumber: siteConfig.whatsappNumber,
+      trackUrl: trackPath('whatsapp', 'services'),
+      baseMessage: t('services.quoteMessage', { service: t('services.items.tuneUp.name') }),
+      brands: MOTORCYCLE_BRANDS,
+      displacements: [
+        ...DISPLACEMENTS_CC.map((cc) => t('services.quoteForm.displacementOption', { cc })),
+        t('services.quoteForm.displacementOver'),
+        t('services.quoteForm.displacementUnknown'),
+      ],
+      labels: {
+        title: t('services.quoteForm.title'),
+        brand: t('services.quoteForm.brand'),
+        brandPlaceholder: t('services.quoteForm.brandPlaceholder'),
+        brandOther: t('services.quoteForm.brandOther'),
+        brandOtherLabel: t('services.quoteForm.brandOtherLabel'),
+        model: t('services.quoteForm.model'),
+        displacement: t('services.quoteForm.displacement'),
+        displacementPlaceholder: t('services.quoteForm.displacementPlaceholder'),
+        submit: t('services.quote'),
+        newTabHint,
+        errors: {
+          brandRequired: t('services.quoteForm.errors.brandRequired'),
+          tooLong: t('services.quoteForm.errors.tooLong'),
+        },
+      },
+      // Resolved with literal placeholders: the island fills them with what was answered, since
+      // there is no i18n runtime in the browser.
+      templates: {
+        brand: t('services.quoteForm.message.brand', { brand: '{brand}' }),
+        model: t('services.quoteForm.message.model', { model: '{model}' }),
+        displacement: t('services.quoteForm.message.displacement', {
+          displacement: '{displacement}',
+        }),
+      },
     },
   };
 
@@ -91,6 +136,7 @@ export function Services() {
         quoteLabel={t('services.quote')}
         newTabHint={newTabHint}
         details={details}
+        quotes={quotes}
       />
     </section>
   );

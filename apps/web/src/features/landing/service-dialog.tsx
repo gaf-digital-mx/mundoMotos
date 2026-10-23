@@ -4,6 +4,7 @@ import { Suspense, useEffect, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
 
 import { SERVICE_FIGURES } from './figures';
+import { QuoteForm, type ServiceQuote } from './quote-form';
 import { ServiceWorksTable } from './service-works-table';
 
 import type { ServiceDetail } from './service-detail';
@@ -14,6 +15,8 @@ type Props = {
   newTabHint: string;
   /** Keyed by service id; a service without an entry shows its body alone. */
   details: Record<string, ServiceDetail>;
+  /** Keyed by service id; a service without an entry keeps the plain quote link. */
+  quotes: Record<string, ServiceQuote>;
 };
 
 type Service = { id: string; name: string; body: string; quote: string };
@@ -23,7 +26,7 @@ type Service = { id: string; name: string; body: string; quote: string };
  * "Ver más" buttons to a native <dialog>, which brings the focus trap, Escape and focus return
  * with it. The copy comes from the card that was clicked, so no string is duplicated.
  */
-export function ServiceDialog({ closeLabel, quoteLabel, newTabHint, details }: Props) {
+export function ServiceDialog({ closeLabel, quoteLabel, newTabHint, details, quotes }: Props) {
   const ref = useRef<HTMLDialogElement>(null);
   const [service, setService] = useState<Service | null>(null);
 
@@ -87,6 +90,7 @@ export function ServiceDialog({ closeLabel, quoteLabel, newTabHint, details }: P
   }, []);
 
   const detail = service ? details[service.id] : undefined;
+  const quote = service ? quotes[service.id] : undefined;
   const Figure = service ? SERVICE_FIGURES[service.id] : undefined;
 
   return (
@@ -129,27 +133,39 @@ export function ServiceDialog({ closeLabel, quoteLabel, newTabHint, details }: P
               <p className="text-caption text-silver-mist">{detail.note}</p>
             </>
           )}
-          <div className="flex flex-wrap items-center gap-18">
-            <a
-              href={service.quote}
-              target="_blank"
-              rel="nofollow noopener noreferrer"
-              className="inline-flex min-h-11 items-center rounded-3xl border border-ignition-gold px-18 py-6 text-caption font-semibold tracking-label text-ignition-gold uppercase hover:bg-ignition-gold/10"
-            >
-              {quoteLabel}
-              <span className="sr-only">
-                {' '}
-                {service.name} {newTabHint}
-              </span>
-            </a>
-            <button
-              type="button"
-              onClick={() => ref.current?.close()}
-              className="min-h-11 text-caption font-semibold tracking-label text-silver-mist uppercase hover:text-bone-white"
-            >
-              {closeLabel}
-            </button>
-          </div>
+          {/* With a quote form, the green button is its submit and the dialog's own controls
+              live inside it; without one, the quote stays a plain tracked link. */}
+          {quote ? (
+            <QuoteForm
+              {...quote}
+              closeLabel={closeLabel}
+              onClose={() => {
+                ref.current?.close();
+              }}
+            />
+          ) : (
+            <div className="flex flex-wrap items-center gap-18">
+              <a
+                href={service.quote}
+                target="_blank"
+                rel="nofollow noopener noreferrer"
+                className="inline-flex min-h-11 items-center rounded-3xl border border-ignition-gold px-18 py-6 text-caption font-semibold tracking-label text-ignition-gold uppercase hover:bg-ignition-gold/10"
+              >
+                {quoteLabel}
+                <span className="sr-only">
+                  {' '}
+                  {service.name} {newTabHint}
+                </span>
+              </a>
+              <button
+                type="button"
+                onClick={() => ref.current?.close()}
+                className="min-h-11 text-caption font-semibold tracking-label text-silver-mist uppercase hover:text-bone-white"
+              >
+                {closeLabel}
+              </button>
+            </div>
+          )}
         </div>
       )}
     </dialog>

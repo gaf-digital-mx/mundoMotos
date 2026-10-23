@@ -93,21 +93,22 @@ test.describe('landing page', () => {
 
   test('tracked WhatsApp links redirect to wa.me with the message (ADR-0013)', async ({ page }) => {
     await page.goto('/');
-    // The service quote now lives in the card's dialog.
+    // The service quote lives in the card's dialog. Not the tune-up's: that one asks about the
+    // bike first and opens wa.me itself, so the tracked link is on any of the other five.
     await page
       .getByRole('button', { name: /Ver más/ })
-      .first()
+      .nth(1)
       .click();
     const href = await page
       .getByRole('dialog')
-      .getByRole('link', { name: /Cotizar.*Afinación/ })
+      .getByRole('link', { name: /Cotizar.*balatas/ })
       .getAttribute('href');
     expect(new URL(href ?? '', page.url()).searchParams.get('src')).toBe('services');
     const res = await page.request.get(href ?? '', { maxRedirects: 0 });
     expect(res.status()).toBe(302);
     const location = new URL(res.headers().location ?? '');
     expect(location.hostname).toBe('wa.me');
-    expect(location.searchParams.get('text')).toContain('Afinación');
+    expect(location.searchParams.get('text')).toContain('balatas');
   });
 
   test('every featured item keeps its own tracked WhatsApp chip', async ({ page }) => {
@@ -289,6 +290,67 @@ test.describe('service cards', () => {
     await expect(chain).toContainText('Sí lo incluye');
     await expect(chain).toContainText('No aplica');
     await expect(dialog).toContainText('* El costo varía dependiendo marca, modelo y cilindraje');
+  });
+
+  test('the tune-up dialog quotes with what the visitor answers about the bike', async ({
+    page,
+  }) => {
+    // The form opens WhatsApp in a new tab. Stubbed so the test stays offline, and so a returned
+    // handle keeps the island off its blocked-pop-up fallback (a redirect of this very page).
+    await page.addInitScript(() => {
+      const opened: string[] = [];
+      (window as unknown as { __opened: string[] }).__opened = opened;
+      window.open = (url) => {
+        opened.push(String(url));
+        return { opener: null } as Window;
+      };
+    });
+    const requests: string[] = [];
+    page.on('request', (request) => requests.push(request.url()));
+
+    await page.goto('/');
+    await page.locator('#servicios [data-service-card]').first().getByRole('button').click();
+    const dialog = page.getByRole('dialog');
+    const quote = dialog.getByRole('button', { name: 'Cotizar' });
+
+    // The brand is the one answer the quote can't do without.
+    await quote.click();
+    await expect(dialog.getByText('Elige la marca de tu moto.')).toBeVisible();
+    expect(
+      await page.evaluate(() => (window as unknown as { __opened: string[] }).__opened),
+    ).toEqual([]);
+
+    // A bike outside the list is typed instead, in a field the list opens.
+    const brand = dialog.getByLabel('Marca', { exact: true });
+    await brand.selectOption('other');
+    await expect(dialog.getByLabel('¿Cuál marca?')).toBeVisible();
+
+    await brand.selectOption('Italika');
+    await expect(dialog.getByLabel('¿Cuál marca?')).toBeHidden();
+    // Answering clears the rejection: it would otherwise sit under a brand that is picked.
+    await expect(dialog.getByText('Elige la marca de tu moto.')).toBeHidden();
+    await dialog.getByLabel('Modelo').fill('Vort-X 200');
+    await dialog.getByLabel('Cilindraje').selectOption('200 cc');
+    await quote.click();
+
+    const opened = await page.evaluate(
+      () => (window as unknown as { __opened: string[] }).__opened,
+    );
+    expect(opened).toHaveLength(1);
+    const url = new URL(opened[0] ?? '');
+    expect(url.hostname).toBe('wa.me');
+    const text = url.searchParams.get('text') ?? '';
+    expect(text).toContain('Afinación');
+    expect(text).toContain('Marca: Italika.');
+    expect(text).toContain('Modelo: Vort-X 200.');
+    expect(text).toContain('Cilindraje: 200 cc.');
+
+    // ADR-0013: the click is counted, the answers never reach our own Worker.
+    const reports = requests.filter((request) => request.includes('/api/track'));
+    expect(reports).toHaveLength(1);
+    expect(reports[0]).toContain('target=whatsapp');
+    expect(reports[0]).toContain('src=services');
+    expect(requests.join(' ')).not.toContain('Vort-X');
   });
 
   test('the figure is fetched when the dialog opens, never with the page', async ({ page }) => {
