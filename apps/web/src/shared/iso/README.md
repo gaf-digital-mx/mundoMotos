@@ -37,6 +37,12 @@ only edits on the way in are the import paths, an `iso.css` import (its home pag
 kit's stylesheet from the app layout; here the figure is fetched on demand, so it carries it),
 and the wrapper that picks the theme.
 
+Beyond those, `engine-4t` has one cut this site asked for: the caption under the parts row (its
+`CAPTION` constant and the `iso-caption` span) is gone — the dialog already carries the copy
+that sells the service, so the figure shows the engine and says nothing. The SVG's `aria-label`
+stays: it is the only description of the drawing for someone who cannot see it. Reapply the cut
+on a refresh.
+
 That is why those folders are excluded from ESLint (`apps/web/eslint.config.js`) and from
 Prettier (`.prettierignore`), and why `live.tsx` carries a `@ts-nocheck` banner: a figure
 predates this project's `noUncheckedIndexedAccess`, and rewriting it would make every refresh a

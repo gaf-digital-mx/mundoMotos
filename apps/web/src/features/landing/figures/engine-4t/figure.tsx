@@ -1,7 +1,7 @@
 // Server component: the static drawing (precomputed by build.mjs), split into the layers the
 // gas shader sits between, plus the live wrapper and the controls.
 import art from "./art.generated.json";
-import { BORE, STROKE, ROD, COMPRESSION, PARTS, TIMING, RPM_SHOWN } from "./model.mjs";
+import { PARTS } from "./model.mjs";
 import { EngineLive, type EngineData } from "./live";
 // Integration glue, not the figure's own: its home page loaded the kit's stylesheet from the
 // app layout. Here the figure is fetched on demand, so it brings the stylesheet with it.
@@ -23,7 +23,6 @@ const FRONT = items.filter((item) => item.front).map(node).join("");
 const VIEW = `0 0 ${art.W} ${art.H}`;
 const LABEL =
   "Motor monocilíndrico de cuatro tiempos en corte, sobre un banco: cárter con el cigüeñal, biela, pistón, cilindro con aletas, culata con la cámara de combustión, válvula de admisión y de escape con sus resortes, bujía, carburador con filtro y tubo de escape. Puede funcionar, mostrando la mezcla, la chispa, la llama y los gases, o desensamblarse en sus siete piezas.";
-const CAPTION = `Un monocilíndrico de 150 cc (Ø${BORE} × ${STROKE} mm, biela de ${ROD} mm, compresión ${COMPRESSION}:1) completa su ciclo en dos vueltas del cigüeñal: admisión (la válvula de admisión abre ${-TIMING.ivo}° antes del PMS y la mezcla entra mientras el pistón baja), compresión (las dos válvulas cerradas), explosión (la bujía salta ${360 - TIMING.spark}° antes del PMS y la llama empuja el pistón) y escape (la válvula de escape abre ${540 - TIMING.evo}° antes del PMI y el pistón expulsa los gases). Aquí gira a ${RPM_SHOWN} rpm para poder seguirlo; al ralentí real gira unas 60 veces más rápido.`;
 
 export function Engine4TFigure() {
   return (
@@ -73,7 +72,6 @@ export function Engine4TFigure() {
               </button>
             ))}
           </span>
-          <span className="iso-caption">{CAPTION}</span>
         </figcaption>
       </EngineLive>
     </figure>
