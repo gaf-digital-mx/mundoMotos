@@ -288,10 +288,13 @@ test.describe('service cards', () => {
     const chain = table.getByRole('row', { name: /cadena/ });
     await expect(chain).toContainText('Sí lo incluye');
     await expect(chain).toContainText('No aplica');
-    await expect(dialog).toContainText('El costo varía dependiendo marca, modelo y cilindraje');
+    await expect(dialog).toContainText('* El costo varía dependiendo marca, modelo y cilindraje');
   });
 
   test('the figure is fetched when the dialog opens, never with the page', async ({ page }) => {
+    // The bench plays an opening tour of its own; reduced motion turns it off, which is both the
+    // behaviour to check and what makes every reading below the result of a click.
+    await page.emulateMedia({ reducedMotion: 'reduce' });
     const chunks: string[] = [];
     page.on('request', (request) => {
       if (/\.js(\?|$)/.test(request.url())) chunks.push(request.url());
@@ -302,21 +305,47 @@ test.describe('service cards', () => {
     expect(await page.locator('.iso-svg').count()).toBe(0);
 
     await page.locator('#servicios [data-service-card]').first().getByRole('button').click();
-    const figure = page.locator('.iso-svg');
-    await expect(figure).toBeVisible();
+    const dialog = page.getByRole('dialog');
+    await expect(dialog.locator('.iso-svg').first()).toBeVisible();
     expect(chunks.length, 'the figure arrives in a chunk of its own').toBeGreaterThan(before);
 
-    // The throttle is the only control, and it answers the keyboard as a slider should.
-    const throttle = page.getByRole('slider');
-    const readout = page.locator('[data-readout]');
-    await throttle.focus();
-    // The card carries its resting reading before the first frame, so this is never empty.
-    const idle = await readout.textContent();
-    expect(idle).toMatch(/\d/);
-    await throttle.press('End');
-    await expect.poll(async () => readout.textContent()).not.toBe(idle);
-    await throttle.press('Home');
-    await expect.poll(async () => readout.textContent()).toBe(idle);
+    // The card carries its resting reading before the first frame, and nothing moves on its own.
+    const readout = dialog.locator('[data-readout]');
+    await expect(readout).toHaveText('ensamblado · parado en PMS');
+    await page.waitForTimeout(1200);
+    await expect(readout).toHaveText('ensamblado · parado en PMS');
+
+    // Running it: the button becomes its own stop, which is what makes the motion answerable.
+    await dialog.getByRole('button', { name: 'Arrancar' }).click();
+    const stop = dialog.getByRole('button', { name: 'Parar' });
+    await expect(stop).toBeVisible();
+    await expect.poll(async () => readout.textContent()).toMatch(/°$/);
+    await stop.click();
+    await expect(dialog.getByRole('button', { name: 'Arrancar' })).toBeVisible();
+
+    await dialog.getByRole('button', { name: 'Desensamblar' }).click();
+    await expect(dialog.getByRole('button', { name: 'Ensamblar' })).toBeVisible();
+    await expect.poll(async () => readout.textContent()).toBe('desensamblado · 7 piezas');
+
+    // Each of the seven pieces names itself, on the drawing and on the button that picked it.
+    const piston = dialog.getByRole('button', { name: /Pistón/ });
+    await piston.click();
+    await expect(piston).toHaveAttribute('data-on', '');
+    await expect(readout).toContainText('carrera 57.8 mm');
+  });
+
+  test('the figure shows what it does by itself, and hands over when touched', async ({ page }) => {
+    await page.goto('/');
+    await page.locator('#servicios [data-service-card]').first().getByRole('button').click();
+    const dialog = page.getByRole('dialog');
+    const readout = dialog.locator('[data-readout]');
+    // The tour runs the engine without being asked, so the reading leaves its resting value.
+    await expect.poll(async () => readout.textContent(), { timeout: 8000 }).toMatch(/°$/);
+    // Stopping it stops it, and the tour steps back while the visitor is working the bench.
+    await dialog.getByRole('button', { name: 'Parar' }).click();
+    await expect(dialog.getByRole('button', { name: 'Arrancar' })).toBeVisible();
+    await page.waitForTimeout(3000);
+    await expect(dialog.getByRole('button', { name: 'Arrancar' })).toBeVisible();
   });
 
   test('a service with no detail copy shows its body alone', async ({ page }) => {

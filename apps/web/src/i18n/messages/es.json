@@ -87,19 +87,7 @@
         "body": "Mantenimiento preventivo para garantizar el buen funcionamiento del motor",
         "detail": {
           "title": "La afinación incluye",
-          "note": "El costo varía dependiendo marca, modelo y cilindraje.",
-          "figure": {
-            "title": "Cómo respira el motor",
-            "hint": "Acelera con la perilla o con ← →",
-            "caption": "Filtro, carburador y bujía son los tres puntos que toca una afinación: el aire limpio entra por el filtro, el carburador lo mezcla con gasolina y la bujía enciende la mezcla. Sucios, el motor pierde fuerza y gasta más.",
-            "readout": "{rpm} rpm",
-            "control": "Acelerador",
-            "alt": "Banco de taller visto en perspectiva: la caja del filtro de aire, una manguera con abrazaderas, el carburador con su cuba y su tapa, el múltiple y la cabeza del cilindro con sus aletas. Arriba va la bujía con su cable hacia la bobina, y al frente un tacómetro y la perilla del acelerador. Al abrir el acelerador sube la corredera, el aire recorre el camino punteado y la chispa salta en la ventana de la cámara.",
-            "keys": {
-              "air": "El camino del aire",
-              "spark": "La chispa en la bujía"
-            }
-          },
+          "note": "* El costo varía dependiendo marca, modelo y cilindraje.",
           "items": {
             "oil": "Cambio de aceite",
             "plug": "Cambio de bujía",

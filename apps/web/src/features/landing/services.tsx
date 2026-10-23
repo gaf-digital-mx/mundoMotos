@@ -1,16 +1,15 @@
-import { useLocale, useTranslations } from 'next-intl';
+import { useTranslations } from 'next-intl';
 
 import { SERVICES, TUNE_UP_WORKS } from '@/content/services';
 import { whatsappHref } from '@/shared/lib/tracked-links';
 import { SectionHeading } from '@/shared/ui/section-heading';
 
 import { ServiceCard } from './service-card';
-import { RPM_SLOT, numberLocale, type ServiceDetail } from './service-detail';
+import { type ServiceDetail } from './service-detail';
 import { ServiceDialog } from './service-dialog';
 
 export function Services() {
   const t = useTranslations();
-  const locale = useLocale();
   const newTabHint = t('common.opensInNewTab');
 
   const table = {
@@ -33,23 +32,6 @@ export function Services() {
         ...work,
         label: t(`services.items.tuneUp.detail.items.${work.id}`),
       })),
-      figure: {
-        title: t('services.items.tuneUp.detail.figure.title'),
-        hint: t('services.items.tuneUp.detail.figure.hint'),
-        caption: t('services.items.tuneUp.detail.figure.caption'),
-        // The number changes every frame, so the message is resolved into a template and the
-        // figure fills the slot. Passing the slot as the ICU value keeps the key typed and the
-        // unit on whichever side of the number the language wants it.
-        readout: t('services.items.tuneUp.detail.figure.readout', { rpm: RPM_SLOT }),
-        control: t('services.items.tuneUp.detail.figure.control'),
-        alt: t('services.items.tuneUp.detail.figure.alt'),
-        keys: {
-          air: t('services.items.tuneUp.detail.figure.keys.air'),
-          spark: t('services.items.tuneUp.detail.figure.keys.spark'),
-        },
-        locale: numberLocale(locale),
-        tag: t('services.eyebrow'),
-      },
     },
   };
 

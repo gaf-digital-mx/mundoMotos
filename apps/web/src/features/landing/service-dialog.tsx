@@ -87,7 +87,6 @@ export function ServiceDialog({ closeLabel, quoteLabel, newTabHint, details }: P
   }, []);
 
   const detail = service ? details[service.id] : undefined;
-  const figure = detail?.figure;
   const Figure = service ? SERVICE_FIGURES[service.id] : undefined;
 
   return (
@@ -112,7 +111,7 @@ export function ServiceDialog({ closeLabel, quoteLabel, newTabHint, details }: P
             {service.name}
           </h2>
           <p className="text-silver-mist">{service.body}</p>
-          {Figure && figure ? (
+          {Figure ? (
             // Loaded on demand: the figure is the heaviest thing in this dialog and the landing
             // page must not carry it. The placeholder holds the card's height so the dialog
             // doesn't jump when the chunk lands.
@@ -121,7 +120,7 @@ export function ServiceDialog({ closeLabel, quoteLabel, newTabHint, details }: P
               // of the dialog doesn't jump up the moment the chunk lands.
               fallback={<div aria-hidden="true" className="min-h-[460px] w-full rounded-3xl" />}
             >
-              <Figure labels={figure} />
+              <Figure />
             </Suspense>
           ) : null}
           {detail && (
