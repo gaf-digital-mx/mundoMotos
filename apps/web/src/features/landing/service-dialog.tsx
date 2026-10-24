@@ -1,22 +1,32 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { Suspense, useEffect, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
+
+import { SERVICE_FIGURES } from './figures';
+import { QuoteForm, type ServiceQuote } from './quote-form';
+import { ServiceWorksTable } from './service-works-table';
+
+import type { ServiceDetail } from './service-detail';
 
 type Props = {
   closeLabel: string;
   quoteLabel: string;
   newTabHint: string;
+  /** Keyed by service id; a service without an entry shows its body alone. */
+  details: Record<string, ServiceDetail>;
+  /** Keyed by service id; a service without an entry keeps the plain quote link. */
+  quotes: Record<string, ServiceQuote>;
 };
 
-type Service = { name: string; body: string; quote: string };
+type Service = { id: string; name: string; body: string; quote: string };
 
 /**
  * One dialog for every service card. The cards are server-rendered; this island only wires their
  * "Ver más" buttons to a native <dialog>, which brings the focus trap, Escape and focus return
  * with it. The copy comes from the card that was clicked, so no string is duplicated.
  */
-export function ServiceDialog({ closeLabel, quoteLabel, newTabHint }: Props) {
+export function ServiceDialog({ closeLabel, quoteLabel, newTabHint, details, quotes }: Props) {
   const ref = useRef<HTMLDialogElement>(null);
   const [service, setService] = useState<Service | null>(null);
 
@@ -33,12 +43,18 @@ export function ServiceDialog({ closeLabel, quoteLabel, newTabHint }: Props) {
       // heading and then jumps to its real size.
       flushSync(() => {
         setService({
+          id: card.dataset.serviceId ?? '',
           name: card.dataset.serviceName ?? '',
           body: card.dataset.serviceBody ?? '',
           quote: card.dataset.serviceQuote ?? '',
         });
       });
       dialog.showModal();
+      // The heading takes focus, rather than the first link in the panel. Otherwise the browser
+      // scrolls that link into view and, with a tall figure above it, the dialog opens past its
+      // own title; and this is what a dialog should announce first anyway.
+      dialog.scrollTop = 0;
+      dialog.querySelector<HTMLElement>('[data-dialog-title]')?.focus();
     };
     const listeners = cards.flatMap((card) => {
       const button = card.querySelector<HTMLButtonElement>('[data-service-more]');
@@ -73,6 +89,10 @@ export function ServiceDialog({ closeLabel, quoteLabel, newTabHint }: Props) {
     };
   }, []);
 
+  const detail = service ? details[service.id] : undefined;
+  const quote = service ? quotes[service.id] : undefined;
+  const Figure = service ? SERVICE_FIGURES[service.id] : undefined;
+
   return (
     <dialog
       ref={ref}
@@ -80,37 +100,72 @@ export function ServiceDialog({ closeLabel, quoteLabel, newTabHint }: Props) {
       onClose={() => {
         setService(null);
       }}
-      className="m-auto w-[min(32rem,calc(100vw-2rem))] rounded-3xl bg-void p-0 text-bone-white backdrop:bg-void/80 backdrop:backdrop-blur-sm"
+      className="m-auto max-h-[calc(100dvh-2rem)] w-[min(36rem,calc(100vw-2rem))] rounded-3xl bg-void p-0 text-bone-white backdrop:bg-void/80 backdrop:backdrop-blur-sm"
     >
       {/* Nothing until a card is picked: the exported HTML carries an empty dialog, not a heading
           and a dead quote link. */}
       {service && (
         <div className="flex flex-col gap-18 border border-ash-gray/30 p-24">
-          <h2 id="service-dialog-title" className="text-heading-2xs font-normal">
+          <h2
+            id="service-dialog-title"
+            data-dialog-title
+            tabIndex={-1}
+            className="text-heading-2xs font-normal outline-none"
+          >
             {service.name}
           </h2>
           <p className="text-silver-mist">{service.body}</p>
-          <div className="flex flex-wrap items-center gap-18">
-            <a
-              href={service.quote}
-              target="_blank"
-              rel="nofollow noopener noreferrer"
-              className="inline-flex min-h-11 items-center rounded-3xl border border-ignition-gold px-18 py-6 text-caption font-semibold tracking-label text-ignition-gold uppercase hover:bg-ignition-gold/10"
+          {Figure ? (
+            // Loaded on demand: the figure is the heaviest thing in this dialog and the landing
+            // page must not carry it. The placeholder holds the card's height so the dialog
+            // doesn't jump when the chunk lands.
+            <Suspense
+              // Roughly the finished card's height (drawing, corners and caption), so the rest
+              // of the dialog doesn't jump up the moment the chunk lands.
+              fallback={<div aria-hidden="true" className="min-h-[460px] w-full rounded-3xl" />}
             >
-              {quoteLabel}
-              <span className="sr-only">
-                {' '}
-                {service.name} {newTabHint}
-              </span>
-            </a>
-            <button
-              type="button"
-              onClick={() => ref.current?.close()}
-              className="min-h-11 text-caption font-semibold tracking-label text-silver-mist uppercase hover:text-bone-white"
-            >
-              {closeLabel}
-            </button>
-          </div>
+              <Figure />
+            </Suspense>
+          ) : null}
+          {detail && (
+            <>
+              <ServiceWorksTable title={detail.title} table={detail.table} works={detail.works} />
+              <p className="text-caption text-silver-mist">{detail.note}</p>
+            </>
+          )}
+          {/* With a quote form, the green button is its submit and the dialog's own controls
+              live inside it; without one, the quote stays a plain tracked link. */}
+          {quote ? (
+            <QuoteForm
+              {...quote}
+              closeLabel={closeLabel}
+              onClose={() => {
+                ref.current?.close();
+              }}
+            />
+          ) : (
+            <div className="flex flex-wrap items-center justify-center gap-18 pt-10">
+              <a
+                href={service.quote}
+                target="_blank"
+                rel="nofollow noopener noreferrer"
+                className="inline-flex min-h-11 items-center rounded-3xl border border-ignition-gold px-18 py-6 text-caption font-semibold tracking-label text-ignition-gold uppercase hover:bg-ignition-gold/10"
+              >
+                {quoteLabel}
+                <span className="sr-only">
+                  {' '}
+                  {service.name} {newTabHint}
+                </span>
+              </a>
+              <button
+                type="button"
+                onClick={() => ref.current?.close()}
+                className="min-h-11 text-caption font-semibold tracking-label text-silver-mist uppercase hover:text-bone-white"
+              >
+                {closeLabel}
+              </button>
+            </div>
+          )}
         </div>
       )}
     </dialog>

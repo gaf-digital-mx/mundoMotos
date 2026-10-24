@@ -21,6 +21,10 @@ const input = {
   mapsUrl: 'https://maps.example/x',
   openingHours: [{ days: ['Monday', 'Tuesday'], opens: '09:00', closes: '19:00' }],
   serviceArea: ['Pueblo', 'Vecino'],
+  services: [
+    { name: 'Afinación', description: 'Mantenimiento preventivo', works: ['Cambio de aceite'] },
+    { name: 'Cambio de llantas', description: 'Montaje de llantas', works: [] },
+  ],
 };
 
 describe('localBusinessJsonLd', () => {
@@ -28,6 +32,20 @@ describe('localBusinessJsonLd', () => {
 
   it('describes a parts store that is also a repair shop', () => {
     expect(data['@type']).toEqual(['AutoPartsStore', 'AutoRepair']);
+  });
+
+  it('catalogues the workshop, and the jobs a service covers where we list them', () => {
+    const offers = data.hasOfferCatalog.itemListElement;
+    expect(offers.map((offer) => offer.itemOffered.name)).toEqual([
+      'Afinación',
+      'Cambio de llantas',
+    ]);
+    // The detail of a service reaches a crawler only here: the dialog it lives in needs a click.
+    expect(offers[0]?.itemOffered.hasOfferCatalog?.itemListElement).toEqual([
+      { '@type': 'Offer', itemOffered: { '@type': 'Service', name: 'Cambio de aceite' } },
+    ]);
+    // A service with nothing listed carries no empty catalogue.
+    expect(offers[1]?.itemOffered).not.toHaveProperty('hasOfferCatalog');
   });
 
   it('uses an international phone number and full postal address', () => {

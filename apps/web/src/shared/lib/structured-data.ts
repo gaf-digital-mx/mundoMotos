@@ -17,6 +17,8 @@ type Input = {
   mapsUrl: string;
   openingHours: readonly { days: readonly string[]; opens: string; closes: string }[];
   serviceArea: readonly string[];
+  /** What the workshop does, in display order, with the jobs a service covers where we list them. */
+  services: readonly { name: string; description: string; works: readonly string[] }[];
 };
 
 /**
@@ -50,6 +52,31 @@ export const localBusinessJsonLd = (input: Input) => ({
     closes,
   })),
   areaServed: input.serviceArea.map((name) => ({ '@type': 'City', name })),
+  // The workshop's own catalogue. It is the only place the detail of a service reaches the
+  // exported HTML: the dialog that shows it to a visitor is built on a click, which a crawler
+  // never makes.
+  hasOfferCatalog: {
+    '@type': 'OfferCatalog',
+    name: input.name,
+    itemListElement: input.services.map(({ name, description, works }) => ({
+      '@type': 'Offer',
+      itemOffered: {
+        '@type': 'Service',
+        name,
+        description,
+        ...(works.length > 0 && {
+          hasOfferCatalog: {
+            '@type': 'OfferCatalog',
+            name,
+            itemListElement: works.map((work) => ({
+              '@type': 'Offer',
+              itemOffered: { '@type': 'Service', name: work },
+            })),
+          },
+        }),
+      },
+    })),
+  },
   priceRange: '$',
   // Identity profiles only (the Maps link is already in hasMap).
   sameAs: [input.facebookUrl],

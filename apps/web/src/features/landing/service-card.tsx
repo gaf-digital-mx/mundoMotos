@@ -3,6 +3,8 @@ import { ArrowRightIcon } from '@/shared/ui/icons';
 import type { StaticImageData } from 'next/image';
 
 type Props = {
+  /** Keys the dialog's detail copy and its figure; the rest of the copy travels in the DOM. */
+  id: string;
   name: string;
   body: string;
   small: StaticImageData;
@@ -27,6 +29,7 @@ const PANEL = 'bg-void/50 backdrop-blur-md';
  * is decorative — the name sits right on top of it — so it has no alternative text.
  */
 export function ServiceCard({
+  id,
   name,
   body,
   small,
@@ -39,6 +42,7 @@ export function ServiceCard({
   return (
     <article
       data-service-card
+      data-service-id={id}
       data-service-name={name}
       data-service-body={body}
       data-service-quote={quoteHref}

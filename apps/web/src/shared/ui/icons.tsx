@@ -78,3 +78,20 @@ export function PlayIcon({ className }: { className?: string }) {
     </svg>
   );
 }
+
+export function CheckIcon({ className }: { className?: string }) {
+  return (
+    <svg {...base} className={className}>
+      <path d="M5 12.5 10 17.5 19 6.5" />
+    </svg>
+  );
+}
+
+/** The counterpart to the check: not applicable, rather than an error. */
+export function DashIcon({ className }: { className?: string }) {
+  return (
+    <svg {...base} className={className}>
+      <path d="M6 12h12" />
+    </svg>
+  );
+}

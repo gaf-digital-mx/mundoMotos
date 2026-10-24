@@ -93,21 +93,22 @@ test.describe('landing page', () => {
 
   test('tracked WhatsApp links redirect to wa.me with the message (ADR-0013)', async ({ page }) => {
     await page.goto('/');
-    // The service quote now lives in the card's dialog.
+    // The service quote lives in the card's dialog. Not the tune-up's: that one asks about the
+    // bike first and opens wa.me itself, so the tracked link is on any of the other five.
     await page
       .getByRole('button', { name: /Ver más/ })
-      .first()
+      .nth(1)
       .click();
     const href = await page
       .getByRole('dialog')
-      .getByRole('link', { name: /Cotizar.*Afinación/ })
+      .getByRole('link', { name: /Cotizar.*balatas/ })
       .getAttribute('href');
     expect(new URL(href ?? '', page.url()).searchParams.get('src')).toBe('services');
     const res = await page.request.get(href ?? '', { maxRedirects: 0 });
     expect(res.status()).toBe(302);
     const location = new URL(res.headers().location ?? '');
     expect(location.hostname).toBe('wa.me');
-    expect(location.searchParams.get('text')).toContain('Afinación');
+    expect(location.searchParams.get('text')).toContain('balatas');
   });
 
   test('every featured item keeps its own tracked WhatsApp chip', async ({ page }) => {
@@ -265,7 +266,11 @@ test.describe('service cards', () => {
   test('the open dialog has no serious or critical axe violations', async ({ page }) => {
     await page.goto('/');
     await page.locator('#servicios [data-service-card]').first().getByRole('button').click();
-    await expect(page.getByRole('dialog')).toBeVisible();
+    const dialog = page.getByRole('dialog');
+    await expect(dialog).toBeVisible();
+    // The figure arrives in a chunk of its own, so without this the audit is a race: whether it
+    // is part of the dialog when axe looks depends on how fast the machine is.
+    await expect(dialog.locator('.iso-svg').first()).toBeVisible();
     const results = await new AxeBuilder({ page })
       .withTags(['wcag2a', 'wcag2aa', 'wcag22aa'])
       .analyze();
@@ -273,6 +278,149 @@ test.describe('service cards', () => {
       (v) => v.impact === 'serious' || v.impact === 'critical',
     );
     expect(blocking, JSON.stringify(blocking, null, 2)).toEqual([]);
+  });
+
+  test('the tune-up dialog tables what the service covers, per vehicle', async ({ page }) => {
+    await page.goto('/');
+    await page.locator('#servicios [data-service-card]').first().getByRole('button').click();
+    const dialog = page.getByRole('dialog');
+    const table = dialog.getByRole('table');
+    await expect(table).toBeVisible();
+    // Eight jobs plus the header row.
+    await expect(table.getByRole('row')).toHaveCount(9);
+    // The one line that differs is the reason this is a table and not a list: a scooter has no
+    // chain to tension. The mark alone says nothing, so the answer is also spelled out.
+    const chain = table.getByRole('row', { name: /cadena/ });
+    await expect(chain).toContainText('Sí lo incluye');
+    await expect(chain).toContainText('No aplica');
+    await expect(dialog).toContainText('* El costo varía dependiendo marca, modelo y cilindraje');
+  });
+
+  test('the tune-up dialog quotes with what the visitor answers about the bike', async ({
+    page,
+  }) => {
+    // The form opens WhatsApp in a new tab. Stubbed so the test stays offline, and so a returned
+    // handle keeps the island off its blocked-pop-up fallback (a redirect of this very page).
+    await page.addInitScript(() => {
+      const opened: string[] = [];
+      (window as unknown as { __opened: string[] }).__opened = opened;
+      window.open = (url) => {
+        opened.push(String(url));
+        return { opener: null } as Window;
+      };
+    });
+    const requests: string[] = [];
+    page.on('request', (request) => requests.push(request.url()));
+
+    await page.goto('/');
+    await page.locator('#servicios [data-service-card]').first().getByRole('button').click();
+    const dialog = page.getByRole('dialog');
+    const quote = dialog.getByRole('button', { name: 'Cotizar' });
+
+    // The brand is the one answer the quote can't do without.
+    await quote.click();
+    await expect(dialog.getByText('Elige la marca de tu moto.')).toBeVisible();
+    expect(
+      await page.evaluate(() => (window as unknown as { __opened: string[] }).__opened),
+    ).toEqual([]);
+
+    // A bike outside the list is typed instead, in a field the list opens.
+    const brand = dialog.getByLabel('Marca', { exact: true });
+    await brand.selectOption('other');
+    await expect(dialog.getByLabel('¿Cuál marca?')).toBeVisible();
+
+    await brand.selectOption('Italika');
+    await expect(dialog.getByLabel('¿Cuál marca?')).toBeHidden();
+    // Answering clears the rejection: it would otherwise sit under a brand that is picked.
+    await expect(dialog.getByText('Elige la marca de tu moto.')).toBeHidden();
+    await dialog.getByLabel('Modelo').fill('Vort-X 200');
+    await dialog.getByLabel('Cilindraje').selectOption('200 cc');
+    await quote.click();
+
+    const opened = await page.evaluate(
+      () => (window as unknown as { __opened: string[] }).__opened,
+    );
+    expect(opened).toHaveLength(1);
+    const url = new URL(opened[0] ?? '');
+    expect(url.hostname).toBe('wa.me');
+    const text = url.searchParams.get('text') ?? '';
+    expect(text).toContain('Afinación');
+    expect(text).toContain('Marca: Italika.');
+    expect(text).toContain('Modelo: Vort-X 200.');
+    expect(text).toContain('Cilindraje: 200 cc.');
+
+    // ADR-0013: the click is counted, the answers never reach our own Worker.
+    const reports = requests.filter((request) => request.includes('/api/track'));
+    expect(reports).toHaveLength(1);
+    expect(reports[0]).toContain('target=whatsapp');
+    expect(reports[0]).toContain('src=services');
+    expect(requests.join(' ')).not.toContain('Vort-X');
+  });
+
+  test('the figure is fetched when the dialog opens, never with the page', async ({ page }) => {
+    // The bench plays an opening tour of its own; reduced motion turns it off, which is both the
+    // behaviour to check and what makes every reading below the result of a click.
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    const chunks: string[] = [];
+    page.on('request', (request) => {
+      if (/\.js(\?|$)/.test(request.url())) chunks.push(request.url());
+    });
+    await page.goto('/');
+    await expect(page.locator('#servicios [data-service-card]').first()).toBeVisible();
+    const before = chunks.length;
+    expect(await page.locator('.iso-svg').count()).toBe(0);
+
+    await page.locator('#servicios [data-service-card]').first().getByRole('button').click();
+    const dialog = page.getByRole('dialog');
+    await expect(dialog.locator('.iso-svg').first()).toBeVisible();
+    expect(chunks.length, 'the figure arrives in a chunk of its own').toBeGreaterThan(before);
+
+    // The card carries its resting reading before the first frame, and nothing moves on its own.
+    const readout = dialog.locator('[data-readout]');
+    await expect(readout).toHaveText('ensamblado · parado en PMS');
+    await page.waitForTimeout(1200);
+    await expect(readout).toHaveText('ensamblado · parado en PMS');
+
+    // Running it: the button becomes its own stop, which is what makes the motion answerable.
+    await dialog.getByRole('button', { name: 'Arrancar' }).click();
+    const stop = dialog.getByRole('button', { name: 'Parar' });
+    await expect(stop).toBeVisible();
+    await expect.poll(async () => readout.textContent()).toMatch(/°$/);
+    await stop.click();
+    await expect(dialog.getByRole('button', { name: 'Arrancar' })).toBeVisible();
+
+    await dialog.getByRole('button', { name: 'Desensamblar' }).click();
+    await expect(dialog.getByRole('button', { name: 'Ensamblar' })).toBeVisible();
+    await expect.poll(async () => readout.textContent()).toBe('desensamblado · 7 piezas');
+
+    // Each of the seven pieces names itself, on the drawing and on the button that picked it.
+    const piston = dialog.getByRole('button', { name: /Pistón/ });
+    await piston.click();
+    await expect(piston).toHaveAttribute('data-on', '');
+    await expect(readout).toContainText('carrera 57.8 mm');
+  });
+
+  test('the figure shows what it does by itself, and hands over when touched', async ({ page }) => {
+    await page.goto('/');
+    await page.locator('#servicios [data-service-card]').first().getByRole('button').click();
+    const dialog = page.getByRole('dialog');
+    const readout = dialog.locator('[data-readout]');
+    // The tour runs the engine without being asked, so the reading leaves its resting value.
+    await expect.poll(async () => readout.textContent(), { timeout: 8000 }).toMatch(/°$/);
+    // Stopping it stops it, and the tour steps back while the visitor is working the bench.
+    await dialog.getByRole('button', { name: 'Parar' }).click();
+    await expect(dialog.getByRole('button', { name: 'Arrancar' })).toBeVisible();
+    await page.waitForTimeout(3000);
+    await expect(dialog.getByRole('button', { name: 'Arrancar' })).toBeVisible();
+  });
+
+  test('a service with no detail copy shows its body alone', async ({ page }) => {
+    await page.goto('/');
+    await page.locator('#servicios [data-service-card]').nth(1).getByRole('button').click();
+    const dialog = page.getByRole('dialog');
+    await expect(dialog.getByRole('heading', { level: 2 })).toHaveText('Cambio de balatas');
+    await expect(dialog.getByRole('table')).toHaveCount(0);
+    await expect(dialog.locator('.iso-svg')).toHaveCount(0);
   });
 
   test('the page behind the open dialog cannot be scrolled', async ({ page }) => {
@@ -532,7 +680,22 @@ test.describe('"Cómo llegar" pill', () => {
           const showing = [...document.querySelectorAll('[data-directions]')].filter(
             (element) => getComputedStyle(element).visibility !== 'hidden' && onScreen(element),
           ).length;
-          const muted = [...document.querySelectorAll('[data-directions-mute]')].some(onScreen);
+          // The pill steps aside only for a region that has reached the lower half of the
+          // screen *and* is in its way across the width: the same two questions the island asks.
+          const pill = document
+            .querySelector('[data-directions="floating"]')
+            ?.getBoundingClientRect();
+          const muted =
+            pill !== undefined &&
+            [...document.querySelectorAll('[data-directions-mute]')].some((element) => {
+              const rect = element.getBoundingClientRect();
+              return (
+                rect.bottom > window.innerHeight / 2 &&
+                rect.top < window.innerHeight &&
+                pill.right > rect.left &&
+                pill.left < rect.right
+              );
+            });
           return showing === (muted ? 0 : 1);
         });
       const scrollable = await page.evaluate(
@@ -582,18 +745,39 @@ test.describe('"Cómo llegar" pill', () => {
     await expect(page.locator('[data-enter] [data-parallax]')).toHaveCount(0);
   });
 
-  test('the floating pill leaves the lane the contact form needs', async ({ page }) => {
+  test('the floating pill leaves the lane it shares, and keeps the one it does not', async ({
+    page,
+  }) => {
     await page.goto('/');
     const floating = page.locator("[data-directions='floating']");
-    await page.locator('#servicios').scrollIntoViewIfNeeded();
+    const submit = page.locator('#contacto button[type="submit"]');
+    const intoLowerHalf = async () => {
+      await submit.evaluate((element) => {
+        window.scrollBy(0, element.getBoundingClientRect().top - window.innerHeight * 0.75);
+      });
+    };
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    // Above the halfway line the two are nowhere near each other, so the pill stays.
+    await submit.evaluate((element) => {
+      window.scrollBy(0, element.getBoundingClientRect().top - window.innerHeight * 0.2);
+    });
     await expect(floating).toBeVisible();
-    // On a phone the pill rides the same bottom lane as the form's submit button. Tied to the
-    // form being on screen, not to a field having focus: focus outlives the scroll, and a field
-    // left focused would have taken the pill away for the rest of the page.
-    await page.locator('#contacto form').scrollIntoViewIfNeeded();
+    await intoLowerHalf();
     await expect(floating).toBeHidden();
-    await page.locator('#refacciones').scrollIntoViewIfNeeded();
+
+    // A small laptop: the button is left-aligned from `md`, but only inside its column, and its
+    // right edge still reaches the pill's corner. It was this width that a breakpoint missed.
+    await page.setViewportSize({ width: 900, height: 800 });
+    await intoLowerHalf();
+    await expect(floating).toBeHidden();
+
+    // Wide: the button is far from the corner the pill sits in, so there is nothing to clear.
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await intoLowerHalf();
     await expect(floating).toBeVisible();
+    const [pill, button] = await Promise.all([floating.boundingBox(), submit.boundingBox()]);
+    expect(pill && button && pill.x > button.x + button.width).toBe(true);
   });
 
   test('focus follows the pill when it docks', async ({ page }) => {

@@ -69,15 +69,58 @@
   "services": {
     "eyebrow": "Taller",
     "title": "Que tu moto ruede como nueva",
-    "body": "¿Quieres cotizar antes? <contact>escríbenos por WhatsApp</contact> o <visit>ve aquí</visit> cómo llegar a nuestro taller.",
+    "body": "¿Tienes una duda? <contact>escríbenos por WhatsApp</contact> o <visit>ve aquí</visit> cómo llegar a nuestro taller.",
     "quote": "Cotizar",
     "more": "Ver más",
     "close": "Cerrar",
     "quoteMessage": "Hola, Mundo Motos. Quiero cotizar: {service}.",
+    "quoteForm": {
+      "title": "Cotizar",
+      "brand": "Marca",
+      "brandPlaceholder": "Elige tu marca",
+      "brandOther": "Otra",
+      "brandOtherLabel": "¿Cuál marca?",
+      "model": "Modelo",
+      "displacement": "Cilindraje",
+      "displacementPlaceholder": "Elige el cilindraje",
+      "displacementOption": "{cc} cc",
+      "displacementOver": "Más de 250 cc",
+      "displacementUnknown": "No sé",
+      "errors": {
+        "brandRequired": "Elige la marca de tu moto.",
+        "tooLong": "Usa un texto más corto."
+      },
+      "message": {
+        "brand": "Marca: {brand}.",
+        "model": "Modelo: {model}.",
+        "displacement": "Cilindraje: {displacement}."
+      }
+    },
+    "table": {
+      "work": "Trabajo",
+      "bike": "Moto",
+      "scooter": "Motoneta",
+      "yes": "Sí lo incluye",
+      "no": "No aplica"
+    },
     "items": {
       "tuneUp": {
         "name": "Afinación",
-        "body": "Revisión y ajuste del motor, bujías y filtros para que tu moto rinda mejor."
+        "body": "Mantenimiento preventivo para garantizar el buen funcionamiento del motor",
+        "detail": {
+          "title": "La afinación incluye",
+          "note": "* El costo varía dependiendo marca, modelo y cilindraje.",
+          "items": {
+            "oil": "Cambio de aceite",
+            "plug": "Cambio de bujía",
+            "airFilter": "Cambio de filtro de aire",
+            "carburetor": "Lavado de carburador",
+            "chain": "Tensión y lubricación de cadena",
+            "cables": "Lubricación de chicotes",
+            "brakes": "Ajuste de frenos",
+            "wash": "Lavado de la moto"
+          }
+        }
       },
       "brakes": {
         "name": "Cambio de balatas",

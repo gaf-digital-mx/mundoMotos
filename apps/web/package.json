@@ -15,7 +15,8 @@
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
     "optimize:assets": "node scripts/optimize-brand-assets.mjs",
-    "generate:particles": "node scripts/generate-hero-particles.mjs"
+    "generate:particles": "node scripts/generate-hero-particles.mjs",
+    "figure:engine": "node src/features/landing/figures/engine-4t/build.mjs"
   },
   "dependencies": {
     "@mundomotos/contracts": "workspace:*",

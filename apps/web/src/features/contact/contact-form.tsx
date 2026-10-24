@@ -106,9 +106,6 @@ export function ContactForm({ whatsappNumber, trackUrl, labels, messageTemplate 
   return (
     <form
       data-enter
-      // The floating "Cómo llegar" pill steps aside while this is on screen: on a phone it
-      // rides the same bottom lane as the submit button below.
-      data-directions-mute
       noValidate
       onSubmit={onSubmit}
       onInput={() => {
@@ -178,6 +175,10 @@ export function ContactForm({ whatsappNumber, trackUrl, labels, messageTemplate 
 
       <button
         type="submit"
+        // On a phone this and the floating "Cómo llegar" pill share the bottom lane, so the
+        // pill steps aside while this is in it. Marked here rather than on the form: the form
+        // is nine times taller, and would take the pill away long before anything overlapped.
+        data-directions-mute
         className="mx-auto mt-12 inline-flex min-h-11 items-center justify-center gap-12 self-start rounded-3xl bg-whatsapp-fill px-24 py-12 text-nav-label font-semibold tracking-label text-bone-white uppercase transition-colors hover:bg-whatsapp-fill-hover md:mx-0"
       >
         <WhatsappIcon className="size-18" />
