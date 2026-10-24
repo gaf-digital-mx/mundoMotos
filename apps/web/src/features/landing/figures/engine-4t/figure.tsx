@@ -39,7 +39,6 @@ export function Engine4TFigure() {
             tabIndex={0}
             role="group"
             aria-label="Motor de cuatro tiempos en corte. Espacio o el botón Arrancar lo hace funcionar; D o el botón Desensamblar lo separa en piezas, E lo vuelve a ensamblar; 1 a 7 resaltan cada pieza."
-            aria-valuetext="Ensamblado, parado"
           >
             <svg className="iso-svg e4-back" viewBox={VIEW} role="img" aria-label={LABEL} focusable="false">
               <g className="e4-cam">

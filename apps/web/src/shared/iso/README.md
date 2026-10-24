@@ -37,11 +37,21 @@ only edits on the way in are the import paths, an `iso.css` import (its home pag
 kit's stylesheet from the app layout; here the figure is fetched on demand, so it carries it),
 and the wrapper that picks the theme.
 
-Beyond those, `engine-4t` has one cut this site asked for: the caption under the parts row (its
-`CAPTION` constant and the `iso-caption` span) is gone — the dialog already carries the copy
-that sells the service, so the figure shows the engine and says nothing. The SVG's `aria-label`
-stays: it is the only description of the drawing for someone who cannot see it. Reapply the cut
-on a refresh.
+Beyond those, `engine-4t` carries local changes this site needed. Reapply them on a refresh:
+
+- The caption under the parts row (its `CAPTION` constant and the `iso-caption` span) is gone —
+  the dialog already carries the copy that sells the service, so the figure shows the engine and
+  says nothing. The SVG's `aria-label` stays: it is the only description of the drawing for
+  someone who cannot see it.
+- `aria-valuetext` is gone from the stage, in `figure.tsx` and in `live.tsx`: the attribute is
+  not allowed on `role="group"`, so no screen reader ever read it (axe calls it critical), and
+  the state is already announced through the figure's own live region.
+- `engine.css` raises `--anatomy-muted` to the site's ash in the dark theme. The kit's own grey
+  reaches 3.6:1 on this card, and the corners, the readout and the part chips are written in it,
+  so the dialog failed 1.4.3.
+
+The last two are what the dialog's axe test checks, and that test waits for the figure's chunk
+before it looks — otherwise whether the figure is audited at all depends on the machine.
 
 That is why those folders are excluded from ESLint (`apps/web/eslint.config.js`) and from
 Prettier (`.prettierignore`), and why `live.tsx` carries a `@ts-nocheck` banner: a figure

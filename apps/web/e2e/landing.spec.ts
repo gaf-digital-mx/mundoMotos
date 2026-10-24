@@ -266,7 +266,11 @@ test.describe('service cards', () => {
   test('the open dialog has no serious or critical axe violations', async ({ page }) => {
     await page.goto('/');
     await page.locator('#servicios [data-service-card]').first().getByRole('button').click();
-    await expect(page.getByRole('dialog')).toBeVisible();
+    const dialog = page.getByRole('dialog');
+    await expect(dialog).toBeVisible();
+    // The figure arrives in a chunk of its own, so without this the audit is a race: whether it
+    // is part of the dialog when axe looks depends on how fast the machine is.
+    await expect(dialog.locator('.iso-svg').first()).toBeVisible();
     const results = await new AxeBuilder({ page })
       .withTags(['wcag2a', 'wcag2aa', 'wcag22aa'])
       .analyze();

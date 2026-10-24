@@ -183,7 +183,6 @@ export function EngineLive({ data, children }: { data: EngineData; children: Rea
         runButton.querySelector("[data-label]")!.textContent = state.running ? "Parar" : "Arrancar";
       }
       if (apartButton) apartButton.querySelector("[data-label]")!.textContent = state.apart ? "Ensamblar" : "Desensamblar";
-      stage.setAttribute("aria-valuetext", state.apart ? "Desensamblado en 7 piezas" : state.running ? "Funcionando, ciclo de 4 tiempos" : "Ensamblado, parado");
     };
 
     function schedule(apart: boolean) {

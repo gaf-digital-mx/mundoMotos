@@ -9,6 +9,10 @@
 }
 
 .iso[data-theme="dark"] .e4 {
+  /* Integration, not the figure's own: the kit's muted grey reaches 3.6:1 on this card, and the
+     corners, the readout and the part chips are all written in it. Raised to the site's ash so
+     the dialog passes 1.4.3 (axe fails the build otherwise). */
+  --anatomy-muted: var(--color-ash-gray);
   --e4-ring: #ffffff14;
   --e4-hover: #ffffff0a;
   --e4-cavity: #0b0b0b;
