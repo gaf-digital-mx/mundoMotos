@@ -75,7 +75,7 @@
     "close": "Cerrar",
     "quoteMessage": "Hola, Mundo Motos. Quiero cotizar: {service}.",
     "quoteForm": {
-      "title": "Cuéntanos de tu moto",
+      "title": "Cotizar",
       "brand": "Marca",
       "brandPlaceholder": "Elige tu marca",
       "brandOther": "Otra",

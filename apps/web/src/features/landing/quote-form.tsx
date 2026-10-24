@@ -116,16 +116,18 @@ export function QuoteForm({
 
   const fieldClass =
     'min-h-11 w-full rounded-xl border border-ash-gray/60 bg-void px-12 py-6 text-body font-normal text-bone-white focus:border-ignition-gold focus:ring-0 aria-invalid:border-amber';
-  const labelClass = 'text-nav-label font-semibold tracking-label uppercase';
+  const labelClass = 'text-nav-label font-semibold tracking-label';
   const errorClass = 'text-caption font-semibold text-bone-white';
 
   return (
     <form noValidate onSubmit={onSubmit} className="flex flex-col gap-18">
-      <h3 className="text-nav-label font-semibold tracking-label uppercase">{labels.title}</h3>
+      <h3 className="pt-10 text-nav-label font-semibold tracking-label text-ignition-gold uppercase">
+        {labels.title}
+      </h3>
 
       {/* The brand and the field it opens sit side by side, so picking "Otra" costs no height:
           it takes the cell beside the list and pushes the model into the row below. */}
-      <div className="grid gap-18 sm:grid-cols-2">
+      <div className="grid gap-18">
         <div className="flex flex-col gap-6">
           <label htmlFor={`${id}-brand`} className={labelClass}>
             {labels.brand}
@@ -229,7 +231,7 @@ export function QuoteForm({
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center gap-18">
+      <div className="flex flex-wrap items-center justify-center gap-18 pt-10">
         <button
           type="submit"
           className="inline-flex min-h-11 items-center gap-12 rounded-3xl bg-whatsapp-fill px-24 py-12 text-nav-label font-semibold tracking-label text-bone-white uppercase transition-colors hover:bg-whatsapp-fill-hover"

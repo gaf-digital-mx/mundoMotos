@@ -144,7 +144,7 @@ export function ServiceDialog({ closeLabel, quoteLabel, newTabHint, details, quo
               }}
             />
           ) : (
-            <div className="flex flex-wrap items-center gap-18">
+            <div className="flex flex-wrap items-center justify-center gap-18 pt-10">
               <a
                 href={service.quote}
                 target="_blank"

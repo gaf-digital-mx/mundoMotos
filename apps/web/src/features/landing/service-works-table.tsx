@@ -28,7 +28,7 @@ export function ServiceWorksTable({ title, table, works }: Props) {
     <table className="w-full border-collapse text-left text-caption md:text-nav-label">
       {/* The table's own title: a caption is announced with it, where a heading above would
           float free of the rows it names. */}
-      <caption className="mb-12 text-left text-nav-label font-semibold tracking-label text-bone-white uppercase">
+      <caption className="mb-12 text-left text-nav-label font-semibold tracking-label text-ignition-gold uppercase">
         {title}
       </caption>
       <thead>
