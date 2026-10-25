@@ -14,5 +14,7 @@ CHANGELOG.md
 apps/web/src/shared/iso/*.mjs
 apps/web/src/shared/iso/iso.css
 apps/web/src/shared/iso/LICENSE
-# The service figures, copied in as their author built them (see apps/web/src/shared/iso/README.md)
-apps/web/src/features/landing/figures/*/
+# The engine figure, copied in as its author built it (see apps/web/src/shared/iso/README.md)
+apps/web/src/features/landing/figures/engine-4t/
+# Precomputed geometry: one long line of JSON, written by a build script
+apps/web/src/features/landing/figures/*/art.generated.json

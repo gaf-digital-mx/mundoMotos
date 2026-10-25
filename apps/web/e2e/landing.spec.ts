@@ -263,22 +263,29 @@ test.describe('service cards', () => {
     await expect(dialog).toBeHidden();
   });
 
-  test('the open dialog has no serious or critical axe violations', async ({ page }) => {
-    await page.goto('/');
-    await page.locator('#servicios [data-service-card]').first().getByRole('button').click();
-    const dialog = page.getByRole('dialog');
-    await expect(dialog).toBeVisible();
-    // The figure arrives in a chunk of its own, so without this the audit is a race: whether it
-    // is part of the dialog when axe looks depends on how fast the machine is.
-    await expect(dialog.locator('.iso-svg').first()).toBeVisible();
-    const results = await new AxeBuilder({ page })
-      .withTags(['wcag2a', 'wcag2aa', 'wcag22aa'])
-      .analyze();
-    const blocking = results.violations.filter(
-      (v) => v.impact === 'serious' || v.impact === 'critical',
-    );
-    expect(blocking, JSON.stringify(blocking, null, 2)).toEqual([]);
-  });
+  for (const [index, service] of [
+    [0, 'afinación'],
+    [1, 'balatas'],
+  ] as const) {
+    test(`the open ${service} dialog has no serious or critical axe violations`, async ({
+      page,
+    }) => {
+      await page.goto('/');
+      await page.locator('#servicios [data-service-card]').nth(index).getByRole('button').click();
+      const dialog = page.getByRole('dialog');
+      await expect(dialog).toBeVisible();
+      // The figure arrives in a chunk of its own, so without this the audit is a race: whether
+      // it is part of the dialog when axe looks depends on how fast the machine is.
+      await expect(dialog.locator('.iso-svg').first()).toBeVisible();
+      const results = await new AxeBuilder({ page })
+        .withTags(['wcag2a', 'wcag2aa', 'wcag22aa'])
+        .analyze();
+      const blocking = results.violations.filter(
+        (v) => v.impact === 'serious' || v.impact === 'critical',
+      );
+      expect(blocking, JSON.stringify(blocking, null, 2)).toEqual([]);
+    });
+  }
 
   test('the tune-up dialog tables what the service covers, per vehicle', async ({ page }) => {
     await page.goto('/');
@@ -294,6 +301,34 @@ test.describe('service cards', () => {
     await expect(chain).toContainText('Sí lo incluye');
     await expect(chain).toContainText('No aplica');
     await expect(dialog).toContainText('* El costo varía dependiendo marca, modelo y cilindraje');
+  });
+
+  test('the brakes dialog opens onto a figure that comes apart', async ({ page }) => {
+    await page.goto('/');
+    await page
+      .locator('#servicios [data-service-card]')
+      .nth(1)
+      .getByRole('button', { name: /Ver más/ })
+      .click();
+    const dialog = page.getByRole('dialog');
+    const figure = dialog.locator('.iso-svg');
+    await expect(figure).toBeVisible();
+
+    // It rests until it is asked, and says what it is resting as.
+    const readout = dialog.locator('[data-readout]');
+    await expect(readout).toHaveText('ensamblado · disco de Ø240');
+
+    const apart = dialog.getByRole('button', { name: 'Desensamblar' });
+    await apart.click();
+    await expect(dialog.getByRole('button', { name: 'Ensamblar' })).toBeVisible();
+    await expect.poll(async () => readout.textContent()).toBe('desensamblado · 3 piezas');
+
+    // Each of the three pieces names itself, on the drawing and on the chip that picked it.
+    const pads = dialog.getByRole('button', { name: /Balatas/ });
+    await pads.click();
+    await expect(pads).toHaveAttribute('data-on', '');
+    await expect(readout).toHaveText('balatas · 8 mm de material nuevo');
+    await expect(dialog.locator('.it[data-piece="pads"][data-on]').first()).toBeVisible();
   });
 
   test('the tune-up dialog quotes with what the visitor answers about the bike', async ({
