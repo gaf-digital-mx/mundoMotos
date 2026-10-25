@@ -12,4 +12,6 @@ import type { ComponentType, LazyExoticComponent } from 'react';
  */
 export const SERVICE_FIGURES: Record<string, LazyExoticComponent<ComponentType>> = {
   tuneUp: lazy(async () => ({ default: (await import('./engine-4t/figure')).Engine4TFigure })),
+  brakes: lazy(async () => ({ default: (await import('./brakes/figure')).BrakesFigure })),
+  tires: lazy(async () => ({ default: (await import('./tires/figure')).TiresFigure })),
 };
