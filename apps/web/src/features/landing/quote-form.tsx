@@ -54,7 +54,10 @@ const FIELD =
   'min-h-11 w-full rounded-xl border border-ash-gray/60 bg-void px-12 py-6 text-body font-normal text-bone-white focus:border-ignition-gold focus:outline-none aria-invalid:border-amber';
 /** The arrow is ours, so it can sit clear of the border; `pr` keeps a long answer out from under it. */
 const SELECT = `${FIELD} appearance-none pr-36`;
-const MOVE = 'transition-all duration-150 ease-out motion-reduce:transition-none';
+// Only what moves. `transition-all` animates every property, and an animating `font-size`
+// is enough layout thrash to be worth not asking for.
+const MOVE =
+  'transition-[top,left,font-size,color,background-color] duration-150 ease-out motion-reduce:transition-none';
 
 /**
  * The quote that closes the service dialog: three answers about the bike, then WhatsApp with the
