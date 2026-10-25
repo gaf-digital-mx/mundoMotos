@@ -7,9 +7,13 @@ export default defineConfig(
       // Vendored from the `anatomy` skill's kit and kept byte-for-byte, so it can be refreshed
       // from upstream without replaying local fixes.
       'src/shared/iso/*.mjs',
-      // The engine figure: built outside this app and copied in as its author made it, words
-      // and all. Linting it would mean rewriting it. See `shared/iso/README.md`.
+      // The figures built outside this app and copied in as their author made them, words and
+      // all. Linting them would mean rewriting them. See `shared/iso/README.md`.
       'src/features/landing/figures/engine-4t/',
+      'src/features/landing/figures/tires/',
+      // The kit's own TypeScript and React files, vendored byte-for-byte.
+      'src/shared/iso/iso-kit.ts',
+      'src/shared/iso/react/',
       // Precomputed geometry: one long line of JSON, written by a build script.
       'src/features/landing/figures/*/art.generated.json',
     ],

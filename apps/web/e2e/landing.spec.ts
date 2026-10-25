@@ -266,6 +266,7 @@ test.describe('service cards', () => {
   for (const [index, service] of [
     [0, 'afinación'],
     [1, 'balatas'],
+    [2, 'llantas'],
   ] as const) {
     test(`the open ${service} dialog has no serious or critical axe violations`, async ({
       page,
@@ -329,6 +330,34 @@ test.describe('service cards', () => {
     await expect(pads).toHaveAttribute('data-on', '');
     await expect(readout).toHaveText('balatas · 8 mm de material nuevo');
     await expect(dialog.locator('.it[data-piece="pads"][data-on]').first()).toBeVisible();
+  });
+
+  test('the tyre dialog opens onto a figure that runs the change', async ({ page }) => {
+    await page.goto('/');
+    await page
+      .locator('#servicios [data-service-card]')
+      .nth(2)
+      .getByRole('button', { name: /Ver más/ })
+      .click();
+    const dialog = page.getByRole('dialog');
+    await expect(dialog.locator('.iso-svg').first()).toBeVisible();
+
+    // The readout carries the step and the real pressures, with no step numbering.
+    const readout = dialog.locator('[data-readout]');
+    await expect(readout).toHaveText(/^palanca · /);
+
+    await dialog.getByRole('button', { name: 'Asentar' }).click();
+    await expect(dialog.getByRole('button', { name: 'Asentar' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    await expect.poll(async () => readout.textContent()).toMatch(/^asentar · /);
+
+    // Each chip lights its piece on the drawing.
+    const tyre = dialog.getByRole('button', { name: /Llanta/ });
+    await tyre.click();
+    await expect(tyre).toHaveAttribute('data-on', '');
+    await expect(dialog.locator('[data-piece="tyre"][data-on]').first()).toBeVisible();
   });
 
   test('the tune-up dialog quotes with what the visitor answers about the bike', async ({
