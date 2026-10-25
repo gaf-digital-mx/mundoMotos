@@ -4,6 +4,7 @@ import { useId, useState, type SubmitEvent } from 'react';
 import { flushSync } from 'react-dom';
 
 import { whatsappUrl } from '@/shared/lib/contact-links';
+import { ChevronDownIcon } from '@/shared/ui/icons';
 import { WhatsappIcon } from '@/shared/ui/whatsapp-icon';
 
 import {
@@ -21,12 +22,10 @@ const OTHER = 'other';
 export type QuoteLabels = {
   title: string;
   brand: string;
-  brandPlaceholder: string;
   brandOther: string;
   brandOtherLabel: string;
   model: string;
   displacement: string;
-  displacementPlaceholder: string;
   submit: string;
   newTabHint: string;
   errors: { brandRequired: string; tooLong: string };
@@ -47,6 +46,16 @@ export type ServiceQuote = {
 
 type Props = ServiceQuote & { closeLabel: string; onClose: () => void };
 
+type FieldName = 'brand' | 'brandOther' | 'model' | 'displacement';
+
+const EMPTY: Record<FieldName, string> = { brand: '', brandOther: '', model: '', displacement: '' };
+
+const FIELD =
+  'min-h-11 w-full rounded-xl border border-ash-gray/60 bg-void px-12 py-6 text-body font-normal text-bone-white focus:border-ignition-gold focus:outline-none aria-invalid:border-amber';
+/** The arrow is ours, so it can sit clear of the border; `pr` keeps a long answer out from under it. */
+const SELECT = `${FIELD} appearance-none pr-36`;
+const MOVE = 'transition-all duration-150 ease-out motion-reduce:transition-none';
+
 /**
  * The quote that closes the service dialog: three answers about the bike, then WhatsApp with the
  * message already written. Nothing is sent or stored by the site. Strings arrive as props (no
@@ -65,26 +74,54 @@ export function QuoteForm({
   onClose,
 }: Props) {
   const id = useId();
-  const [brand, setBrand] = useState('');
+  const [answers, setAnswers] = useState(EMPTY);
+  const [focused, setFocused] = useState('');
   const [errors, setErrors] = useState<QuoteErrors>({});
+  const brand = answers.brand;
 
   const brandError =
     errors.brand === 'tooLong' ? labels.errors.tooLong : labels.errors.brandRequired;
   // Which control the brand error belongs to: the list, or the field it opens.
   const brandErrorId = brand === OTHER ? `${id}-brandOther-error` : `${id}-brand-error`;
 
+  const answer = (name: FieldName, value: string) => {
+    setAnswers((current) => ({ ...current, [name]: value }));
+  };
+
+  /**
+   * The label starts inside the field, as its placeholder, and climbs onto the border once the
+   * field is focused or answered — the border is cut behind it by a patch of the dialog's own
+   * black. Two finished class strings rather than `peer-*` variants: those land at equal
+   * specificity, so which one won would depend on the order Tailwind happened to emit them in.
+   */
+  const labelClass = (name: FieldName, invalid = false) => {
+    const up = focused === name || answers[name].length > 0;
+    if (!up) {
+      return `pointer-events-none absolute top-1/2 left-12 -translate-y-1/2 text-body font-normal text-silver-mist ${MOVE}`;
+    }
+    const tone = invalid
+      ? 'text-amber'
+      : focused === name
+        ? 'text-ignition-gold'
+        : 'text-silver-mist';
+    return `pointer-events-none absolute top-0 left-9 -translate-y-1/2 bg-void px-3 text-caption font-semibold tracking-label ${tone} ${MOVE}`;
+  };
+
+  const watch = (name: FieldName) => ({
+    onFocus: () => {
+      setFocused(name);
+    },
+    onBlur: () => {
+      setFocused((current) => (current === name ? '' : current));
+    },
+  });
+
   const onSubmit = (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const data = new FormData(event.currentTarget);
-    const field = (key: string) => {
-      const value = data.get(key);
-      return typeof value === 'string' ? value : '';
-    };
-    const picked = field('brand');
     const input: QuoteInput = {
-      brand: picked === OTHER ? field('brandOther') : picked,
-      model: field('model'),
-      displacement: field('displacement'),
+      brand: brand === OTHER ? answers.brandOther : brand,
+      model: answers.model,
+      displacement: answers.displacement,
     };
     const found = validateQuote(input);
     // Painted before the focus moves: a screen reader builds a control's description when focus
@@ -94,7 +131,7 @@ export function QuoteForm({
     });
 
     if (Object.keys(found).length > 0) {
-      const invalid = found.brand ? (picked === OTHER ? 'brandOther' : 'brand') : 'model';
+      const invalid = found.brand ? (brand === OTHER ? 'brandOther' : 'brand') : 'model';
       document.getElementById(`${id}-${invalid}`)?.focus();
       return;
     }
@@ -114,10 +151,8 @@ export function QuoteForm({
     else window.location.assign(url); // pop-up blocked: continue in this tab
   };
 
-  const fieldClass =
-    'min-h-11 w-full rounded-xl border border-ash-gray/60 bg-void px-12 py-6 text-body font-normal text-bone-white focus:border-ignition-gold focus:ring-0 aria-invalid:border-amber';
-  const labelClass = 'text-nav-label font-semibold tracking-label';
-  const errorClass = 'text-caption font-semibold text-bone-white';
+  const errorClass = 'mt-6 text-caption font-semibold text-bone-white';
+  const arrow = 'pointer-events-none absolute top-1/2 right-12 size-18 -translate-y-1/2';
 
   return (
     <form noValidate onSubmit={onSubmit} className="flex flex-col gap-18">
@@ -125,42 +160,50 @@ export function QuoteForm({
         {labels.title}
       </h3>
 
-      {/* The brand and the field it opens sit side by side, so picking "Otra" costs no height:
-          it takes the cell beside the list and pushes the model into the row below. */}
       <div className="grid gap-18">
-        <div className="flex flex-col gap-6">
-          <label htmlFor={`${id}-brand`} className={labelClass}>
-            {labels.brand}
-          </label>
-          <select
-            id={`${id}-brand`}
-            name="brand"
-            required
-            value={brand}
-            onChange={(event) => {
-              setBrand(event.currentTarget.value);
-              // The answer changed, so a rejection of the previous one would now contradict what
-              // is on screen: "elige la marca" must not stay under a brand that is picked, nor
-              // move onto the "Otra" field before anything has been typed into it.
-              setErrors((current) => {
-                if (!current.brand) return current;
-                const next = { ...current };
-                delete next.brand;
-                return next;
-              });
-            }}
-            aria-invalid={errors.brand && brand !== OTHER ? true : undefined}
-            aria-describedby={errors.brand && brand !== OTHER ? brandErrorId : undefined}
-            className={fieldClass}
-          >
-            <option value="">{labels.brandPlaceholder}</option>
-            {brands.map((name) => (
-              <option key={name} value={name}>
-                {name}
-              </option>
-            ))}
-            <option value={OTHER}>{labels.brandOther}</option>
-          </select>
+        <div>
+          <div className="relative">
+            <select
+              id={`${id}-brand`}
+              name="brand"
+              required
+              value={brand}
+              {...watch('brand')}
+              onChange={(event) => {
+                answer('brand', event.currentTarget.value);
+                // The answer changed, so a rejection of the previous one would now contradict
+                // what is on screen: "elige la marca" must not stay under a brand that is
+                // picked, nor move onto the "Otra" field before anything has been typed into it.
+                setErrors((current) => {
+                  if (!current.brand) return current;
+                  const next = { ...current };
+                  delete next.brand;
+                  return next;
+                });
+              }}
+              aria-invalid={errors.brand && brand !== OTHER ? true : undefined}
+              aria-describedby={errors.brand && brand !== OTHER ? brandErrorId : undefined}
+              className={SELECT}
+            >
+              {/* The empty answer, with nothing to read: the label is the placeholder, and
+                  `hidden` keeps a blank row out of the open list. Without it the field would
+                  start on a brand nobody picked. */}
+              <option value="" disabled hidden />
+              {brands.map((name) => (
+                <option key={name} value={name}>
+                  {name}
+                </option>
+              ))}
+              <option value={OTHER}>{labels.brandOther}</option>
+            </select>
+            <ChevronDownIcon className={`${arrow} text-silver-mist`} />
+            <label
+              htmlFor={`${id}-brand`}
+              className={labelClass('brand', Boolean(errors.brand) && brand !== OTHER)}
+            >
+              {labels.brand}
+            </label>
+          </div>
           {errors.brand && brand !== OTHER ? (
             <p id={`${id}-brand-error`} className={errorClass}>
               {brandError}
@@ -169,20 +212,30 @@ export function QuoteForm({
         </div>
 
         {brand === OTHER ? (
-          <div className="flex flex-col gap-6">
-            <label htmlFor={`${id}-brandOther`} className={labelClass}>
-              {labels.brandOtherLabel}
-            </label>
-            <input
-              id={`${id}-brandOther`}
-              name="brandOther"
-              type="text"
-              maxLength={LIMITS.brand.max}
-              required
-              aria-invalid={errors.brand ? true : undefined}
-              aria-describedby={errors.brand ? brandErrorId : undefined}
-              className={fieldClass}
-            />
+          <div>
+            <div className="relative">
+              <input
+                id={`${id}-brandOther`}
+                name="brandOther"
+                type="text"
+                maxLength={LIMITS.brand.max}
+                required
+                value={answers.brandOther}
+                {...watch('brandOther')}
+                onChange={(event) => {
+                  answer('brandOther', event.currentTarget.value);
+                }}
+                aria-invalid={errors.brand ? true : undefined}
+                aria-describedby={errors.brand ? brandErrorId : undefined}
+                className={FIELD}
+              />
+              <label
+                htmlFor={`${id}-brandOther`}
+                className={labelClass('brandOther', Boolean(errors.brand))}
+              >
+                {labels.brandOtherLabel}
+              </label>
+            </div>
             {errors.brand ? (
               <p id={`${id}-brandOther-error`} className={errorClass}>
                 {brandError}
@@ -191,19 +244,26 @@ export function QuoteForm({
           </div>
         ) : null}
 
-        <div className="flex flex-col gap-6">
-          <label htmlFor={`${id}-model`} className={labelClass}>
-            {labels.model}
-          </label>
-          <input
-            id={`${id}-model`}
-            name="model"
-            type="text"
-            maxLength={LIMITS.model.max}
-            aria-invalid={errors.model ? true : undefined}
-            aria-describedby={errors.model ? `${id}-model-error` : undefined}
-            className={fieldClass}
-          />
+        <div>
+          <div className="relative">
+            <input
+              id={`${id}-model`}
+              name="model"
+              type="text"
+              maxLength={LIMITS.model.max}
+              value={answers.model}
+              {...watch('model')}
+              onChange={(event) => {
+                answer('model', event.currentTarget.value);
+              }}
+              aria-invalid={errors.model ? true : undefined}
+              aria-describedby={errors.model ? `${id}-model-error` : undefined}
+              className={FIELD}
+            />
+            <label htmlFor={`${id}-model`} className={labelClass('model', Boolean(errors.model))}>
+              {labels.model}
+            </label>
+          </div>
           {errors.model ? (
             <p id={`${id}-model-error`} className={errorClass}>
               {labels.errors.tooLong}
@@ -211,23 +271,28 @@ export function QuoteForm({
           ) : null}
         </div>
 
-        <div className="flex flex-col gap-6">
-          <label htmlFor={`${id}-displacement`} className={labelClass}>
-            {labels.displacement}
-          </label>
+        <div className="relative">
           <select
             id={`${id}-displacement`}
             name="displacement"
-            defaultValue=""
-            className={fieldClass}
+            value={answers.displacement}
+            {...watch('displacement')}
+            onChange={(event) => {
+              answer('displacement', event.currentTarget.value);
+            }}
+            className={SELECT}
           >
-            <option value="">{labels.displacementPlaceholder}</option>
+            <option value="" disabled hidden />
             {displacements.map((value) => (
               <option key={value} value={value}>
                 {value}
               </option>
             ))}
           </select>
+          <ChevronDownIcon className={`${arrow} text-silver-mist`} />
+          <label htmlFor={`${id}-displacement`} className={labelClass('displacement')}>
+            {labels.displacement}
+          </label>
         </div>
       </div>
 
