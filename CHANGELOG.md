@@ -1,5 +1,30 @@
 # Changelog
 
+## [0.2.0](https://github.com/gaf-digital-mx/mundoMotos/compare/v0.1.0...v0.2.0) (2026-10-26)
+
+
+### Features
+
+* **api:** add a hash-based Content-Security-Policy in Report-Only mode ([#10](https://github.com/gaf-digital-mx/mundoMotos/issues/10)) ([09a7903](https://github.com/gaf-digital-mx/mundoMotos/commit/09a7903ad0c70084ff00963e99d41a0eadd8f281))
+* **api:** track CTA clicks without cookies ([#9](https://github.com/gaf-digital-mx/mundoMotos/issues/9)) ([2d4974d](https://github.com/gaf-digital-mx/mundoMotos/commit/2d4974deb545ebd4e8769cc72bb619f1d3718c8d))
+* **web:** add business data, site layout, local SEO and privacy notice ([#5](https://github.com/gaf-digital-mx/mundoMotos/issues/5)) ([1673b1f](https://github.com/gaf-digital-mx/mundoMotos/commit/1673b1fc2902284d38d7763d4250a2f89813fd48))
+* **web:** add interactive particle hero ([#8](https://github.com/gaf-digital-mx/mundoMotos/issues/8)) ([3947974](https://github.com/gaf-digital-mx/mundoMotos/commit/3947974184c76c3f7e419fb598d3055d293f4fd5))
+* **web:** add landing sections and WhatsApp inquiry form ([#7](https://github.com/gaf-digital-mx/mundoMotos/issues/7)) ([7089e98](https://github.com/gaf-digital-mx/mundoMotos/commit/7089e987909767ba6de0e62f63cd2de5946b9abe))
+* **web:** embed the business map and dock the directions pill into sections ([#21](https://github.com/gaf-digital-mx/mundoMotos/issues/21)) ([91ef1f2](https://github.com/gaf-digital-mx/mundoMotos/commit/91ef1f29968ce12526002d8a15e7ed0765773e05))
+* **web:** green WhatsApp buttons, direct-call CTAs and an icon footer ([#27](https://github.com/gaf-digital-mx/mundoMotos/issues/27)) ([d9f4743](https://github.com/gaf-digital-mx/mundoMotos/commit/d9f4743ed40e3f77ed737ee0bbaf4c752322eb08))
+* **web:** open each service onto its detail, and quote the tune-up from its dialog ([#45](https://github.com/gaf-digital-mx/mundoMotos/issues/45)) ([e41cc5a](https://github.com/gaf-digital-mx/mundoMotos/commit/e41cc5a11af19ea7fcaaefd8e683263b818e4c2b))
+* **web:** open the brakes and tyre dialogs onto figures of their own ([#46](https://github.com/gaf-digital-mx/mundoMotos/issues/46)) ([461bb7f](https://github.com/gaf-digital-mx/mundoMotos/commit/461bb7fcf731f4bf1dfc0ab156074df8de48963b))
+* **web:** open the hero with a cinematic particle intro ([#28](https://github.com/gaf-digital-mx/mundoMotos/issues/28)) ([b7d29a8](https://github.com/gaf-digital-mx/mundoMotos/commit/b7d29a891a74f99b630e8172effe0a7b372afbb6))
+* **web:** put photographs behind the closing CTA and the contact section ([#44](https://github.com/gaf-digital-mx/mundoMotos/issues/44)) ([62e7c50](https://github.com/gaf-digital-mx/mundoMotos/commit/62e7c50e53a8cfc18bd3bd4bf866e361f9728d2a))
+* **web:** show the workshop services as cards with a detail dialog ([#35](https://github.com/gaf-digital-mx/mundoMotos/issues/35)) ([271599b](https://github.com/gaf-digital-mx/mundoMotos/commit/271599b1211d15f9acfc933a96e568808aacdb6d))
+* **web:** turn the parts section into a draggable 3D carousel and play entrances both ways ([#36](https://github.com/gaf-digital-mx/mundoMotos/issues/36)) ([48b171a](https://github.com/gaf-digital-mx/mundoMotos/commit/48b171a05e6cd71ad7f2ff200be666aef9c0b5e3))
+
+
+### Bug Fixes
+
+* **web:** float the form labels, and start the hero a second sooner ([#47](https://github.com/gaf-digital-mx/mundoMotos/issues/47)) ([4a31a17](https://github.com/gaf-digital-mx/mundoMotos/commit/4a31a171d5cf6ba8986e79a8ea5aad8ff4c0c313))
+* **web:** keep the drag gesture on screen and off engine quirks ([#37](https://github.com/gaf-digital-mx/mundoMotos/issues/37)) ([e22ae99](https://github.com/gaf-digital-mx/mundoMotos/commit/e22ae9904e8da91e1522531ab11d6bee909d0412))
+
 ## 0.1.0 (2026-10-02)
 
 
