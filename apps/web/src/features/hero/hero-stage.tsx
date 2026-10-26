@@ -41,8 +41,13 @@ const FRAME_MS = 1000 / 60;
 const POINTER_IDLE_MS = 200;
 /** Gap between the wordmark and the figure while they lead the intro, and the figure's top margin. */
 const INTRO_GAP_PX = 24;
-/** Particles enter from this far above the stage, as a fraction of its height. */
-const INTRO_RISE = 0.35;
+/**
+ * Particles enter from this far above the stage, as a fraction of its height. Shallow on
+ * purpose: from a third of the stage up, nothing was on screen for the first few hundred
+ * milliseconds — the fall began out of frame, which read as the particles arriving after the
+ * wordmark. From here some are inside the canvas in the first painted frame.
+ */
+const INTRO_RISE = 0.08;
 /** Sizes at the desktop logo width; they scale with the logo box (crisper figure on phones). */
 const REFERENCE_WIDTH = 520;
 const TRIANGLE_RADIUS = 3;
@@ -216,12 +221,12 @@ export function HeroStage({ children, pauseLabel, playLabel }: Props) {
       }
     };
 
-    /** Start points: anywhere across the stage, well above its top edge. */
+    /** Start points: anywhere across the stage, from its top edge to a little above it. */
     const buildChoreo = (f: Field) => {
       const rise = canvasBox.height * INTRO_RISE;
       choreo = Array.from({ length: f.count }, (_, i) => ({
         sx: Math.random() * canvasBox.width,
-        sy: -rise * (0.2 + Math.random() * 0.8),
+        sy: -rise * Math.random(),
         hx: homeX[i] ?? 0,
         hy: homeY[i] ?? 0,
         ...randomOrbit(),
@@ -372,12 +377,12 @@ export function HeroStage({ children, pauseLabel, playLabel }: Props) {
       stage.addEventListener('pointermove', onPointerMove);
       motionQuery.addEventListener('change', onMotionChange);
       resizeObserver.observe(stage);
-      canvas.dataset.ready = 'true';
 
       if (motionQuery.matches || pausedRef.current) {
         // Nothing to watch: show the finished hero at once.
         settle(f);
         draw();
+        canvas.dataset.ready = 'true';
         finish();
         return;
       }
@@ -388,6 +393,17 @@ export function HeroStage({ children, pauseLabel, playLabel }: Props) {
       watchdog = window.setTimeout(finish, SEQUENCE_END + TIMING.settle + 1500);
       phase = 'sequence';
       sequenceStart = performance.now();
+      // The first frame is painted here rather than on the next animation frame, and the canvas
+      // is shown with it: the particles are on screen from the moment they start to fall, in
+      // the same paint as the wordmark's first letter.
+      for (let i = 0; i < f.count; i++) {
+        const c = choreo[i];
+        if (!c) continue;
+        f.px[i] = c.sx + introOffset.x;
+        f.py[i] = c.sy + introOffset.y;
+      }
+      draw();
+      canvas.dataset.ready = 'true';
       wake();
     };
 
@@ -446,7 +462,7 @@ export function HeroStage({ children, pauseLabel, playLabel }: Props) {
       <canvas
         ref={canvasRef}
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 z-0 size-full opacity-0 transition-opacity duration-[120ms] data-[ready=true]:opacity-100"
+        className="pointer-events-none absolute inset-0 z-0 size-full opacity-0 data-[ready=true]:opacity-100"
       />
     </div>
   );
