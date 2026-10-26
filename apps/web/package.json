@@ -29,17 +29,17 @@
     "zod": "4.6.5"
   },
   "devDependencies": {
-    "@axe-core/playwright": "4.13.0",
+    "@axe-core/playwright": "4.14.0",
     "@mundomotos/eslint-config": "workspace:*",
     "@mundomotos/tsconfig": "workspace:*",
-    "@playwright/test": "1.63.0",
+    "@playwright/test": "1.64.1",
     "@tailwindcss/postcss": "4.3.3",
     "@testing-library/jest-dom": "7.0.1",
     "@testing-library/react": "16.3.3",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
     "@vitejs/plugin-react": "^6.1.1",
-    "happy-dom": "20.14.5",
+    "happy-dom": "21.0.4",
     "sharp": "0.35.5",
     "tailwindcss": "4.3.3"
   }
