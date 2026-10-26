@@ -55,12 +55,10 @@ export function Services() {
       labels: {
         title: t('services.quoteForm.title'),
         brand: t('services.quoteForm.brand'),
-        brandPlaceholder: t('services.quoteForm.brandPlaceholder'),
         brandOther: t('services.quoteForm.brandOther'),
         brandOtherLabel: t('services.quoteForm.brandOtherLabel'),
         model: t('services.quoteForm.model'),
         displacement: t('services.quoteForm.displacement'),
-        displacementPlaceholder: t('services.quoteForm.displacementPlaceholder'),
         submit: t('services.quote'),
         newTabHint,
         errors: {

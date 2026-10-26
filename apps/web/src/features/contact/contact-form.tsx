@@ -1,6 +1,6 @@
 'use client';
 
-import { useId, useState, type SubmitEvent, type SyntheticEvent } from 'react';
+import { useId, useState, type FocusEvent, type SubmitEvent, type SyntheticEvent } from 'react';
 
 import { whatsappUrl } from '@/shared/lib/contact-links';
 import { WhatsappIcon } from '@/shared/ui/whatsapp-icon';
@@ -46,6 +46,11 @@ export function ContactForm({ whatsappNumber, trackUrl, labels, messageTemplate 
   const id = useId();
   const [errors, setErrors] = useState<ContactErrors>({});
   const [sent, setSent] = useState(false);
+  // What the labels need to know: a label sits in its field until the field is focused or has
+  // something in it. `filled` is watched rather than held, so the fields stay uncontrolled and
+  // the submit keeps reading them in one go; an autofilled value raises its label too.
+  const [focused, setFocused] = useState('');
+  const [filled, setFilled] = useState({ name: false, query: false });
 
   const errorText = (field: keyof ContactErrors) => {
     const error = errors[field];
@@ -97,7 +102,44 @@ export function ContactForm({ whatsappNumber, trackUrl, labels, messageTemplate 
   // ground settles that, and a filled field is a better answer to "which one" than a hairline.
   const fieldClass =
     'w-full border-0 border-b border-bone-white bg-transparent px-0 py-12 text-body font-normal text-bone-white focus:border-ignition-gold focus:ring-0 aria-invalid:border-amber aria-invalid:bg-void/30 aria-invalid:px-12';
-  const labelClass = 'text-nav-label font-semibold tracking-label uppercase';
+  /**
+   * The label starts on the field's own line, where a placeholder would be, and rises to its
+   * place above the rule when the field is focused or answered. The space above is reserved
+   * either way (`pt-24` on the field's box), so nothing shifts as it moves. Two finished class
+   * strings rather than `peer-*` variants: those land at equal specificity, so which one won
+   * would depend on the order Tailwind happened to emit them in.
+   */
+  const labelClass = (field: 'name' | 'query') => {
+    const up = focused === field || filled[field];
+    // Clicks pass through to the field it sits on, which is the whole point of a placeholder.
+    // Only what moves: `transition-all` would animate every property, and an animating
+    // `font-size` inside this section's parallax thrashes layout badly enough to stall
+    // the main thread while the label travels.
+    const move =
+      'pointer-events-none absolute transition-[top,left,font-size,color] duration-150 ease-out motion-reduce:transition-none';
+    if (up) {
+      return `${move} top-0 left-0 text-nav-label font-semibold tracking-label text-bone-white uppercase`;
+    }
+    // A rejected field is indented by its own ground, and its label follows the text in.
+    return `${move} top-36 ${errors[field] ? 'left-12' : 'left-0'} text-body font-normal text-silver-mist`;
+  };
+
+  const watch = (field: 'name' | 'query') => ({
+    onFocus: () => {
+      setFocused(field);
+    },
+    onBlur: (event: FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+      // Read before the update is queued: React nulls `currentTarget` once the handler returns,
+      // and an updater function runs after that.
+      const has = event.currentTarget.value.length > 0;
+      setFilled((current) => (current[field] === has ? current : { ...current, [field]: has }));
+      setFocused((current) => (current === field ? '' : current));
+    },
+    onInput: (event: SyntheticEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+      const has = event.currentTarget.value.length > 0;
+      setFilled((current) => (current[field] === has ? current : { ...current, [field]: has }));
+    },
+  });
   // White, not flame. At 12px over glass flame reaches 2.24:1 against a 4.5:1 bar, and this
   // is the one line a visitor has to read to get unstuck. The amber rule beside it is what
   // says which field, so nothing rests on the colour of the words.
@@ -117,8 +159,8 @@ export function ContactForm({ whatsappNumber, trackUrl, labels, messageTemplate 
       // rather than solid so the workshop still reads through it.
       className="flex flex-col gap-30 rounded-3xl border border-bone-white/20 bg-void/20 p-24 backdrop-blur-lg md:p-30"
     >
-      <div className="flex flex-col gap-6">
-        <label htmlFor={`${id}-name`} className={labelClass}>
+      <div className="relative pt-24">
+        <label htmlFor={`${id}-name`} className={labelClass('name')}>
           {labels.name}
         </label>
         <input
@@ -128,6 +170,7 @@ export function ContactForm({ whatsappNumber, trackUrl, labels, messageTemplate 
           autoComplete="name"
           maxLength={LIMITS.name.max}
           required
+          {...watch('name')}
           aria-invalid={errors.name ? true : undefined}
           aria-describedby={errors.name ? `${id}-name-error` : undefined}
           className={fieldClass}
@@ -139,38 +182,42 @@ export function ContactForm({ whatsappNumber, trackUrl, labels, messageTemplate 
         ) : null}
       </div>
 
-      <div className="flex flex-col gap-6">
-        <label htmlFor={`${id}-query`} className={labelClass}>
+      <div className="relative pt-24">
+        <label htmlFor={`${id}-query`} className={labelClass('query')}>
           {labels.query}
         </label>
-        {/* The example used to be the placeholder, which is the one place it could not stay: it
-            vanishes the moment anyone starts typing — exactly when a worked example is worth
-            reading — and placeholder grey is the hardest text on the panel to keep legible. As a
-            line of its own it is always there, and it is announced with the field. */}
-        <p id={`${id}-query-example`} className="text-caption text-bone-white">
-          {labels.queryExample}
-        </p>
         <textarea
           id={`${id}-query`}
           name="query"
-          // Two lines to start, then as many as the answer needs. Dragged resizing is gone with
+          // One line to start, then as many as the answer needs. Dragged resizing is gone with
           // it: the field is already the size of what is in it, so the handle could only ever
           // add empty space, and on a glass panel that space is a hole in the layout.
-          rows={2}
+          rows={1}
           maxLength={LIMITS.query.max}
           required
           aria-invalid={errors.query ? true : undefined}
           aria-describedby={
             errors.query ? `${id}-query-example ${id}-query-error` : `${id}-query-example`
           }
-          onInput={growWithContent}
+          {...watch('query')}
+          onInput={(event: SyntheticEvent<HTMLTextAreaElement>) => {
+            watch('query').onInput(event);
+            growWithContent(event);
+          }}
           className={`${fieldClass} resize-none`}
         />
+        {/* The example used to be the placeholder, which is the one place it could not stay: it
+            vanishes the moment anyone starts typing — exactly when a worked example is worth
+            reading — and placeholder grey is the hardest text on the panel to keep legible. As a
+            line under the rule it is always there, and it is announced with the field. */}
         {errors.query ? (
           <p id={`${id}-query-error`} className={errorClass}>
             {errorText('query')}
           </p>
         ) : null}
+        <p id={`${id}-query-example`} className="mt-6 text-caption text-bone-white">
+          {labels.queryExample}
+        </p>
       </div>
 
       <button

@@ -15,9 +15,9 @@ export const smoothstep = (t: number): number => {
 
 /** Timeline from the first particle (ms). */
 export const TIMING = {
-  fall: 1400, // one particle's trip from above the stage to its place in the logo
+  fall: 700, // one particle's trip from above the stage to its place in the logo
   maxDelay: 400, // per-particle stagger, so the figure fills in rather than snapping
-  settle: 400, // the formed figure (and the wordmark) glide into the layout
+  settle: 300, // the formed figure (and the wordmark) glide into the layout
 } as const;
 /** The figure is complete here; the rest of the hero is revealed from this moment. */
 export const SEQUENCE_END = TIMING.fall + TIMING.maxDelay;

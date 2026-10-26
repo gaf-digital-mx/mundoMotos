@@ -87,6 +87,15 @@ export function CheckIcon({ className }: { className?: string }) {
   );
 }
 
+/** The arrow a select draws for itself, redrawn so it can sit clear of the border. */
+export function ChevronDownIcon({ className }: { className?: string }) {
+  return (
+    <svg {...base} className={className}>
+      <path d="M6 9.5 12 15.5 18 9.5" />
+    </svg>
+  );
+}
+
 /** The counterpart to the check: not applicable, rather than an error. */
 export function DashIcon({ className }: { className?: string }) {
   return (

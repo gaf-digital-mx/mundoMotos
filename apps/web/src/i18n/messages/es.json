@@ -77,12 +77,10 @@
     "quoteForm": {
       "title": "Cotizar",
       "brand": "Marca",
-      "brandPlaceholder": "Elige tu marca",
       "brandOther": "Otra",
       "brandOtherLabel": "¿Cuál marca?",
       "model": "Modelo",
       "displacement": "Cilindraje",
-      "displacementPlaceholder": "Elige el cilindraje",
       "displacementOption": "{cc} cc",
       "displacementOver": "Más de 250 cc",
       "displacementUnknown": "No sé",
