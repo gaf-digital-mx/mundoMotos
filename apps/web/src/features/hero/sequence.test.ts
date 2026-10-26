@@ -65,11 +65,13 @@ describe('choreoAt', () => {
       const speeds = points
         .slice(1)
         .map((p, i) => Math.hypot(p.x - (points[i]?.x ?? 0), p.y - (points[i]?.y ?? 0)));
-      // No single frame moves far (a ~1000 px fall over 1.4 s peaks around 18 px/frame).
-      expect(Math.max(...speeds)).toBeLessThan(30);
-      // Speed changes gradually: no abrupt acceleration between consecutive frames.
+      // No single frame moves far. This fixture falls about 1,000 px in 0.7 s and peaks at
+      // 36 px/frame; the bar is what still reads as motion rather than teleporting.
+      expect(Math.max(...speeds)).toBeLessThan(45);
+      // Speed changes gradually: no abrupt acceleration between consecutive frames. Halving
+      // the fall quadruples this (it goes as 1/duration²): it peaks at 3.2 now.
       const accelerations = speeds.slice(1).map((v, i) => Math.abs(v - (speeds[i] ?? 0)));
-      expect(Math.max(...accelerations)).toBeLessThan(2.5);
+      expect(Math.max(...accelerations)).toBeLessThan(4);
     },
   );
 
@@ -83,8 +85,8 @@ describe('choreoAt', () => {
 
   it('reveals the hero within the agreed window, and well under the 5 s auto-play budget', () => {
     const revealed = SEQUENCE_END + TIMING.settle;
-    expect(revealed).toBeGreaterThanOrEqual(1800);
-    expect(revealed).toBeLessThanOrEqual(2200);
+    expect(revealed).toBeGreaterThanOrEqual(1000);
+    expect(revealed).toBeLessThanOrEqual(1400);
     expect(revealed).toBeLessThan(5000);
   });
 });

@@ -397,17 +397,12 @@ export function HeroStage({ children, pauseLabel, playLabel }: Props) {
       startObserver.disconnect();
       begin();
     });
-    const watch = () => {
-      startObserver.observe(stage);
-    };
-    const hasIdle = typeof (window.requestIdleCallback as unknown) === 'function';
-    const idle = hasIdle
-      ? window.requestIdleCallback(watch, { timeout: 1500 })
-      : window.setTimeout(watch, 300);
+    // Straight to the observer, with no wait for an idle browser: the wordmark starts typing
+    // at first paint, and a wait put the particles a third of their fall behind it — which is
+    // what read as the text arriving first.
+    startObserver.observe(stage);
 
     return () => {
-      if (hasIdle) window.cancelIdleCallback(idle);
-      else window.clearTimeout(idle);
       window.clearTimeout(watchdog);
       cancelAnimationFrame(frame);
       motionQuery.removeEventListener('change', onMotionChange);
@@ -451,7 +446,7 @@ export function HeroStage({ children, pauseLabel, playLabel }: Props) {
       <canvas
         ref={canvasRef}
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 z-0 size-full opacity-0 transition-opacity duration-300 data-[ready=true]:opacity-100"
+        className="pointer-events-none absolute inset-0 z-0 size-full opacity-0 transition-opacity duration-[120ms] data-[ready=true]:opacity-100"
       />
     </div>
   );

@@ -210,14 +210,14 @@ export function ContactForm({ whatsappNumber, trackUrl, labels, messageTemplate 
             vanishes the moment anyone starts typing — exactly when a worked example is worth
             reading — and placeholder grey is the hardest text on the panel to keep legible. As a
             line under the rule it is always there, and it is announced with the field. */}
-        <p id={`${id}-query-example`} className="mt-6 text-caption text-bone-white">
-          {labels.queryExample}
-        </p>
         {errors.query ? (
           <p id={`${id}-query-error`} className={errorClass}>
             {errorText('query')}
           </p>
         ) : null}
+        <p id={`${id}-query-example`} className="mt-6 text-caption text-bone-white">
+          {labels.queryExample}
+        </p>
       </div>
 
       <button
